@@ -8,6 +8,8 @@ import { imageInfo } from './visual/image.ts';
 import { parseFigmaUrl, type Figma } from './adapters/figma.ts';
 import type { Runtime } from './runtime.ts';
 import type { ProjectStore } from './projects.ts';
+import type { ContentService } from './content/service.ts';
+import { contentRoutes } from './content/routes.ts';
 import { REPO_URL, repoNameFromUrl, type ProjectSources } from './project-sources.ts';
 
 const CreateFeature = z
@@ -34,8 +36,9 @@ const CreateProject = z.discriminatedUnion('source', [
 
 const Approval = z.object({ gate: Gate, push: z.boolean().optional() });
 
-export function createApp(rt: Runtime, projects: ProjectStore, sources: ProjectSources, opts: { visualDir: string; figma?: Figma }) {
+export function createApp(rt: Runtime, projects: ProjectStore, sources: ProjectSources, opts: { visualDir: string; figma?: Figma; content?: ContentService }) {
   const app = new Hono();
+  if (opts.content) app.route('/', contentRoutes(opts.content, projects));
 
   app.get('/projects', c => c.json(projects.list()));
 

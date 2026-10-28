@@ -199,3 +199,23 @@ input[type='checkbox'] { width: auto; }
 .failure details { margin-top: 12px; }
 .warn { color: var(--bad); }
 .autofix { display: flex; justify-content: space-between; align-items: center; gap: 12px; width: 100%; }
+
+/* content */
+details.card > summary { cursor: pointer; list-style: none; } details.card > summary::-webkit-details-marker { display: none; }
+.newbox { margin-top: 16px; border-top: 1px dashed var(--line); padding-top: 12px; } .newbox > summary { cursor: pointer; color: var(--accent); font-weight: 600; }
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; } @media (max-width: 560px) { .two { grid-template-columns: 1fr; } }
+.ms { border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 8px; background: var(--soft); }
+.ms.risk { border-color: var(--wait); }
+.ms .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin: 0; }
+.bar { height: 6px; border-radius: 999px; background: var(--line); overflow: hidden; } .bar i { display: block; height: 100%; background: var(--done); transition: width .3s; }
+.late { color: var(--wait); font-weight: 600; } .early { color: var(--done); font-style: normal; font-weight: 600; } em.late, em.early { font-style: normal; font-size: 12px; }
+.note { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--muted); }
+.chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } .chip { padding: 3px 10px; font-size: 12px; border-radius: 999px; } .chips select { width: auto; padding: 3px 8px; font-size: 12px; }
+.ms .row { margin-top: 4px; } .ms .row input { flex: 1; min-width: 180px; }
+.history { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+.items { margin-bottom: 4px; }
+.item-row { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.rows .item-head { display: grid; grid-template-columns: 84px 1fr auto; gap: 12px; align-items: center; border: 0; border-radius: 0; background: var(--panel); }
+.item-head .when { font-variant-numeric: tabular-nums; font-weight: 600; } .item-head .what { display: grid; }
+.item-body { padding: 4px 14px 14px; background: var(--soft); border-top: 1px solid var(--line); }
+.item-body .row input { flex: 1; min-width: 160px; } label.lock { margin: 0 0 0 auto; display: flex; align-items: center; gap: 6px; } label.lock input { width: auto; }
