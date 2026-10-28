@@ -19,7 +19,7 @@ export const SOURCE: Record<Exclude<ItemSource, ''>, { label: string; hint: stri
   manager: { label: 'Your brief', hint: 'You asked for it' },
 };
 
-export const AGENT_HUE: Record<AgentId, number> = { scout: 200, analyst: 150, strategist: 270, writer: 20 };
+export const AGENT_HUE: Record<AgentId, number> = { director: 340, scout: 200, analyst: 150, strategist: 270, writer: 20 };
 
 export function useAction(after: () => Promise<void> | void) {
   const [busy, setBusy] = useState('');
