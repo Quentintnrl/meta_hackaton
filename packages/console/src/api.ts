@@ -97,3 +97,44 @@ export function tone(state: string): Tone {
   if (['PLANNED', 'VISUAL_CHECK', 'PR_READY', 'MERGE_FAILED', 'ANNOUNCE_DRAFTED'].includes(state)) return 'wait';
   return 'work';
 }
+
+// --- content: roadmap, projections, calendar
+export type ItemKind = 'changelog' | 'release-notes' | 'devlog' | 'social-post' | 'teaser' | 'doc-update' | 'demo-script' | 'newsletter';
+export const ITEM_KINDS: ItemKind[] = ['changelog', 'release-notes', 'devlog', 'social-post', 'teaser', 'doc-update', 'demo-script', 'newsletter'];
+export type ItemStatus = 'idea' | 'briefed' | 'drafted' | 'approved' | 'published';
+
+export interface Forecast { id: number; madeAt: string; predictedDate: string; calibration: number; done: number; scope: number; confidence: 'low' | 'medium' | 'high'; note: string }
+export interface Milestone {
+  id: string; projectId: string; title: string; intent: string; targetDate: string; scope: number; status: 'open' | 'done'; doneAt?: string;
+  featureIds: string[]; delivered: number; forecast?: Forecast; atRisk: boolean; slipDays: number; accuracy?: { errorDays: number };
+}
+export interface ContentItem {
+  id: string; projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; draft: string; status: ItemStatus;
+  offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string;
+  date?: string; plannedDate?: string; shiftDays?: number;
+}
+export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean }
+export interface ContentView { profile: Profile; milestones: Milestone[]; items: ContentItem[] }
+
+const send = <T>(method: string, path: string, body?: unknown) => call<T>(path, { method, body: JSON.stringify(body ?? {}) });
+
+export const contentApi = {
+  view: (pid: string) => call<ContentView>(`/projects/${pid}/content`),
+  setProfile: (pid: string, p: Profile) => send<Profile>('PUT', `/projects/${pid}/profile`, p),
+  addMilestone: (pid: string, b: { title: string; intent: string; targetDate: string; scope: number }) => send<Milestone>('POST', `/projects/${pid}/milestones`, b),
+  patchMilestone: (id: string, b: Partial<{ title: string; intent: string; targetDate: string; scope: number }>) => send<Milestone>('PATCH', `/milestones/${id}`, b),
+  removeMilestone: (id: string) => send<{ ok: true }>('DELETE', `/milestones/${id}`),
+  markDone: (id: string) => send<Milestone>('POST', `/milestones/${id}/done`),
+  forecasts: (id: string) => call<Forecast[]>(`/milestones/${id}/forecasts`),
+  link: (id: string, featureId: string) => send<Milestone>('POST', `/milestones/${id}/features`, { featureId }),
+  unlink: (id: string, featureId: string) => send<Milestone>('DELETE', `/milestones/${id}/features/${featureId}`),
+  plan: (id: string, guidance?: string) => send<ContentItem[]>('POST', `/milestones/${id}/plan`, { guidance }),
+  addItem: (pid: string, b: { kind: ItemKind; title: string; brief: string; milestoneId?: string; offsetDays?: number; fixedDate?: string }) => send<ContentItem>('POST', `/projects/${pid}/items`, b),
+  patchItem: (id: string, b: Partial<Pick<ContentItem, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId'>> & { clearFixedDate?: boolean }) => send<ContentItem>('PATCH', `/items/${id}`, b),
+  removeItem: (id: string) => send<{ ok: true }>('DELETE', `/items/${id}`),
+  draft: (id: string, guidance?: string) => send<ContentItem>('POST', `/items/${id}/draft`, { guidance }),
+  revise: (id: string, instruction: string) => send<ContentItem>('POST', `/items/${id}/revise`, { instruction }),
+  approve: (id: string) => send<ContentItem>('POST', `/items/${id}/approve`),
+  publish: (id: string) => send<ContentItem>('POST', `/items/${id}/publish`),
+  fromGit: (pid: string, since?: string) => send<ContentItem>('POST', `/projects/${pid}/content/from-git`, { since: since || undefined }),
+};
