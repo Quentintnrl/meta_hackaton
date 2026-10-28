@@ -28,9 +28,9 @@ code { background: var(--soft); padding: 1px 6px; border-radius: 6px; }
 /* layout */
 .layout { display: grid; grid-template-columns: 264px minmax(0, 1fr) 320px; min-height: 100vh; }
 @media (max-width: 1100px) { .layout { grid-template-columns: 220px minmax(0, 1fr); } .timeline { display: none; } }
-@media (max-width: 720px) { .layout { grid-template-columns: 1fr; } .side { border-right: 0; border-bottom: 1px solid var(--line); } }
+@media (max-width: 720px) { .layout { grid-template-columns: 1fr; } .side { position: static; height: auto; border-right: 0; border-bottom: 1px solid var(--line); } }
 .side, .timeline { padding: 20px 16px; background: var(--panel); }
-.side { border-right: 1px solid var(--line); }
+.side { border-right: 1px solid var(--line); position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; overscroll-behavior: contain; }
 .timeline { border-left: 1px solid var(--line); display: flex; flex-direction: column; height: 100vh; position: sticky; top: 0; overflow: hidden; }
 /* The list scrolls on its own, inset from the page edge, so its bar is never mistaken for the page's. */
 .tl-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; margin: 0 -6px 0 0; padding-right: 10px; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
@@ -298,8 +298,8 @@ details > summary { cursor: pointer; list-style: none; } details > summary::-web
 .layout.wide { grid-template-columns: 264px minmax(0, 1fr); } .main:has(.studio) { max-width: none; padding: 0; margin: 0; }
 .studio { display: grid; grid-template-columns: 220px minmax(0, 1fr); min-height: 100vh; }
 @media (max-width: 800px) { .studio { grid-template-columns: 1fr; } }
-.subnav { padding: 24px 14px; border-right: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
-@media (max-width: 800px) { .subnav { position: static; height: auto; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); } }
+.subnav { padding: 24px 14px; border-right: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; gap: 14px; position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 800px) { .subnav { position: static; align-self: auto; height: auto; flex-direction: row; flex-wrap: wrap; border-right: 0; border-bottom: 1px solid var(--line); } }
 .navgroup { display: grid; gap: 2px; } .navlabel { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 10px; margin-bottom: 2px; }
 .navitem { display: flex; justify-content: space-between; align-items: center; text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 9px; font-weight: 500; }
 .navitem.on { background: var(--panel); box-shadow: var(--shadow); font-weight: 650; color: var(--accent); }
