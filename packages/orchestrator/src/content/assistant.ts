@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import type { LLM } from '../adapters/llm.ts';
-import { ItemKind, type Forecast, type Item, type Milestone, type Profile } from './types.ts';
+import { ItemKind, normalizeHashtags, type Forecast, type Item, type Milestone, type Media, type Profile } from './types.ts';
 
 export interface FeatureFacts {
   title: string;
@@ -116,4 +116,70 @@ Correction learned from ${a.calibrationSamples} finished milestone(s): x${a.next
     'forecast_note',
   );
   return r.note.trim();
+}
+
+const PostPackage = z.object({
+  caption: z.string(), // the description under the post
+  hashtags: z.array(z.string()).min(3).max(15),
+  format: z.enum(['image', 'carousel', 'video']),
+  slides: z.array(z.object({
+    kind: z.enum(['image', 'video']),
+    visual: z.string(),
+    text: z.string(),
+    seconds: z.number().int().min(0).max(90),
+  })).min(1).max(10),
+});
+
+const POST_RULES = `A post is a package, not just a picture. Produce:
+- caption: the description under the post. Open with the hook (the first line is what people see before "more"). No hashtags inside it.
+- hashtags: 5 to 12, a mix of broad and niche, no spaces, none invented to look popular.
+- format: "image" (one picture), "carousel" (a series of 3 to 8 pictures that tell something in order, each slide one idea) or "video" (a short vertical video: 3 to 8 shots). Choose what suits the message and what the manager asked for.
+- slides: for an image or a carousel, one entry per picture (kind "image"). "visual" is a precise prompt for an image generator: subject, composition, style, colours; keep the same style across slides; write NO text inside the picture itself, put wording in "text" (overlay copy). For a video, one entry per shot (kind "video"): "visual" says what we see, "text" is the voiceover or on-screen text, "seconds" its length. For images "seconds" is 0.`;
+
+const packageToText = (caption: string, media?: Media) => media
+  ? `Format: ${media.format}\nCaption:\n${caption}\nHashtags: ${media.hashtags.join(' ')}\nSlides:\n${media.slides.map((x, i) => `${i + 1}. [${x.kind}${x.seconds ? ` ${x.seconds}s` : ''}] visual: ${x.visual} | text: ${x.text}`).join('\n')}`
+  : caption;
+
+function asMedia(r: z.infer<typeof PostPackage>, previous?: Media): { caption: string; media: Media } {
+  const slides = r.slides.map((x, i) => {
+    const old = previous?.slides[i];
+    // A generated picture stays while its description is unchanged: no paying twice for the same image.
+    return { ...x, file: old?.file && old.visual === x.visual ? old.file : undefined };
+  });
+  return { caption: r.caption.trim(), media: { format: r.format, hashtags: normalizeHashtags(r.hashtags), slides } };
+}
+
+export async function draftPost(llm: LLM, a: { item: Item; milestone?: Milestone; profile: Profile; features: FeatureFacts[]; commits?: string[]; guidance?: string }) {
+  const r = await llm.json(
+    `You write social posts for a software project, in the project's voice. Do not invent features, numbers or dates that are not below.
+${POST_RULES}
+
+${voice(a.profile)}
+
+Kind: ${a.item.kind} (${KIND_HELP[a.item.kind]})
+Title: ${a.item.title}
+What the manager wants it to say: ${a.item.brief || '(left to you: stay close to the facts below)'}
+${a.milestone ? `Milestone: ${a.milestone.title}. ${a.milestone.intent}` : ''}
+Facts, features:
+${featureLines(a.features)}
+${a.commits?.length ? `Facts, commits:\n${a.commits.map(c => `- ${c}`).join('\n')}` : ''}
+${a.item.draft ? `\nPrevious version (improve on it):\n${packageToText(a.item.draft, a.item.media)}` : ''}
+${a.guidance ? `\nThe manager adds: ${a.guidance}` : ''}`,
+    PostPackage, 'post');
+  return asMedia(r, a.item.media);
+}
+
+export async function revisePost(llm: LLM, a: { item: Item; instruction: string; profile: Profile }) {
+  const r = await llm.json(
+    `Revise this social post following the instruction. Change only what the instruction asks for; keep the rest as it is (same slides, same wording where it is not concerned).
+${POST_RULES}
+
+${voice(a.profile)}
+
+Instruction: ${a.instruction}
+
+Current post:
+${packageToText(a.item.draft, a.item.media)}`,
+    PostPackage, 'post_revision');
+  return asMedia(r, a.item.media);
 }

@@ -21,6 +21,8 @@ function setup(over: Partial<LLM> = {}) {
         { kind: 'teaser', title: 'Beta teaser', brief: 'tease', rationale: 'BTS wins and the beta lands soon', source: 'roadmap', milestoneId: 'beta', offsetDays: -5, date: '' },
         { kind: 'devlog', title: 'Week notes', brief: 'notes', rationale: 'account gap', source: 'account', milestoneId: 'ghost', offsetDays: 0, date: '2026-11-10' },
       ] });
+      if (name === 'post' || name === 'post_revision') return schema.parse({ caption: `caption (${name})`, hashtags: ['#Meal Prep', 'mealprep', 'cooking'], format: 'carousel', slides: [
+        { kind: 'image', visual: 'a plate, flat lay', text: 'Plan', seconds: 0 }, { kind: 'image', visual: 'a calendar', text: 'Shop', seconds: 0 } ] });
       if (name === 'account_import') return schema.parse({ posts: [{ text: 'hello', format: 'tip', likes: 10, comments: 1, shares: 0, saves: 2, postedAt: 'yesterday' }] });
       return schema.parse({ draft: 'drafted' });
     },

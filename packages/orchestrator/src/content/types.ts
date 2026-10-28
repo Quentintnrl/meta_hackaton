@@ -46,6 +46,27 @@ export interface Forecast {
   note: string; // what changed since the previous forecast, in words
 }
 
+// What a social post is made of: a description (the item's `draft`), hashtags, and one or more pieces of media.
+export type MediaFormat = 'image' | 'carousel' | 'video';
+export interface Slide {
+  kind: 'image' | 'video'; // video = a shot of the storyboard: the video itself is filmed or edited by the manager
+  visual: string; // what is on screen; for an image this is the prompt sent to the image model
+  text: string; // text on the image, or the voiceover of the shot
+  seconds: number; // video shots only, 0 otherwise
+  file?: string; // generated picture (the image itself, or a keyframe of the shot)
+}
+export interface Media { format: MediaFormat; hashtags: string[]; slides: Slide[] }
+
+// '#Meal Prep', 'mealprep' and '##mealprep' are one hashtag.
+export function normalizeHashtags(tags: string[]): string[] {
+  const out: string[] = [];
+  for (const t of tags) {
+    const clean = t.replace(/[^\p{L}\p{N}_]/gu, '');
+    if (clean && !out.some(o => o.toLowerCase() === `#${clean}`.toLowerCase())) out.push(`#${clean}`);
+  }
+  return out.slice(0, 20);
+}
+
 export type ItemSource = 'trend' | 'account' | 'roadmap' | 'manager' | '';
 
 export interface Item {
@@ -61,6 +82,7 @@ export interface Item {
   offsetDays?: number; // date relative to the milestone's forecast: the item moves when the forecast does
   fixedDate?: string; // or a date the user locked
   origin: 'user' | 'ai' | 'dev';
+  media?: Media; // social posts only
   rationale: string; // why the team proposes it: what it saw in trends, in the account, in the roadmap
   source: ItemSource;
   rejectedReason?: string;
