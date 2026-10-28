@@ -68,13 +68,14 @@ machine à états XState, SQLite (journal d'événements), SSE pour la chronolog
 Playwright (captures), Zod (validation des sorties des modèles), SDK `openai` sur l'API Responses de la Meta
 Model API (à tester en premier : `web_search`, SAM, Muse Image). L'app cible n'est pas dans ce monorepo.
 
-## 5 bis. Contenu planifié (orientation création de contenu)
-Le contenu n'est plus seulement la fin de la chaîne dev : il se planifie à part, par projet (`packages/orchestrator/src/content/`).
-- **Feuille de route** : jalons (titre, intention en langage libre, date voulue, nombre de features). L'utilisateur précise ce qu'il veut, l'IA propose les pièces (changelog, notes de version, devlog, post, teaser, doc, script de démo, newsletter) et les rédige dans la voix du projet.
-- **Projection qui se corrige** : la date d'arrivée d'un jalon est calculée (rythme observé, sinon le plan de l'utilisateur), jamais décidée par le modèle ; le modèle ne fait que l'expliquer. Chaque projection est conservée. Quand un jalon se termine, l'erreur mesurée sur la projection **brute** (avant correction) donne un coefficient (moyenne géométrique des 5 derniers jalons, bornée à 0,6-2,5) appliqué aux jalons suivants.
-- **Le calendrier suit la projection** : une pièce a un décalage par rapport à l'arrivée du jalon (ou une date verrouillée) ; si la projection glisse, la pièce glisse.
-- **Dans le flux de dev** : fusion d'une feature (`APPLIED`) = nouvelle projection du jalon + brouillon de changelog ; endpoint `from-git` + hook `post-merge`.
-- **Autonomie** : la rédaction automatique est un réglage par projet ; approuver et publier restent des gestes de l'utilisateur.
+## 5 bis. Studio de communication (orientation création de contenu)
+Le contenu se gère à part du code, par projet (`packages/orchestrator/src/content/`), comme une petite équipe de communication que l'utilisateur manage.
+- **Équipe** (`team.ts`) : *Scout* (recherche web : ce qui marche dans le domaine), *Analyst* (compare le compte du projet à l'audit), *Strategist* (lit audit, compte et **roadmap de dev** : jalons, features, commits ; propose avec une preuve), *Writer* (rédige ce qui est accepté). L'utilisateur brief, accepte ou refuse avec une raison ; les refus alimentent les tours suivants. Ordres permanents lus par tous.
+- **Compte** : collé par l'utilisateur et structuré par le modèle (aucun chiffre inventé), ou compte de démo fictif étiqueté. Pas de connexion Insights pour l'instant (`Insights` reste une interface à brancher).
+- **Projection qui se corrige** : la date d'arrivée d'un jalon est calculée (rythme observé, sinon le plan de l'utilisateur), jamais décidée par le modèle, qui ne fait que l'expliquer. Chaque projection est conservée. À chaque jalon terminé, l'erreur mesurée sur la projection **brute** donne un coefficient (moyenne géométrique des 5 derniers, borné 0,6-2,5) appliqué aux suivants.
+- **Le calendrier suit la projection** : une pièce a un décalage par rapport à l'arrivée du jalon (ou une date verrouillée).
+- **Dans le flux de dev** : fusion (`APPLIED`) = nouvelle projection + brouillon de changelog ; `from-git` et hook `post-merge`.
+- **Autonomie** : l'équipe propose, l'utilisateur décide. Rien n'est rédigé avant acceptation ; la rédaction anticipée est un réglage par projet ; approuver et publier restent des gestes de l'utilisateur.
 
 ## 6. Périmètre
 **Dans le cœur :** machine à états et autonomie, lecture Figma, plan, constructeur + branche, contrôle visuel

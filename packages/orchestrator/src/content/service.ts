@@ -48,8 +48,9 @@ export class ContentService {
   #git: GitLog;
   #repoPath: (projectId: string) => string | undefined;
   #publisher?: Publisher;
+  #projectFeatures: (projectId: string) => Array<FeatureFacts & { id: string }>;
 
-  constructor(o: { store?: ContentStore; llm: LLM; features: FeatureLookup; exportDir: string; repoPath: (projectId: string) => string | undefined; now?: () => Date; git?: GitLog; publisher?: Publisher }) {
+  constructor(o: { projectFeatures?: (projectId: string) => Array<FeatureFacts & { id: string }>; store?: ContentStore; llm: LLM; features: FeatureLookup; exportDir: string; repoPath: (projectId: string) => string | undefined; now?: () => Date; git?: GitLog; publisher?: Publisher }) {
     this.store = o.store ?? new ContentStore();
     this.#llm = o.llm;
     this.#features = o.features;
@@ -58,7 +59,14 @@ export class ContentService {
     this.#now = o.now ?? (() => new Date());
     this.#git = o.git ?? gitLog;
     this.#publisher = o.publisher;
+    this.#projectFeatures = o.projectFeatures ?? (() => []);
   }
+
+  // What the dev side is doing, for the agents: every feature of the project and where it stands.
+  projectFeatures(projectId: string) { return this.#projectFeatures(projectId); }
+  recentCommits(projectId: string, since = '3 weeks ago') { return this.#commits(projectId, since); }
+  get now() { return this.#now(); }
+  get llm() { return this.#llm; }
 
   // --- roadmap
   async createMilestone(i: { projectId: string; title: string; intent: string; targetDate: string; scope: number }) {
@@ -159,6 +167,17 @@ export class ContentService {
     }));
   }
 
+  // The manager's answer to a proposal. Accepting puts it in the calendar; refusing keeps the reason, which the strategist reads next time.
+  accept(itemId: string): Item {
+    const i = this.#needItem(itemId);
+    return this.store.updateItem(itemId, { status: i.draft ? 'drafted' : 'briefed' });
+  }
+
+  reject(itemId: string, reason: string): Item {
+    this.#needItem(itemId);
+    return this.store.updateItem(itemId, { status: 'rejected', rejectedReason: reason });
+  }
+
   async draft(itemId: string, guidance?: string, commits: string[] = []): Promise<Item> {
     const item = this.#needItem(itemId);
     const milestone = item.milestoneId ? this.store.milestone(item.milestoneId) : undefined;
@@ -252,7 +271,8 @@ export class ContentService {
     }
     const today = day(this.#now());
     for (const i of this.store.items()) {
-      if (!['idea', 'briefed'].includes(i.status) || !this.store.profile(i.projectId).autoDraft) continue;
+      // Only what the manager accepted or wrote: a proposal still waiting for a decision is not worked on.
+      if (i.status !== 'briefed' || !this.store.profile(i.projectId).autoDraft) continue;
       const due = this.schedule(i).date;
       if (!due || due > addDays(today, DRAFT_LEAD_DAYS)) continue;
       try { await this.draft(i.id); drafted++; } catch { /* the next tick tries again */ }

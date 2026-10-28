@@ -45,14 +45,19 @@ Variables facultatives : `PORT` (défaut `8787`), `JOURNAL_PATH` (défaut `out/j
 - **Fusion** : le dépôt doit être sur `main` et sans modification en cours. Le push vers GitHub est une case à cocher à chaque fusion, jamais automatique.
 - **Contrôle visuel et « avant / après »** : le projet doit avoir un script `dev` qui démarre un serveur acceptant `--host`, `--port` et `--strictPort` (Vite le fait). L'app est capturée deux fois : sur `main` avant la feature (« avant »), puis sur la branche construite (« après »). Un projet sans ce script n'aura pas de captures, mais la construction continue.
 
-### Contenu et feuille de route
+### Studio de communication
 
-Onglet **Content & roadmap** de chaque projet. Rien à installer ni à configurer en plus de `MODEL_API_KEY`.
+Onglet **Communication studio** de chaque projet : une petite équipe d'agents que tu diriges. Rien de plus à configurer que `MODEL_API_KEY`.
 
-- **Voix et public** : à remplir une fois (ton, lecteurs, langue). L'IA écrit avec. La case « rédiger toute seule » fait rédiger les pièces dont la date approche (3 jours avant) ; elle n'approuve ni ne publie jamais.
-- **Jalons** : un titre, ta phrase de ce que tu veux, une date cible, le nombre de features que ça prend. Rattache-y des features. L'IA projette la date d'arrivée, la **révise** à chaque fusion (et chaque jour), garde l'historique de ses projections, et se **corrige** : à chaque jalon terminé, l'écart entre ses projections et la réalité ajuste les suivantes.
-- **Calendrier** : « Plan content with AI » propose des pièces autour d'un jalon (teasers, changelog, démo…), tu corriges les briefs, elle rédige, tu demandes des changements, tu approuves. Les dates des pièces suivent la projection du jalon (badge `+Nd`) ; verrouille une date pour la figer. Une pièce approuvée est écrite dans `out/content/<projet>/`. « Mark published » ne publie nulle part : la publication Instagram reste la porte `publish`.
-- **Dans le flux de dev** : une feature fusionnée crée seule un brouillon de changelog et met à jour son jalon. « Changelog from git » écrit un changelog depuis l'historique du dépôt. Pour le déclencher à chaque merge, copie `scripts/content-hook.sh` dans `.git/hooks/post-merge` du projet et exporte `RIPPLE_PROJECT=<id du projet>` (et `RIPPLE_PORT` si tu changes le port).
+- **Scout** : cherche sur le web ce qui marche dans ton domaine (formats, accroches, sujets), sources à l'appui.
+- **Analyst** : compare ton compte à ce que le Scout a trouvé. Il lui faut tes posts : colle-les avec leurs chiffres (onglet *Orders & account*, n'importe quel format, le modèle les structure et n'invente aucun chiffre) ou charge le **compte de démo** (posts fictifs, toujours étiquetés « Demo data »). Il n'y a pas encore de connexion directe à Instagram Insights.
+- **Strategist** : lit l'audit, l'analyse de ton compte **et la feuille de route de dev** (jalons, features en cours, derniers commits), puis propose du contenu, chaque proposition avec sa raison (tendance, compte ou roadmap).
+- **Writer** : rédige ce que tu acceptes.
+- **Toi, le manager** : tu briefes l'équipe en une phrase, tu acceptes, acceptes et fais écrire, ou refuses en donnant la raison. Les refus sont relus par le Strategist au tour suivant et un titre refusé ne revient pas. Les *standing orders* (« jamais de prix », « 2 posts par semaine ») sont lus par tous les agents.
+- **Calendrier** (vue mois) et **Roadmap** (frise : ta date, la date projetée, le contenu). La date projetée d'un jalon est calculée à partir du rythme réel, révisée à chaque fusion et chaque jour, et corrigée par l'écart mesuré sur les jalons terminés ; chaque projection est gardée avec une note. Les dates du contenu suivent la projection (badge `+3d`) ; verrouille une date pour la figer.
+- **Dans le flux de dev** : une feature fusionnée met à jour son jalon et crée un brouillon de changelog. « Changelog from git » écrit depuis l'historique ; `scripts/content-hook.sh` copié dans `.git/hooks/post-merge` le fait à chaque merge (exporte `RIPPLE_PROJECT=<id du projet>`).
+- Une pièce approuvée est écrite dans `out/content/<projet>/`. « Mark published » ne publie nulle part pour l'instant.
+- Pour regarder l'interface sans toucher au serveur déjà lancé : `ORCHESTRATOR_URL=http://localhost:<port> pnpm --filter @ripple/console exec vite --port <autre port>`.
 
 ## Lancer
 

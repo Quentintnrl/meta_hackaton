@@ -165,7 +165,7 @@ test('editing the text by hand makes it a draft that needs a new approval', asyn
 test('a merged feature starts its own changelog; autoDraft writes it', async () => {
   const { svc, states } = setup();
   states.set('a', 'APPLIED');
-  svc.setProfile('app', { voice: 'warm', audience: 'cooks', language: 'English', autoDraft: true });
+  svc.setProfile('app', { voice: 'warm', audience: 'cooks', language: 'English', autoDraft: true, niche: '', directives: '' });
   const [item] = await svc.onFeatureApplied('a');
   assert.equal(item.origin, 'dev');
   assert.equal(item.status, 'drafted');
@@ -183,7 +183,7 @@ test('tick drafts what is due soon, only where the project allows it, and never 
   const { svc, advance } = setup();
   const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'p', brief: 'b', fixedDate: '2026-11-03' });
   assert.deepEqual(await svc.tick(), { reforecast: 0, drafted: 0 });
-  svc.setProfile('app', { voice: '', audience: '', language: 'English', autoDraft: true });
+  svc.setProfile('app', { voice: '', audience: '', language: 'English', autoDraft: true, niche: '', directives: '' });
   advance(0);
   assert.equal((await svc.tick()).drafted, 1);
   assert.equal(svc.store.item(i.id)!.status, 'drafted');
@@ -214,7 +214,7 @@ test('routes: roadmap to published, with errors mapped', async () => {
   assert.equal((await send('POST', `/items/${id}/approve`)).status, 200);
   assert.equal((await send('POST', `/items/${id}/publish`)).status, 200);
   assert.equal((await send('POST', '/items/ghost/draft', {})).status, 404);
-  assert.equal((await send('PUT', '/projects/app/profile', { voice: 'v', audience: 'a', language: 'French', autoDraft: true })).status, 200);
+  assert.equal((await send('PUT', '/projects/app/profile', { voice: 'v', audience: 'a', language: 'French', autoDraft: true, niche: '', directives: '' })).status, 200);
   assert.equal((await send('POST', '/projects/app/content/from-git', { since: '1 week ago; rm -rf' })).status, 400);
   assert.equal((await send('DELETE', `/milestones/${m.id}`)).status, 200);
   assert.equal((await send('POST', '/content/tick')).status, 200);

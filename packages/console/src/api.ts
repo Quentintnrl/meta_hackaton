@@ -101,7 +101,8 @@ export function tone(state: string): Tone {
 // --- content: roadmap, projections, calendar
 export type ItemKind = 'changelog' | 'release-notes' | 'devlog' | 'social-post' | 'teaser' | 'doc-update' | 'demo-script' | 'newsletter';
 export const ITEM_KINDS: ItemKind[] = ['changelog', 'release-notes', 'devlog', 'social-post', 'teaser', 'doc-update', 'demo-script', 'newsletter'];
-export type ItemStatus = 'idea' | 'briefed' | 'drafted' | 'approved' | 'published';
+export type ItemStatus = 'idea' | 'briefed' | 'drafted' | 'approved' | 'published' | 'rejected';
+export type ItemSource = 'trend' | 'account' | 'roadmap' | 'manager' | '';
 
 export interface Forecast { id: number; madeAt: string; predictedDate: string; calibration: number; done: number; scope: number; confidence: 'low' | 'medium' | 'high'; note: string }
 export interface Milestone {
@@ -110,13 +111,32 @@ export interface Milestone {
 }
 export interface ContentItem {
   id: string; projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; draft: string; status: ItemStatus;
-  offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string;
+  offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string; rationale: string; source: ItemSource; rejectedReason?: string;
   date?: string; plannedDate?: string; shiftDays?: number;
 }
-export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean }
+export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; niche: string; directives: string }
 export interface ContentView { profile: Profile; milestones: Milestone[]; items: ContentItem[] }
 
 const send = <T>(method: string, path: string, body?: unknown) => call<T>(path, { method, body: JSON.stringify(body ?? {}) });
+
+export type AgentId = 'scout' | 'analyst' | 'strategist' | 'writer';
+export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string }>; hooks: string[]; topics: string[]; avoid: string[]; sources: string[] }
+export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number }
+export interface Report<T> { data: T; simulated: boolean; at: string }
+export interface TeamView {
+  agents: Array<{ id: AgentId; name: string; role: string }>;
+  working?: { agent: AgentId; since: string };
+  audit?: Report<Audit>; account?: Report<AccountReport>; accountPosts: number;
+  activity: Array<{ id: number; agent: AgentId; summary: string; ok: boolean; at: string }>;
+}
+
+export const teamApi = {
+  view: (pid: string) => call<TeamView>(`/projects/${pid}/team`),
+  run: (pid: string, agents: AgentId[], brief: string) => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents, brief }),
+  setAccount: (pid: string, b: { paste?: string; demo?: boolean }) => send<TeamView>('PUT', `/projects/${pid}/account`, b),
+  accept: (id: string) => send<ContentItem>('POST', `/items/${id}/accept`),
+  reject: (id: string, reason: string) => send<ContentItem>('POST', `/items/${id}/reject`, { reason }),
+};
 
 export const contentApi = {
   view: (pid: string) => call<ContentView>(`/projects/${pid}/content`),

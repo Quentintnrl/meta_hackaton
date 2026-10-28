@@ -2,12 +2,13 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import type { ProjectStore } from '../projects.ts';
 import type { ContentService } from './service.ts';
+import { Team } from './team.ts';
 import { ItemKind } from './types.ts';
 
 const Date_ = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 const NewMilestone = z.object({ title: z.string().trim().min(1).max(120), intent: z.string().trim().max(4000).default(''), targetDate: Date_, scope: z.number().int().min(1).max(50) });
 const PatchMilestone = NewMilestone.partial();
-const Profile = z.object({ voice: z.string().max(2000), audience: z.string().max(1000), language: z.string().trim().min(1).max(40), autoDraft: z.boolean() });
+const Profile = z.object({ voice: z.string().max(2000), audience: z.string().max(1000), language: z.string().trim().min(1).max(40), autoDraft: z.boolean(), niche: z.string().max(500).default(''), directives: z.string().max(3000).default('') });
 const NewItem = z.object({
   kind: ItemKind, title: z.string().trim().min(1).max(160), brief: z.string().max(4000).default(''),
   milestoneId: z.string().optional(), featureId: z.string().optional(), offsetDays: z.number().int().min(-90).max(90).optional(), fixedDate: Date_.optional(),
@@ -20,6 +21,7 @@ const PatchItem = z.object({
 // Roadmap, content calendar and the AI that helps with both. Mounted next to the feature routes.
 export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   const app = new Hono();
+  const team = new Team(svc);
 
   const body = async <T extends z.ZodType>(c: Context, schema: T): Promise<z.infer<T> | Response> => {
     const parsed = schema.safeParse(await c.req.json().catch(() => ({})));
@@ -110,6 +112,35 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
     if (!known(c)) return c.json({ error: 'unknown project' }, 404);
     const b = await body(c, z.object({ since: z.string().trim().max(60).regex(/^[\w .:+-]+$/).optional() }));
     return isResponse(b) ? b : guard(c, () => svc.fromGit(c.req.param('pid'), b.since), 201);
+  });
+
+  // --- the team
+  app.get('/projects/:pid/team', c => known(c) ? c.json(team.overview(c.req.param('pid'))) : c.json({ error: 'unknown project' }, 404));
+
+  // Briefs the team. Runs in the background; the console watches /team for the agent at work and the activity log.
+  app.post('/projects/:pid/team/run', async c => {
+    if (!known(c)) return c.json({ error: 'unknown project' }, 404);
+    const b = await body(c, z.object({ agents: z.array(z.enum(['scout', 'analyst', 'strategist', 'writer'])).min(1).default(['scout', 'analyst', 'strategist']), brief: z.string().max(2000).default('') }));
+    if (isResponse(b)) return b;
+    return team.start(c.req.param('pid'), projects.get(c.req.param('pid'))!.name, b.agents, b.brief) ? c.json({ ok: true }, 202) : c.json({ error: 'the team is already working' }, 409);
+  });
+
+  // The account the analyst compares with the field: pasted by the manager, or fictional demo data.
+  app.put('/projects/:pid/account', async c => {
+    if (!known(c)) return c.json({ error: 'unknown project' }, 404);
+    const b = await body(c, z.object({ paste: z.string().max(20000).optional(), demo: z.boolean().optional() }).refine(x => x.paste?.trim() || x.demo, { message: 'paste your posts, or load the demo' }));
+    if (isResponse(b)) return b;
+    return guard(c, async () => {
+      if (b.demo) team.loadDemoAccount(c.req.param('pid'), projects.get(c.req.param('pid'))!.name);
+      else await team.importAccount(c.req.param('pid'), b.paste!);
+      return team.overview(c.req.param('pid'));
+    });
+  });
+
+  app.post('/items/:id/accept', c => guard(c, () => svc.accept(c.req.param('id'))));
+  app.post('/items/:id/reject', async c => {
+    const b = await body(c, z.object({ reason: z.string().trim().max(500).default('') }));
+    return isResponse(b) ? b : guard(c, () => svc.reject(c.req.param('id'), b.reason));
   });
 
   app.post('/content/tick', c => guard(c, () => svc.tick()));
