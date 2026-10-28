@@ -45,6 +45,10 @@ Variables facultatives : `PORT` (défaut `8787`), `JOURNAL_PATH` (défaut `out/j
 - **Fusion** : le dépôt doit être sur `main` et sans modification en cours. Le push vers GitHub est une case à cocher à chaque fusion, jamais automatique.
 - **Contrôle visuel et « avant / après »** : le projet doit avoir un script `dev` qui démarre un serveur acceptant `--host`, `--port` et `--strictPort` (Vite le fait). L'app est capturée deux fois : sur `main` avant la feature (« avant »), puis sur la branche construite (« après »). Un projet sans ce script n'aura pas de captures, mais la construction continue.
 
+### Jeu de données de démo
+
+`pnpm dev:demo` remplit `out/demo/` puis lance l'app dessus (tes vraies données ne sont pas touchées ; relance la commande pour repartir d'un jeu identique, `pnpm seed:demo` seul remplit sans lancer). Il contient un projet fictif « Mealkinator (demo) » : 4 features (3 fusionnées, 1 prête à fusionner), 3 jalons (un terminé en retard, qui a appris à l'IA le coefficient x1,3 ; un en glissement ; un lointain) avec l'historique des projections, un audit du Scout, un compte de démo (étiqueté fictif), et du contenu à tous les stades : 4 propositions à trancher, 1 refus avec sa raison, un carrousel avec 2 images, une vidéo en storyboard, un post approuvé, un publié, des changelogs, des briefs. Aucun appel au modèle n'est nécessaire pour le parcourir ; « Brief the team » ou « Generate picture » en feront, eux, de vrais.
+
 ### Studio de communication
 
 Onglet **Communication studio** de chaque projet : une petite équipe d'agents que tu diriges. Rien de plus à configurer que `MODEL_API_KEY`.
