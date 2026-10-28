@@ -57,11 +57,12 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
       </div>
       {video && (
         <div className="videobox">
-          {stamp > 0 && <video controls playsInline src={contentApi.videoUrl(item.id, stamp)} />}
+          {stamp > 0 ? <video controls playsInline src={contentApi.videoUrl(item.id, stamp)} /> : <VideoUnavailable />}
           <div>
-            <b>{stamp > 0 ? 'Your video' : 'Make the video'}</b>
-            <p className="hint small">Assembled on your computer from the keyframes: each one held for its seconds, slow zoom, its text on top. It is free, no model call. {missing > 0 ? 'Generate the missing keyframes first.' : 'Re-assemble after any change.'}</p>
-            <button disabled={b || dirty || missing > 0 || media.slides.some(x => !x.file)} title={dirty ? 'Save your changes first' : ''} onClick={() => run('video', async () => { await contentApi.renderVideo(item.id); setStamp(Date.now()); })}>{busy === 'video' ? 'Assembling…' : stamp > 0 ? 'Re-assemble the video' : 'Assemble the video'}</button>
+            <b>{stamp > 0 ? 'Your slideshow' : 'AI video: not available yet'}</b>
+            <p className="hint small">{stamp > 0 ? 'Assembled from the keyframes on your computer.' : 'Meta has not opened video generation on your key yet. As soon as it does, it will appear here.'}</p>
+            <button disabled={b || dirty || missing > 0 || media.slides.some(x => !x.file)} title={dirty ? 'Save your changes first' : missing > 0 ? 'Generate the missing keyframes first' : ''} onClick={() => run('video', async () => { await contentApi.renderVideo(item.id); setStamp(Date.now()); })}>{busy === 'video' ? 'Assembling…' : stamp > 0 ? 'Re-assemble the slideshow' : 'Assemble a slideshow instead'}</button>
+            {stamp === 0 && <span className="hint small">Free: a local montage of your keyframes, with zoom and text. Not AI-generated.</span>}
           </div>
         </div>
       )}
@@ -93,5 +94,18 @@ export function PostPreview({ item }: { item: ContentItem }) {
       <p className="pv-caption">{item.draft}</p>
       <p className="pv-tags">{m.hashtags.join(' ')}</p>
     </div>
+  );
+}
+
+// A small picture standing in for the video the AI cannot make yet.
+function VideoUnavailable() {
+  return (
+    <svg className="unavail" viewBox="0 0 90 160" role="img" aria-label="AI video not available yet">
+      <rect x="1.5" y="1.5" width="87" height="157" rx="12" className="u-frame" />
+      <path d="M36 62 L58 76 L36 90 Z" className="u-play" />
+      <line x1="22" y1="40" x2="68" y2="120" className="u-bar" />
+      <rect x="18" y="128" width="54" height="14" rx="7" className="u-tag" />
+      <text x="45" y="138" textAnchor="middle" className="u-text">soon</text>
+    </svg>
   );
 }
