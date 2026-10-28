@@ -3,7 +3,7 @@ import { api, label, tone, type Feature, type JournalEntry, type Project } from 
 import { NewFeature } from './NewFeature';
 import { NewProject } from './NewProject';
 import { ProjectPanel } from './ProjectPanel';
-import { ContentPanel } from './ContentPanel';
+import { Studio } from './studio/Studio';
 import { FeaturePanel } from './FeaturePanel';
 import { Timeline } from './Timeline';
 
@@ -98,7 +98,7 @@ export function App() {
                   </button>
                 ))}
                 <button className="add" onClick={() => setView({ kind: 'new-feature', projectId: p.id })}>+ New feature</button>
-                <button className={effective.kind === 'content' && effective.id === p.id ? 'add active' : 'add'} onClick={() => setView({ kind: 'content', id: p.id })}>Content &amp; roadmap</button>
+                <button className={effective.kind === 'content' && effective.id === p.id ? 'add active' : 'add'} onClick={() => setView({ kind: 'content', id: p.id })}>Communication studio</button>
               </div>
             </div>
           );
@@ -122,7 +122,7 @@ export function App() {
             onRemoved={() => { setView(null); refresh(); }}
           />
         )}
-        {effective.kind === 'content' && projectOf(effective.id) && <ContentPanel key={effective.id} project={projectOf(effective.id)!} features={features.filter(f => f.projectId === effective.id)} />}
+        {effective.kind === 'content' && projectOf(effective.id) && <Studio key={effective.id} project={projectOf(effective.id)!} features={features.filter(f => f.projectId === effective.id)} />}
         {effective.kind === 'new-feature' && projectOf(effective.projectId) && (
           <NewFeature
             key={effective.projectId + (effective.prefill?.title ?? '')}

@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { defaultProfile, type Forecast, type Item, type Milestone, type Profile } from './types.ts';
+import { defaultProfile, type AccountPost, type Activity, type AgentId, type Report, type Forecast, type Item, type Milestone, type Profile } from './types.ts';
 
 type Row = Record<string, string | number | null>;
 
@@ -21,17 +21,64 @@ export class ContentStore {
       CREATE TABLE IF NOT EXISTS milestone_features (milestone_id TEXT NOT NULL, feature_id TEXT NOT NULL, PRIMARY KEY (milestone_id, feature_id));
       CREATE TABLE IF NOT EXISTS forecasts (id INTEGER PRIMARY KEY AUTOINCREMENT, milestone_id TEXT NOT NULL, made_at TEXT NOT NULL, predicted_date TEXT NOT NULL, raw_remaining_days REAL NOT NULL, calibration REAL NOT NULL, done INTEGER NOT NULL, scope INTEGER NOT NULL, confidence TEXT NOT NULL, note TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS items (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, milestone_id TEXT, feature_id TEXT, kind TEXT NOT NULL, title TEXT NOT NULL, brief TEXT NOT NULL, draft TEXT NOT NULL, status TEXT NOT NULL, offset_days INTEGER, fixed_date TEXT, origin TEXT NOT NULL, revisions INTEGER NOT NULL, exported_path TEXT, published_at TEXT, created_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL, simulated INTEGER NOT NULL, made_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS activity (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, agent TEXT NOT NULL, summary TEXT NOT NULL, ok INTEGER NOT NULL, made_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS account_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, text TEXT NOT NULL, format TEXT NOT NULL, likes INTEGER NOT NULL, comments INTEGER NOT NULL, shares INTEGER NOT NULL, saves INTEGER NOT NULL, posted_at TEXT NOT NULL, simulated INTEGER NOT NULL);
     `);
+    // Databases created before the team existed.
+    this.#addColumn('profiles', 'niche', "TEXT NOT NULL DEFAULT ''");
+    this.#addColumn('profiles', 'directives', "TEXT NOT NULL DEFAULT ''");
+    this.#addColumn('items', 'rationale', "TEXT NOT NULL DEFAULT ''");
+    this.#addColumn('items', 'source', "TEXT NOT NULL DEFAULT ''");
+    this.#addColumn('items', 'rejected_reason', 'TEXT');
+  }
+
+  #addColumn(table: string, col: string, def: string) {
+    const cols = this.#db.prepare(`PRAGMA table_info(${table})`).all() as Array<{ name: string }>;
+    if (!cols.some(c => c.name === col)) this.#db.exec(`ALTER TABLE ${table} ADD COLUMN ${col} ${def}`);
+  }
+
+  // --- the team's memory: reports, activity, the account
+  addReport(projectId: string, kind: Report['kind'], data: unknown, simulated: boolean, at: string) {
+    this.#db.prepare('INSERT INTO reports (project_id, kind, data, simulated, made_at) VALUES (?, ?, ?, ?, ?)').run(projectId, kind, JSON.stringify(data), simulated ? 1 : 0, at);
+  }
+
+  latestReport<T>(projectId: string, kind: Report['kind']): Report<T> | undefined {
+    const r = this.#db.prepare('SELECT * FROM reports WHERE project_id = ? AND kind = ? ORDER BY id DESC LIMIT 1').get(projectId, kind) as Row | undefined;
+    return r && { id: Number(r.id), kind, data: JSON.parse(String(r.data)) as T, simulated: r.simulated === 1, at: String(r.made_at) };
+  }
+
+  log(projectId: string, agent: AgentId, summary: string, ok: boolean, at: string) {
+    this.#db.prepare('INSERT INTO activity (project_id, agent, summary, ok, made_at) VALUES (?, ?, ?, ?, ?)').run(projectId, agent, summary, ok ? 1 : 0, at);
+  }
+
+  activity(projectId: string, limit = 30): Activity[] {
+    return (this.#db.prepare('SELECT * FROM activity WHERE project_id = ? ORDER BY id DESC LIMIT ?').all(projectId, limit) as Row[]).map(r => ({
+      id: Number(r.id), projectId, agent: r.agent as AgentId, summary: String(r.summary), ok: r.ok === 1, at: String(r.made_at),
+    }));
+  }
+
+  setAccount(projectId: string, posts: AccountPost[]) {
+    this.#db.prepare('DELETE FROM account_posts WHERE project_id = ?').run(projectId);
+    const ins = this.#db.prepare('INSERT INTO account_posts (project_id, text, format, likes, comments, shares, saves, posted_at, simulated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const p of posts) ins.run(projectId, p.text, p.format, p.likes, p.comments, p.shares, p.saves, p.postedAt, p.simulated ? 1 : 0);
+  }
+
+  account(projectId: string): AccountPost[] {
+    return (this.#db.prepare('SELECT * FROM account_posts WHERE project_id = ? ORDER BY posted_at DESC').all(projectId) as Row[]).map(r => ({
+      id: Number(r.id), text: String(r.text), format: String(r.format), likes: Number(r.likes), comments: Number(r.comments), shares: Number(r.shares),
+      saves: Number(r.saves), postedAt: String(r.posted_at), simulated: r.simulated === 1,
+    }));
   }
 
   // --- profile
   profile(projectId: string): Profile {
     const r = this.#db.prepare('SELECT * FROM profiles WHERE project_id = ?').get(projectId) as Row | undefined;
-    return r ? { voice: String(r.voice), audience: String(r.audience), language: String(r.language), autoDraft: r.auto_draft === 1 } : { ...defaultProfile };
+    return r ? { voice: String(r.voice), audience: String(r.audience), language: String(r.language), autoDraft: r.auto_draft === 1, niche: String(r.niche), directives: String(r.directives) } : { ...defaultProfile };
   }
 
   setProfile(projectId: string, p: Profile): Profile {
-    this.#db.prepare('INSERT OR REPLACE INTO profiles (project_id, voice, audience, language, auto_draft) VALUES (?, ?, ?, ?, ?)').run(projectId, p.voice, p.audience, p.language, p.autoDraft ? 1 : 0);
+    this.#db.prepare('INSERT OR REPLACE INTO profiles (project_id, voice, audience, language, auto_draft, niche, directives) VALUES (?, ?, ?, ?, ?, ?, ?)').run(projectId, p.voice, p.audience, p.language, p.autoDraft ? 1 : 0, p.niche, p.directives);
     return p;
   }
 
@@ -108,10 +155,10 @@ export class ContentStore {
   }
 
   // --- items
-  addItem(i: Omit<Item, 'id' | 'revisions' | 'draft' | 'status'> & { draft?: string; status?: Item['status'] }): Item {
+  addItem(i: Omit<Item, 'id' | 'revisions' | 'draft' | 'status' | 'rationale' | 'source'> & { draft?: string; status?: Item['status']; rationale?: string; source?: Item['source'] }): Item {
     const id = randomUUID().slice(0, 8);
-    this.#db.prepare('INSERT INTO items (id, project_id, milestone_id, feature_id, kind, title, brief, draft, status, offset_days, fixed_date, origin, revisions, exported_path, published_at, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?)')
-      .run(id, i.projectId, i.milestoneId ?? null, i.featureId ?? null, i.kind, i.title, i.brief, i.draft ?? '', i.status ?? (i.brief.trim() ? 'briefed' : 'idea'), i.offsetDays ?? null, i.fixedDate ?? null, i.origin, i.createdAt);
+    this.#db.prepare('INSERT INTO items (id, project_id, milestone_id, feature_id, kind, title, brief, draft, status, offset_days, fixed_date, origin, revisions, exported_path, published_at, created_at, rationale, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?, ?)')
+      .run(id, i.projectId, i.milestoneId ?? null, i.featureId ?? null, i.kind, i.title, i.brief, i.draft ?? '', i.status ?? (i.brief.trim() ? 'briefed' : 'idea'), i.offsetDays ?? null, i.fixedDate ?? null, i.origin, i.createdAt, i.rationale ?? '', i.source ?? '');
     return this.item(id)!;
   }
 
@@ -130,8 +177,8 @@ export class ContentStore {
     if (!i) throw new Error(`unknown item ${id}`);
     const n = { ...i, ...patch };
     const fixed = patch.clearFixedDate ? null : n.fixedDate ?? null;
-    this.#db.prepare('UPDATE items SET milestone_id = ?, feature_id = ?, kind = ?, title = ?, brief = ?, draft = ?, status = ?, offset_days = ?, fixed_date = ?, revisions = ?, exported_path = ?, published_at = ? WHERE id = ?')
-      .run(n.milestoneId ?? null, n.featureId ?? null, n.kind, n.title, n.brief, n.draft, n.status, n.offsetDays ?? null, fixed, n.revisions, n.exportedPath ?? null, n.publishedAt ?? null, id);
+    this.#db.prepare('UPDATE items SET milestone_id = ?, feature_id = ?, kind = ?, title = ?, brief = ?, draft = ?, status = ?, offset_days = ?, fixed_date = ?, revisions = ?, exported_path = ?, published_at = ?, rationale = ?, rejected_reason = ? WHERE id = ?')
+      .run(n.milestoneId ?? null, n.featureId ?? null, n.kind, n.title, n.brief, n.draft, n.status, n.offsetDays ?? null, fixed, n.revisions, n.exportedPath ?? null, n.publishedAt ?? null, n.rationale, n.rejectedReason ?? null, id);
     return this.item(id)!;
   }
 
@@ -155,7 +202,8 @@ export class ContentStore {
       draft: String(r.draft), status: r.status as Item['status'], offsetDays: r.offset_days === null ? undefined : Number(r.offset_days),
       fixedDate: r.fixed_date ? String(r.fixed_date) : undefined, origin: r.origin as Item['origin'], revisions: Number(r.revisions),
       exportedPath: r.exported_path ? String(r.exported_path) : undefined, publishedAt: r.published_at ? String(r.published_at) : undefined,
-      createdAt: String(r.created_at),
+      createdAt: String(r.created_at), rationale: String(r.rationale), source: String(r.source) as Item['source'],
+      rejectedReason: r.rejected_reason ? String(r.rejected_reason) : undefined,
     };
   }
 }

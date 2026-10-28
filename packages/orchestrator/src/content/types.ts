@@ -3,8 +3,8 @@ import { z } from 'zod';
 export const ItemKind = z.enum(['changelog', 'release-notes', 'devlog', 'social-post', 'teaser', 'doc-update', 'demo-script', 'newsletter']);
 export type ItemKind = z.infer<typeof ItemKind>;
 
-// idea = the AI suggested it, briefed = the user said what they want, drafted = text exists, approved = the user signed it off.
-export const ItemStatus = z.enum(['idea', 'briefed', 'drafted', 'approved', 'published']);
+// idea = the team proposed it and waits for the manager, rejected = the manager said no (the reason is kept: the team learns from it), briefed = the user said what they want, drafted = text exists, approved = the user signed it off.
+export const ItemStatus = z.enum(['idea', 'briefed', 'drafted', 'approved', 'published', 'rejected']);
 export type ItemStatus = z.infer<typeof ItemStatus>;
 
 export interface Profile {
@@ -12,9 +12,11 @@ export interface Profile {
   audience: string; // who reads it
   language: string;
   autoDraft: boolean; // draft on its own when an item gets close; it never approves or publishes
+  niche: string; // what the project is about, for the scout
+  directives: string; // standing orders from the manager, read by every agent
 }
 
-export const defaultProfile: Profile = { voice: '', audience: '', language: 'English', autoDraft: false };
+export const defaultProfile: Profile = { voice: '', audience: '', language: 'English', autoDraft: false, niche: '', directives: '' };
 
 export interface Milestone {
   id: string;
@@ -44,6 +46,8 @@ export interface Forecast {
   note: string; // what changed since the previous forecast, in words
 }
 
+export type ItemSource = 'trend' | 'account' | 'roadmap' | 'manager' | '';
+
 export interface Item {
   id: string;
   projectId: string;
@@ -57,6 +61,9 @@ export interface Item {
   offsetDays?: number; // date relative to the milestone's forecast: the item moves when the forecast does
   fixedDate?: string; // or a date the user locked
   origin: 'user' | 'ai' | 'dev';
+  rationale: string; // why the team proposes it: what it saw in trends, in the account, in the roadmap
+  source: ItemSource;
+  rejectedReason?: string;
   revisions: number;
   exportedPath?: string;
   publishedAt?: string;
@@ -66,3 +73,10 @@ export interface Item {
 export const day = (d: Date) => d.toISOString().slice(0, 10);
 export const addDays = (iso: string, n: number) => day(new Date(Date.parse(iso + 'T00:00:00Z') + n * 86_400_000));
 export const daysBetween = (a: string | Date, b: string | Date) => (new Date(b).getTime() - new Date(a).getTime()) / 86_400_000;
+
+export type AgentId = 'scout' | 'analyst' | 'strategist' | 'writer';
+
+export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean }
+export interface Activity { id: number; projectId: string; agent: AgentId; summary: string; ok: boolean; at: string }
+export interface Report<T = unknown> { id: number; kind: 'audit' | 'account'; data: T; simulated: boolean; at: string }
+export const engagement = (p: Pick<AccountPost, 'likes' | 'comments' | 'shares' | 'saves'>) => p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3;

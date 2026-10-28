@@ -53,6 +53,7 @@ const content = new ContentService({
   llm,
   exportDir: resolve(root, 'out/content'),
   repoPath: id => projects.get(id)?.path,
+  projectFeatures: pid => runtime.list().filter(f => f.projectId === pid).map(f => ({ id: f.id, title: f.title, state: f.state, summary: f.plan?.summary })),
   features: id => {
     const f = runtime.get(id);
     return f && { projectId: f.projectId, title: f.title, state: f.state, summary: f.plan?.summary, stat: f.build?.stat };
