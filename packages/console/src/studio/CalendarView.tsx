@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import type { ContentItem, ContentView } from '../api';
-import { ItemEditor } from './ItemEditor';
 import { KIND_HUE, today } from './shared';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const iso = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const STATUS_MARK: Record<string, string> = { briefed: '○', drafted: '◐', approved: '●', published: '✓', idea: '·' };
 
-export function CalendarView({ view, reload }: { view: ContentView; reload: () => Promise<void> }) {
+export function CalendarView({ view, openId, open }: { view: ContentView; openId: string | null; open: (id: string) => void }) {
   const now = new Date();
   const [cursor, setCursor] = useState({ y: now.getFullYear(), m: now.getMonth() });
-  const [openId, setOpenId] = useState<string | null>(null);
   const items = view.items.filter(i => i.status !== 'idea' && i.status !== 'rejected');
-  const open = items.find(i => i.id === openId);
 
   const first = new Date(Date.UTC(cursor.y, cursor.m, 1));
   const lead = (first.getUTCDay() + 6) % 7; // week starts on Monday
@@ -29,7 +26,7 @@ export function CalendarView({ view, reload }: { view: ContentView; reload: () =
   const go = (n: number) => { const d = new Date(Date.UTC(cursor.y, cursor.m + n, 1)); setCursor({ y: d.getUTCFullYear(), m: d.getUTCMonth() }); };
 
   return (
-    <div className={`cal-wrap ${open ? 'with-editor' : ''}`}>
+    <div className="cal-wrap">
       <section className="card">
         <div className="head">
           <h3>{first.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</h3>
@@ -45,7 +42,7 @@ export function CalendarView({ view, reload }: { view: ContentView; reload: () =
                 <span className="n">{d}</span>
                 {landings.get(key)?.map(t => <span key={t} className="landing" title="Projected landing">⚑ {t}</span>)}
                 {byDate.get(key)?.map(i => (
-                  <button key={i.id} className={`pill-item ${i.id === openId ? 'sel' : ''}`} style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => setOpenId(i.id)} title={`${i.title} (${i.status})`}>
+                  <button key={i.id} className={`pill-item ${i.id === openId ? 'sel' : ''}`} style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)} title={`${i.title} (${i.status})`}>
                     <span>{STATUS_MARK[i.status]}</span> {i.title}{i.shiftDays ? <em className={i.shiftDays > 0 ? 'late' : 'early'}> {i.shiftDays > 0 ? '+' : ''}{i.shiftDays}d</em> : null}
                   </button>
                 ))}
@@ -54,10 +51,9 @@ export function CalendarView({ view, reload }: { view: ContentView; reload: () =
           })}
         </div>
         <p className="legend small hint">○ briefed &nbsp; ◐ drafted &nbsp; ● approved &nbsp; ✓ published &nbsp; ⚑ milestone lands (projected) &nbsp; <em className="late">+3d</em> pushed back by the projection</p>
-        {undated.length > 0 && <><h5>No date yet</h5><div className="chips">{undated.map(i => <button key={i.id} className="pill-item" style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => setOpenId(i.id)}>{i.title}</button>)}</div></>}
+        {undated.length > 0 && <><h5>No date yet</h5><div className="chips">{undated.map(i => <button key={i.id} className="pill-item" style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)}>{i.title}</button>)}</div></>}
         {items.length === 0 && <p className="hint">The calendar fills when you accept proposals from the team.</p>}
       </section>
-      {open && <ItemEditor item={open} milestones={view.milestones} reload={reload} onClose={() => setOpenId(null)} />}
     </div>
   );
 }

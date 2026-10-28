@@ -49,11 +49,16 @@ export function RoadmapView({ view, project, features, reload }: { view: Content
 function MilestoneCard({ m, features, reload }: { m: Milestone; features: Feature[]; reload: () => Promise<void> }) {
   const { busy, error, run } = useAction(reload);
   const [history, setHistory] = useState<Forecast[] | null>(null);
+  const [openCard, setOpenCard] = useState(m.atRisk);
   const f = m.forecast;
   const free = features.filter(x => !m.featureIds.includes(x.id));
   return (
     <section className={`card ms ${m.atRisk ? 'risk' : ''}`}>
-      <div className="head"><h3>{m.title} <span className={`badge ${m.status === 'done' ? 'done' : 'work'}`}><i />{m.status}</span></h3><span className="hint small">wanted {fmt(m.targetDate)}</span></div>
+      <button className="ms-head" aria-expanded={openCard} onClick={() => setOpenCard(!openCard)}>
+        <span><b>{m.title}</b> <span className={`badge ${m.status === 'done' ? 'done' : m.atRisk ? 'wait' : 'work'}`}><i />{m.status === 'done' ? 'done' : m.atRisk ? `${m.slipDays} d late` : 'on track'}</span></span>
+        <span className="hint small">{m.delivered}/{m.scope} · {f && m.status === 'open' ? `projected ${fmt(f.predictedDate)}` : `wanted ${fmt(m.targetDate)}`} {openCard ? '▴' : '▾'}</span>
+      </button>
+      {openCard && <>
       {m.intent && <p className="hint">{m.intent}</p>}
       <p className="small">{m.delivered}/{m.scope} delivered
         {f && m.status === 'open' && <> · projected <b>{fmt(f.predictedDate)}</b> <span className="hint">({f.confidence} confidence{f.calibration !== 1 ? `, corrected x${f.calibration.toFixed(2)} from past milestones` : ''})</span></>}
@@ -72,6 +77,7 @@ function MilestoneCard({ m, features, reload }: { m: Milestone; features: Featur
       </div>
       {history && <ol className="history small">{history.map(h => <li key={h.id}><b>{fmt(h.predictedDate)}</b> <span className="hint">{h.done}/{h.scope} · {new Date(h.madeAt).toLocaleDateString()}</span><br />{h.note}</li>)}</ol>}
       {error && <p className="error">{error}</p>}
+      </>}
     </section>
   );
 }
