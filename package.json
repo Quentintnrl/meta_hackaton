@@ -8,7 +8,7 @@
     "typecheck": "pnpm -r typecheck",
     "dev": "pnpm --parallel --filter @ripple/orchestrator --filter @ripple/console dev",
     "seed:demo": "node scripts/seed-demo.ts",
-    "dev:demo": "node scripts/seed-demo.ts && JOURNAL_PATH=out/demo/journal.db PROJECTS_PATH=out/demo/projects.db CONTENT_PATH=out/demo/content.db CONTENT_DIR=out/demo/content pnpm dev"
+    "dev:demo": "node scripts/seed-demo.ts && PORT=8790 CONSOLE_PORT=5190 ORCHESTRATOR_URL=http://localhost:8790 JOURNAL_PATH=$PWD/out/demo/journal.db PROJECTS_PATH=$PWD/out/demo/projects.db CONTENT_PATH=$PWD/out/demo/content.db CONTENT_DIR=$PWD/out/demo/content pnpm dev"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
