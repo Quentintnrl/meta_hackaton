@@ -1,13 +1,14 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Publisher } from '@ripple/shared';
 import type { LLM } from '../adapters/llm.ts';
 import { ContentStore } from './store.ts';
 import { calibration, moved, project } from './forecast.ts';
-import { draftItem, explainForecast, proposeContent, reviseItem, type FeatureFacts } from './assistant.ts';
-import { addDays, day, daysBetween, type Forecast, type Item, type ItemKind, type Milestone, type Profile } from './types.ts';
+import type { ImageGen } from '../adapters/image.ts';
+import { draftItem, draftPost, explainForecast, proposeContent, reviseItem, revisePost, type FeatureFacts } from './assistant.ts';
+import { addDays, day, daysBetween, normalizeHashtags, type Forecast, type Item, type ItemKind, type Media, type Milestone, type Profile } from './types.ts';
 
 const run = promisify(execFile);
 
@@ -48,9 +49,11 @@ export class ContentService {
   #git: GitLog;
   #repoPath: (projectId: string) => string | undefined;
   #publisher?: Publisher;
+  #images?: ImageGen;
+  #mediaDir: string;
   #projectFeatures: (projectId: string) => Array<FeatureFacts & { id: string }>;
 
-  constructor(o: { projectFeatures?: (projectId: string) => Array<FeatureFacts & { id: string }>; store?: ContentStore; llm: LLM; features: FeatureLookup; exportDir: string; repoPath: (projectId: string) => string | undefined; now?: () => Date; git?: GitLog; publisher?: Publisher }) {
+  constructor(o: { images?: ImageGen; mediaDir?: string; projectFeatures?: (projectId: string) => Array<FeatureFacts & { id: string }>; store?: ContentStore; llm: LLM; features: FeatureLookup; exportDir: string; repoPath: (projectId: string) => string | undefined; now?: () => Date; git?: GitLog; publisher?: Publisher }) {
     this.store = o.store ?? new ContentStore();
     this.#llm = o.llm;
     this.#features = o.features;
@@ -59,6 +62,8 @@ export class ContentService {
     this.#now = o.now ?? (() => new Date());
     this.#git = o.git ?? gitLog;
     this.#publisher = o.publisher;
+    this.#images = o.images;
+    this.#mediaDir = o.mediaDir ?? join(o.exportDir, 'media');
     this.#projectFeatures = o.projectFeatures ?? (() => []);
   }
 
@@ -182,20 +187,30 @@ export class ContentService {
     const item = this.#needItem(itemId);
     const milestone = item.milestoneId ? this.store.milestone(item.milestoneId) : undefined;
     const ids = [...(milestone?.featureIds ?? []), ...(item.featureId ? [item.featureId] : [])];
-    const draft = await draftItem(this.#llm, { item, milestone, profile: this.store.profile(item.projectId), features: this.#facts([...new Set(ids)]), commits, guidance });
-    return this.store.updateItem(itemId, { draft, status: 'drafted', revisions: item.revisions + 1 });
+    const ctx = { item, milestone, profile: this.store.profile(item.projectId), features: this.#facts([...new Set(ids)]), commits, guidance };
+    if (SOCIAL.includes(item.kind)) {
+      const { caption, media } = await draftPost(this.#llm, ctx);
+      return this.store.updateItem(itemId, { draft: caption, media, status: 'drafted', revisions: item.revisions + 1 });
+    }
+    return this.store.updateItem(itemId, { draft: await draftItem(this.#llm, ctx), status: 'drafted', revisions: item.revisions + 1 });
   }
 
   async revise(itemId: string, instruction: string): Promise<Item> {
     const item = this.#needItem(itemId);
     if (!item.draft) throw new Error('nothing to revise yet: draft it first');
-    const draft = await reviseItem(this.#llm, { item, instruction, profile: this.store.profile(item.projectId) });
-    return this.store.updateItem(itemId, { draft, status: 'drafted', revisions: item.revisions + 1 });
+    const profile = this.store.profile(item.projectId);
+    if (SOCIAL.includes(item.kind)) {
+      const { caption, media } = await revisePost(this.#llm, { item, instruction, profile });
+      return this.store.updateItem(itemId, { draft: caption, media, status: 'drafted', revisions: item.revisions + 1 });
+    }
+    return this.store.updateItem(itemId, { draft: await reviseItem(this.#llm, { item, instruction, profile }), status: 'drafted', revisions: item.revisions + 1 });
   }
 
-  editItem(itemId: string, patch: Partial<Pick<Item, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId'>> & { clearFixedDate?: boolean }): Item {
+  editItem(itemId: string, patch: Partial<Pick<Item, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean }): Item {
     const item = this.#needItem(itemId);
-    const status = patch.draft !== undefined && patch.draft !== item.draft ? 'drafted' : item.status === 'idea' && patch.brief?.trim() ? 'briefed' : item.status;
+    if (patch.media) patch = { ...patch, media: { ...patch.media, hashtags: normalizeHashtags(patch.media.hashtags) } };
+    const edited = (patch.draft !== undefined && patch.draft !== item.draft) || (patch.media !== undefined && JSON.stringify(patch.media) !== JSON.stringify(item.media));
+    const status = edited ? 'drafted' : item.status === 'idea' && patch.brief?.trim() ? 'briefed' : item.status;
     return this.store.updateItem(itemId, { ...patch, status });
   }
 
@@ -207,15 +222,60 @@ export class ContentService {
     const dir = join(this.#exportDir, item.projectId);
     mkdirSync(dir, { recursive: true });
     const file = join(dir, `${date}-${item.kind}-${item.id}.md`);
-    writeFileSync(file, `---\ntitle: ${JSON.stringify(item.title)}\nkind: ${item.kind}\ndate: ${date}\n---\n\n${item.draft}\n`);
+    const post = item.media ? this.#exportMedia(item, dir, date) : '';
+    writeFileSync(file, `---\ntitle: ${JSON.stringify(item.title)}\nkind: ${item.kind}\ndate: ${date}${item.media ? `\nformat: ${item.media.format}` : ''}\n---\n\n${item.draft}\n${post}`);
     return this.store.updateItem(itemId, { status: 'approved', exportedPath: file });
+  }
+
+  // Hashtags, the shot list or slide list, and the pictures copied next to the text.
+  #exportMedia(item: Item, dir: string, date: string): string {
+    const media = item.media!;
+    const folder = `${date}-${item.id}-media`;
+    const lines = [`\n${media.hashtags.join(' ')}\n`, `## ${media.format === 'video' ? 'Shots' : 'Slides'}\n`];
+    media.slides.forEach((x, i) => {
+      let img = '';
+      const src = x.file && this.mediaPath(item.id, x.file);
+      if (src) { mkdirSync(join(dir, folder), { recursive: true }); copyFileSync(src, join(dir, folder, x.file!)); img = `\n   ![](${folder}/${x.file})`; }
+      lines.push(`${i + 1}. ${x.kind === 'video' ? `**Shot${x.seconds ? ` (${x.seconds}s)` : ''}** ` : ''}${x.visual}${x.text ? `\n   Text: ${x.text}` : ''}${img}`);
+    });
+    return lines.join('\n') + '\n';
   }
 
   async publish(itemId: string): Promise<Item> {
     const item = this.#needItem(itemId);
     if (item.status !== 'approved') throw new Error('approve it first');
-    if (this.#publisher && SOCIAL.includes(item.kind)) await this.#publisher.publish({ caption: item.draft, imagePath: '' });
+    if (this.#publisher && SOCIAL.includes(item.kind)) await this.#publisher.publish({ caption: [item.draft, item.media?.hashtags.join(' ')].filter(Boolean).join('\n\n'), imagePath: (item.media?.slides[0]?.file && this.mediaPath(item.id, item.media.slides[0].file)) || '' });
     return this.store.updateItem(itemId, { status: 'published', publishedAt: this.#now().toISOString() });
+  }
+
+  // --- pictures. Only on request: each one is a paid call, so nothing is generated behind the manager's back.
+  async generateSlide(itemId: string, index: number, visual?: string): Promise<Item> {
+    if (!this.#images) throw new Error('no image model is configured');
+    const item = this.#needItem(itemId);
+    const media = item.media;
+    const slide = media?.slides[index];
+    if (!media || !slide) throw new Error('unknown slide');
+    const prompt = (visual ?? slide.visual).trim();
+    if (!prompt) throw new Error('describe the picture first');
+    const buf = await this.#images.generate(prompt, media.format === 'video' ? '1024x1792' : '1024x1024');
+    const dir = join(this.#mediaDir, itemId);
+    mkdirSync(dir, { recursive: true });
+    const file = `${index + 1}-${Date.now().toString(36)}.jpg`;
+    writeFileSync(join(dir, file), buf);
+    const slides = media.slides.map((x, i) => i === index ? { ...x, visual: prompt, file } : x);
+    return this.store.updateItem(itemId, { media: { ...media, slides } });
+  }
+
+  async generateMissing(itemId: string): Promise<Item> {
+    let item = this.#needItem(itemId);
+    for (const [i, s] of (item.media?.slides ?? []).entries()) if (!s.file) item = await this.generateSlide(itemId, i);
+    return item;
+  }
+
+  mediaPath(itemId: string, file: string): string | undefined {
+    if (!/^[\w.-]+$/.test(file)) return undefined;
+    const path = join(this.#mediaDir, itemId, file);
+    return this.store.item(itemId)?.media?.slides.some(s => s.file === file) && existsSync(path) ? path : undefined;
   }
 
   // --- the calendar: every item with the date it is due now

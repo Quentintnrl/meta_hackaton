@@ -31,6 +31,7 @@ export class ContentStore {
     this.#addColumn('items', 'rationale', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('items', 'source', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('items', 'rejected_reason', 'TEXT');
+    this.#addColumn('items', 'media', 'TEXT');
   }
 
   #addColumn(table: string, col: string, def: string) {
@@ -177,8 +178,8 @@ export class ContentStore {
     if (!i) throw new Error(`unknown item ${id}`);
     const n = { ...i, ...patch };
     const fixed = patch.clearFixedDate ? null : n.fixedDate ?? null;
-    this.#db.prepare('UPDATE items SET milestone_id = ?, feature_id = ?, kind = ?, title = ?, brief = ?, draft = ?, status = ?, offset_days = ?, fixed_date = ?, revisions = ?, exported_path = ?, published_at = ?, rationale = ?, rejected_reason = ? WHERE id = ?')
-      .run(n.milestoneId ?? null, n.featureId ?? null, n.kind, n.title, n.brief, n.draft, n.status, n.offsetDays ?? null, fixed, n.revisions, n.exportedPath ?? null, n.publishedAt ?? null, n.rationale, n.rejectedReason ?? null, id);
+    this.#db.prepare('UPDATE items SET milestone_id = ?, feature_id = ?, kind = ?, title = ?, brief = ?, draft = ?, status = ?, offset_days = ?, fixed_date = ?, revisions = ?, exported_path = ?, published_at = ?, rationale = ?, rejected_reason = ?, media = ? WHERE id = ?')
+      .run(n.milestoneId ?? null, n.featureId ?? null, n.kind, n.title, n.brief, n.draft, n.status, n.offsetDays ?? null, fixed, n.revisions, n.exportedPath ?? null, n.publishedAt ?? null, n.rationale, n.rejectedReason ?? null, n.media ? JSON.stringify(n.media) : null, id);
     return this.item(id)!;
   }
 
@@ -203,7 +204,7 @@ export class ContentStore {
       fixedDate: r.fixed_date ? String(r.fixed_date) : undefined, origin: r.origin as Item['origin'], revisions: Number(r.revisions),
       exportedPath: r.exported_path ? String(r.exported_path) : undefined, publishedAt: r.published_at ? String(r.published_at) : undefined,
       createdAt: String(r.created_at), rationale: String(r.rationale), source: String(r.source) as Item['source'],
-      rejectedReason: r.rejected_reason ? String(r.rejected_reason) : undefined,
+      rejectedReason: r.rejected_reason ? String(r.rejected_reason) : undefined, media: r.media ? JSON.parse(String(r.media)) : undefined,
     };
   }
 }

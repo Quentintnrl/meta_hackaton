@@ -15,6 +15,7 @@ import { ProjectStore } from './projects.ts';
 import { AutoFixStore } from './recovery.ts';
 import { createSources } from './project-sources.ts';
 import { ContentService } from './content/service.ts';
+import { MetaImage } from './adapters/image.ts';
 import { ContentStore } from './content/store.ts';
 import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
@@ -51,7 +52,8 @@ const runtime = new Runtime({ llm, journal, builder, integrator, reviewer, befor
 const content = new ContentService({
   store: new ContentStore(process.env.CONTENT_PATH ?? resolve(root, 'out/content.db')),
   llm,
-  exportDir: resolve(root, 'out/content'),
+  exportDir: process.env.CONTENT_DIR ?? resolve(root, 'out/content'),
+  images: new MetaImage(key),
   repoPath: id => projects.get(id)?.path,
   projectFeatures: pid => runtime.list().filter(f => f.projectId === pid).map(f => ({ id: f.id, title: f.title, state: f.state, summary: f.plan?.summary })),
   features: id => {

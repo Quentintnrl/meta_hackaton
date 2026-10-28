@@ -297,3 +297,26 @@ details > summary { cursor: pointer; list-style: none; } details > summary::-web
 .note { border-left: 3px solid var(--accent); padding-left: 10px; color: var(--muted); }
 .chips { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; } .chips select { width: auto; padding: 3px 8px; font-size: 12px; }
 .history { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+
+/* post builder */
+.post { display: grid; gap: 10px; margin: 12px 0; padding-top: 12px; border-top: 1px dashed var(--line); }
+.fmt { display: inline-flex; background: var(--soft); border: 1px solid var(--line); border-radius: 10px; padding: 3px; justify-self: start; }
+.fmt button { border: 0; background: transparent; padding: 5px 14px; border-radius: 7px; font-size: 13px; } .fmt button.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
+.slides { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity; }
+.slide { flex: 0 0 210px; scroll-snap-align: start; display: grid; gap: 4px; align-content: start; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 10px; }
+.slide label { margin-top: 4px; font-size: 12px; } .slide textarea { min-height: 54px; font-size: 12.5px; } .slide input { font-size: 12.5px; }
+.slide .row { margin-top: 6px; } .slide .row button { font-size: 12px; padding: 4px 10px; } label.sec { margin: 0; gap: 6px; } label.sec input { width: 60px; }
+.add-slide { align-self: stretch; display: grid; place-items: center; border-style: dashed; color: var(--accent); min-height: 120px; }
+.frame { position: relative; aspect-ratio: 1; background: var(--soft); border-radius: 8px; overflow: hidden; display: grid; place-items: center; color: var(--muted); font-size: 12px; text-align: center; }
+.frame.tall { aspect-ratio: 9 / 16; } .frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.frame em { position: absolute; top: 6px; left: 6px; background: rgba(0, 0, 0, .55); color: #fff; font-style: normal; font-size: 11px; font-weight: 700; padding: 0 7px; border-radius: 999px; }
+.preview { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 10px; max-width: 300px; margin: 8px 0 4px; box-shadow: var(--shadow); }
+.pv-media { position: relative; aspect-ratio: 1; background: var(--soft); border-radius: 10px; overflow: hidden; display: grid; place-items: center; color: var(--muted); font-size: 12px; } .pv-media.tall { aspect-ratio: 9 / 16; max-height: 320px; }
+.pv-media img { width: 100%; height: 100%; object-fit: cover; }
+.pv-tag { position: absolute; top: 8px; right: 8px; background: rgba(0, 0, 0, .6); color: #fff; font-size: 11px; padding: 1px 8px; border-radius: 999px; }
+.pv-text { position: absolute; left: 10px; right: 10px; bottom: 12px; color: #fff; font-style: normal; font-weight: 700; font-size: 15px; text-shadow: 0 1px 6px rgba(0, 0, 0, .7); }
+.pv-caption { margin: 8px 2px 2px; font-size: 13px; white-space: pre-wrap; } .pv-tags { margin: 4px 2px 0; font-size: 12.5px; color: var(--accent); word-break: break-word; }
+.editor { max-height: calc(100vh - 32px); }
+/* the editor is a drawer over the page, so the calendar keeps its width */
+.cal-wrap.with-editor { display: block; }
+.editor { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); max-height: none; border-radius: 0; z-index: 20; overflow: auto; box-shadow: -12px 0 40px -12px rgba(0, 0, 0, .25); align-content: start; }

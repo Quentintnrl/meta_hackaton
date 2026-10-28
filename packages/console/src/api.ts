@@ -109,7 +109,13 @@ export interface Milestone {
   id: string; projectId: string; title: string; intent: string; targetDate: string; scope: number; status: 'open' | 'done'; doneAt?: string;
   featureIds: string[]; delivered: number; forecast?: Forecast; atRisk: boolean; slipDays: number; accuracy?: { errorDays: number };
 }
+export type MediaFormat = 'image' | 'carousel' | 'video';
+export interface Slide { kind: 'image' | 'video'; visual: string; text: string; seconds: number; file?: string }
+export interface Media { format: MediaFormat; hashtags: string[]; slides: Slide[] }
+export const SOCIAL_KINDS: ItemKind[] = ['social-post', 'teaser'];
+
 export interface ContentItem {
+  media?: Media;
   id: string; projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; draft: string; status: ItemStatus;
   offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string; rationale: string; source: ItemSource; rejectedReason?: string;
   date?: string; plannedDate?: string; shiftDays?: number;
@@ -150,7 +156,10 @@ export const contentApi = {
   unlink: (id: string, featureId: string) => send<Milestone>('DELETE', `/milestones/${id}/features/${featureId}`),
   plan: (id: string, guidance?: string) => send<ContentItem[]>('POST', `/milestones/${id}/plan`, { guidance }),
   addItem: (pid: string, b: { kind: ItemKind; title: string; brief: string; milestoneId?: string; offsetDays?: number; fixedDate?: string }) => send<ContentItem>('POST', `/projects/${pid}/items`, b),
-  patchItem: (id: string, b: Partial<Pick<ContentItem, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId'>> & { clearFixedDate?: boolean }) => send<ContentItem>('PATCH', `/items/${id}`, b),
+  patchItem: (id: string, b: Partial<Pick<ContentItem, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean }) => send<ContentItem>('PATCH', `/items/${id}`, b),
+  generateSlide: (id: string, index: number, visual?: string) => send<ContentItem>('POST', `/items/${id}/media/${index}/generate`, { visual }),
+  generateMissing: (id: string) => send<ContentItem>('POST', `/items/${id}/media/generate`),
+  mediaUrl: (id: string, file: string) => `/api/items/${id}/media/${file}`,
   removeItem: (id: string) => send<{ ok: true }>('DELETE', `/items/${id}`),
   draft: (id: string, guidance?: string) => send<ContentItem>('POST', `/items/${id}/draft`, { guidance }),
   revise: (id: string, instruction: string) => send<ContentItem>('POST', `/items/${id}/revise`, { instruction }),

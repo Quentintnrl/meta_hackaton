@@ -4,6 +4,7 @@ import type { ProjectStore } from '../projects.ts';
 import type { ContentService } from './service.ts';
 import { Team } from './team.ts';
 import { ItemKind } from './types.ts';
+import { readFileSync } from 'node:fs';
 
 const Date_ = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 const NewMilestone = z.object({ title: z.string().trim().min(1).max(120), intent: z.string().trim().max(4000).default(''), targetDate: Date_, scope: z.number().int().min(1).max(50) });
@@ -16,6 +17,11 @@ const NewItem = z.object({
 const PatchItem = z.object({
   title: z.string().trim().min(1).max(160), brief: z.string().max(4000), draft: z.string().max(20000), kind: ItemKind,
   offsetDays: z.number().int().min(-90).max(90), fixedDate: Date_, milestoneId: z.string(), clearFixedDate: z.boolean(),
+  media: z.object({
+    format: z.enum(['image', 'carousel', 'video']),
+    hashtags: z.array(z.string().max(60)).max(30),
+    slides: z.array(z.object({ kind: z.enum(['image', 'video']), visual: z.string().max(2000), text: z.string().max(1000), seconds: z.number().int().min(0).max(90), file: z.string().regex(/^[\w.-]+$/).optional() })).min(1).max(10),
+  }),
 }).partial();
 
 // Roadmap, content calendar and the AI that helps with both. Mounted next to the feature routes.
@@ -104,6 +110,17 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
     const b = await body(c, z.object({ instruction: z.string().trim().min(1).max(2000) }));
     return isResponse(b) ? b : guard(c, () => svc.revise(c.req.param('id'), b.instruction));
   });
+  // Pictures of a post: one slide, or every slide that has none yet. Each call is a paid image generation.
+  app.post('/items/:id/media/generate', c => guard(c, () => svc.generateMissing(c.req.param('id'))));
+  app.post('/items/:id/media/:index/generate', async c => {
+    const b = await body(c, z.object({ visual: z.string().max(2000).optional() }));
+    return isResponse(b) ? b : guard(c, () => svc.generateSlide(c.req.param('id'), Number(c.req.param('index')), b.visual));
+  });
+  app.get('/items/:id/media/:file', c => {
+    const path = svc.mediaPath(c.req.param('id'), c.req.param('file'));
+    return path ? c.body(readFileSync(path), 200, { 'content-type': 'image/jpeg', 'cache-control': 'no-store' }) : c.json({ error: 'not found' }, 404);
+  });
+
   app.post('/items/:id/approve', c => guard(c, () => svc.approve(c.req.param('id'))));
   app.post('/items/:id/publish', c => guard(c, () => svc.publish(c.req.param('id'))));
 

@@ -29,6 +29,8 @@ function setup(opts: { llm?: LLM } = {}) {
         { kind: 'teaser', title: 'Sneak peek', brief: 'tease it', offsetDays: -7 },
         { kind: 'release-notes', title: 'Release notes', brief: 'what is new', offsetDays: 0 },
       ] });
+      if (name === 'post' || name === 'post_revision') return schema.parse({ caption: `caption (${name})`, hashtags: ['#Meal Prep', 'mealprep', 'cooking'], format: 'carousel', slides: [
+        { kind: 'image', visual: 'a plate, flat lay', text: 'Plan', seconds: 0 }, { kind: 'image', visual: 'a calendar', text: 'Shop', seconds: 0 } ] });
       if (name === 'forecast_note') return schema.parse({ note: 'moved because of pace' });
       return schema.parse({ draft: `draft for: ${prompt.slice(0, 20)}` });
     },
@@ -218,4 +220,49 @@ test('routes: roadmap to published, with errors mapped', async () => {
   assert.equal((await send('POST', '/projects/app/content/from-git', { since: '1 week ago; rm -rf' })).status, 400);
   assert.equal((await send('DELETE', `/milestones/${m.id}`)).status, 200);
   assert.equal((await send('POST', '/content/tick')).status, 200);
+});
+
+test('a social post is a package: description, hashtags (normalised), and a series of slides', async () => {
+  const { svc } = setup();
+  const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Launch', brief: 'say it', fixedDate: '2026-11-05' });
+  const d = await svc.draft(i.id);
+  assert.equal(d.draft, 'caption (post)');
+  assert.equal(d.media!.format, 'carousel');
+  assert.equal(d.media!.slides.length, 2);
+  assert.deepEqual(d.media!.hashtags, ['#MealPrep', '#cooking'], 'cleaned and deduplicated');
+  // a changelog stays plain text
+  const c = await svc.draft(svc.addItem({ projectId: 'app', kind: 'changelog', title: 'c', brief: 'b' }).id);
+  assert.equal(c.media, undefined);
+});
+
+test('pictures are generated on request, kept while the description is unchanged, and exported with the post', async () => {
+  const { svc, exportDir } = setup();
+  const prompts: string[] = [];
+  const svc2 = new ContentService({ llm: (svc as unknown as { llm: LLM }).llm, features: () => undefined, exportDir, repoPath: () => '/r', now: () => new Date(t0), images: { generate: async p => { prompts.push(p); return Buffer.from([0xff, 0xd8, 0xff]); } } });
+  const i = svc2.addItem({ projectId: 'app', kind: 'teaser', title: 'T', brief: 'b', fixedDate: '2026-11-05' });
+  await assert.rejects(svc2.generateSlide(i.id, 0), /unknown slide/, 'nothing to draw before the post is drafted');
+  await svc2.draft(i.id);
+  const one = await svc2.generateSlide(i.id, 0);
+  assert.ok(one.media!.slides[0].file);
+  assert.equal(one.media!.slides[1].file, undefined, 'only the asked slide is paid for');
+  const all = await svc2.generateMissing(i.id);
+  assert.equal(prompts.length, 2, 'the slide that already had a picture is not drawn again');
+  assert.ok(all.media!.slides.every(s => s.file));
+  assert.ok(svc2.mediaPath(i.id, all.media!.slides[0].file!));
+  assert.equal(svc2.mediaPath(i.id, '../../etc/passwd'), undefined);
+  // a revision that does not touch the picture's description keeps the picture
+  const revised = await svc2.revise(i.id, 'punchier');
+  assert.ok(revised.media!.slides.every(s => s.file));
+  const a = svc2.approve(i.id);
+  const text = readFileSync(a.exportedPath!, 'utf8');
+  assert.match(text, /format: carousel/);
+  assert.match(text, /#MealPrep #cooking/);
+  assert.match(text, /!\[\]\(.*\.jpg\)/);
+});
+
+test('without an image model, asking for a picture says so', async () => {
+  const { svc } = setup();
+  const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'T', brief: 'b' });
+  await svc.draft(i.id);
+  await assert.rejects(svc.generateSlide(i.id, 0), /no image model/);
 });
