@@ -30,6 +30,8 @@ Copie `.env.example` en `.env` et remplis-le. Le fichier est ignoré par git, ne
 | `MODEL_API_KEY` | clé de la Meta Model API (Muse Spark, SAM 3.1, Muse Image) | [dev.meta.ai](https://dev.meta.ai) | oui |
 | `FIGMA_TOKEN` | jeton d'accès personnel Figma, en lecture | Figma, Settings, Security, Personal access tokens (portée : lecture du contenu des fichiers) | pour lier un cadre Figma à une feature |
 
+**Vidéo (optionnel).** Meta n'expose pas encore de modèle de génération vidéo sur son API (Muse Video est annoncé, pas appelable). Le Studio monte donc la vidéo d'un post lui-même : bouton *Assemble the video* dans l'éditeur, à partir des images clés (chacune tenue ses secondes, zoom lent, texte incrusté), en MP4 vertical 720×1280. Il tourne en local avec `ffmpeg` : **aucun appel au modèle, donc aucun token** (seules les images clés coûtent, une génération chacune, et seulement à ta demande). Il faut `ffmpeg` avec un encodeur H.264 (`libx264` ou `libopenh264`) : `sudo dnf install ffmpeg` (Fedora, vérifie l'encodeur avec `ffmpeg -encoders | grep 264`) ou `brew install ffmpeg`. Sans lui, le reste fonctionne et le bouton affiche l'erreur.
+
 Pour `FIGMA_TOKEN`, utilise le compte Figma **dédié au hackathon** et partage-lui le fichier du projet en **lecture seule** :
 le jeton ne verra que ce fichier. `FIGMA_TOKEN` est relu à chaque appel : pas besoin de redémarrer. Les autres variables (`MODEL_API_KEY`, chemins, port) ne sont lues qu'au démarrage : redémarre `pnpm dev` (Ctrl+C, puis relance) après les avoir changées.
 

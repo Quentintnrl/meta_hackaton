@@ -169,6 +169,8 @@ export const contentApi = {
   patchItem: (id: string, b: Partial<Pick<ContentItem, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean }) => send<ContentItem>('PATCH', `/items/${id}`, b),
   generateSlide: (id: string, index: number, visual?: string) => send<ContentItem>('POST', `/items/${id}/media/${index}/generate`, { visual }),
   generateMissing: (id: string) => send<ContentItem>('POST', `/items/${id}/media/generate`),
+  renderVideo: (id: string) => send<{ ok: boolean }>('POST', `/items/${id}/video`),
+  videoUrl: (id: string, stamp: number) => `/api/items/${id}/video?v=${stamp}`,
   mediaUrl: (id: string, file: string) => `/api/items/${id}/media/${file}`,
   removeItem: (id: string) => send<{ ok: true }>('DELETE', `/items/${id}`),
   draft: (id: string, guidance?: string) => send<ContentItem>('POST', `/items/${id}/draft`, { guidance }),
