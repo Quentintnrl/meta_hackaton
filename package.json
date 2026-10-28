@@ -6,7 +6,9 @@
   "scripts": {
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm --parallel --filter @ripple/orchestrator --filter @ripple/console dev"
+    "dev": "pnpm --parallel --filter @ripple/orchestrator --filter @ripple/console dev",
+    "seed:demo": "node scripts/seed-demo.ts",
+    "dev:demo": "node scripts/seed-demo.ts && JOURNAL_PATH=out/demo/journal.db PROJECTS_PATH=out/demo/projects.db CONTENT_PATH=out/demo/content.db CONTENT_DIR=out/demo/content pnpm dev"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
