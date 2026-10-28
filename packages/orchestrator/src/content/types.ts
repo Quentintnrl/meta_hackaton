@@ -96,9 +96,28 @@ export const day = (d: Date) => d.toISOString().slice(0, 10);
 export const addDays = (iso: string, n: number) => day(new Date(Date.parse(iso + 'T00:00:00Z') + n * 86_400_000));
 export const daysBetween = (a: string | Date, b: string | Date) => (new Date(b).getTime() - new Date(a).getTime()) / 86_400_000;
 
-export type AgentId = 'scout' | 'analyst' | 'strategist' | 'writer';
+export type AgentId = 'director' | 'scout' | 'analyst' | 'strategist' | 'writer';
+export const WORKERS = ['scout', 'analyst', 'strategist', 'writer'] as const; // the director leads them, it is not one of them
+
+// How the manager runs one agent: on or off, how many of it work at once, and what it has been told to do differently.
+export interface AgentConfig { enabled: boolean; workers: number; instructions: string }
+export const MAX_WORKERS = 3;
+export const defaultAgentConfig: AgentConfig = { enabled: true, workers: 1, instructions: '' };
+
+// What the director (or an agent) suggests the manager does. Nothing happens until the manager confirms.
+export interface SuggestedAction {
+  kind: 'run' | 'configure' | 'talk';
+  label: string;
+  agents?: AgentId[]; // run
+  brief?: string; // run
+  agent?: AgentId; // configure, talk
+  enabled?: boolean; // configure
+  workers?: number; // configure
+  instructions?: string; // configure
+}
+export interface ChatMessage { id: number; thread: AgentId; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 
 export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean }
 export interface Activity { id: number; projectId: string; agent: AgentId; summary: string; ok: boolean; at: string }
-export interface Report<T = unknown> { id: number; kind: 'audit' | 'account'; data: T; simulated: boolean; at: string }
+export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | 'synthesis'; data: T; simulated: boolean; at: string }
 export const engagement = (p: Pick<AccountPost, 'likes' | 'comments' | 'shares' | 'saves'>) => p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3;

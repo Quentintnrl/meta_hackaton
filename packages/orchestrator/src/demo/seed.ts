@@ -75,9 +75,9 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   s.addReport(P, 'audit', {
     summary: 'For food-tech indie apps, build-in-public stories and 30-second how-tos earn the saves and shares. Release announcements on their own barely move.',
     whatWorks: [
-      { format: 'behind-the-scenes', why: 'Builds trust and invites replies', example: '"We deleted 40% of our recipe screen. Here is why."' },
-      { format: 'quick tutorial', why: 'The most saves of any format', example: '30-second "plan a week in one tap" screen recording' },
-      { format: 'relatable meme', why: 'Gets shared outside the follower base', example: 'The "what is for dinner?" loop' },
+      { format: 'behind-the-scenes', strength: 4, why: 'Builds trust and invites replies', example: '"We deleted 40% of our recipe screen. Here is why."' },
+      { format: 'quick tutorial', strength: 5, why: 'The most saves of any format', example: '30-second "plan a week in one tap" screen recording' },
+      { format: 'relatable meme', strength: 3, why: 'Gets shared outside the follower base', example: 'The "what is for dinner?" loop' },
     ],
     hooks: ['mistakes included', 'before / after', 'one tap', 'we asked 10 people'],
     topics: ['meal prep', 'food waste', 'solo developer', 'weeknight dinners'],
@@ -145,4 +145,17 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   s.log(P, 'analyst', 'Compared 8 posts with the field. Memes and behind-the-scenes outperform; no tutorials lately.', true, at(-0.015));
   s.log(P, 'strategist', 'Proposed 5 piece(s) of content. Waiting for your decision.', true, at(-0.01));
   s.log(P, 'writer', 'Drafted 2 accepted piece(s).', true, at(-0.5));
+  s.addReport(P, 'synthesis', {
+    headline: 'The beta is running late, and your account has no tutorial yet.',
+    points: ['Quick tutorials earn the most saves in the field; you have posted none this month.', 'The beta is projected after the date you want, so teasers are scheduled against the new date.', 'Four proposals wait for your decision in the Inbox.'],
+    next: 'Accept the 30-second tutorial, it is the biggest gap.',
+  }, false, at(-0.005));
+  s.log(P, 'director', 'The beta is running late, and your account has no tutorial yet.', true, at(-0.005));
+  s.setAgentConfig(P, 'scout', { workers: 2 });
+  s.setAgentConfig(P, 'writer', { instructions: 'Keep captions under 400 characters, warm and a little self-mocking.' });
+  s.addChat(P, 'director', 'user', 'What should we do this week?', [], at(-0.004));
+  s.addChat(P, 'director', 'agent', 'Post the tutorial first: it is the clearest gap. I can also have the Strategist look at the beta for teasers.', [
+    { kind: 'run', label: 'Plan the beta teasers', agents: ['strategist'], brief: 'Teasers for the beta' },
+    { kind: 'talk', label: 'Talk to the Strategist', agent: 'strategist' },
+  ], at(-0.003));
 }

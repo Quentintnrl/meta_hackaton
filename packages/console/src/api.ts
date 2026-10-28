@@ -125,13 +125,19 @@ export interface ContentView { profile: Profile; milestones: Milestone[]; items:
 
 const send = <T>(method: string, path: string, body?: unknown) => call<T>(path, { method, body: JSON.stringify(body ?? {}) });
 
-export type AgentId = 'scout' | 'analyst' | 'strategist' | 'writer';
-export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string }>; hooks: string[]; topics: string[]; avoid: string[]; sources: string[] }
+export type AgentId = 'director' | 'scout' | 'analyst' | 'strategist' | 'writer';
+export interface AgentConfig { enabled: boolean; workers: number; instructions: string }
+export interface SuggestedAction { kind: 'run' | 'configure' | 'talk'; label: string; agents?: AgentId[]; brief?: string; agent?: AgentId; enabled?: boolean; workers?: number; instructions?: string }
+export interface ChatMessage { id: number; thread: AgentId; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
+export interface Synthesis { headline: string; points: string[]; next: string }
+export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number }>; hooks: string[]; topics: string[]; avoid: string[]; sources: string[] }
 export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number }
 export interface Report<T> { data: T; simulated: boolean; at: string }
 export interface TeamView {
   agents: Array<{ id: AgentId; name: string; role: string }>;
   working?: { agent: AgentId; since: string };
+  config: Record<AgentId, AgentConfig>; synthesis?: Report<Synthesis>;
+  posts: Array<{ text: string; format: string; engagement: number; postedAt: string }>;
   audit?: Report<Audit>; account?: Report<AccountReport>; accountPosts: number;
   activity: Array<{ id: number; agent: AgentId; summary: string; ok: boolean; at: string }>;
 }
@@ -140,6 +146,10 @@ export const teamApi = {
   view: (pid: string) => call<TeamView>(`/projects/${pid}/team`),
   run: (pid: string, agents: AgentId[], brief: string) => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents, brief }),
   setAccount: (pid: string, b: { paste?: string; demo?: boolean }) => send<TeamView>('PUT', `/projects/${pid}/account`, b),
+  chat: (pid: string, agent: AgentId) => call<ChatMessage[]>(`/projects/${pid}/team/chat/${agent}`),
+  say: (pid: string, agent: AgentId, message: string) => send<ChatMessage[]>('POST', `/projects/${pid}/team/chat/${agent}`, { message }),
+  configure: (pid: string, agent: AgentId, patch: Partial<AgentConfig>) => send<AgentConfig>('PATCH', `/projects/${pid}/team/agents/${agent}`, patch),
+  apply: (pid: string, a: SuggestedAction) => send<{ started?: boolean }>('POST', `/projects/${pid}/team/actions`, a),
   accept: (id: string) => send<ContentItem>('POST', `/items/${id}/accept`),
   reject: (id: string, reason: string) => send<ContentItem>('POST', `/items/${id}/reject`, { reason }),
 };

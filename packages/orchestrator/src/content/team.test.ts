@@ -9,13 +9,20 @@ import type { LLM } from '../adapters/llm.ts';
 
 const now = new Date('2026-11-01T09:00:00Z');
 
+let directorReply: unknown = { reply: 'On it.', talkTo: 'none', actions: [] };
+let agentReply: unknown = { reply: 'Sure.', newInstructions: '' };
+
 function setup(over: Partial<LLM> = {}) {
   const prompts: Record<string, string> = {};
+  const searches: string[] = [];
   const llm: LLM = {
-    search: async () => ({ text: 'Behind-the-scenes posts do well.', sources: ['https://example.com/a'] }),
+    search: async p => { searches.push(p); return { text: 'Behind-the-scenes posts do well.', sources: ['https://example.com/a'] }; },
     json: async (prompt, schema, name) => {
       prompts[name] = prompt;
-      if (name === 'audit') return schema.parse({ summary: 'Build in public wins', whatWorks: [{ format: 'behind-the-scenes', why: 'trust', example: 'a' }], hooks: ['mistakes included'], topics: ['solo dev'], avoid: ['release notes alone'] });
+      if (name === 'audit') return schema.parse({ summary: 'Build in public wins', whatWorks: [{ format: 'behind-the-scenes', why: 'trust', example: 'a', strength: 5 }], hooks: ['mistakes included'], topics: ['solo dev'], avoid: ['release notes alone'] });
+      if (name === 'synthesis') return schema.parse({ headline: 'The team found what works', points: ['Build in public wins', 'Two proposals wait'], next: 'Decide on the proposals' });
+      if (name === 'director_reply') return schema.parse(directorReply);
+      if (name === 'agent_reply') return schema.parse(agentReply);
       if (name === 'account_analysis') return schema.parse({ summary: 'Strong on BTS, weak on releases', strengths: ['bts'], gaps: ['no video'], opportunities: ['teasers'] });
       if (name === 'proposals') return schema.parse({ proposals: [
         { kind: 'teaser', title: 'Beta teaser', brief: 'tease', rationale: 'BTS wins and the beta lands soon', source: 'roadmap', milestoneId: 'beta', offsetDays: -5, date: '' },
@@ -32,7 +39,7 @@ function setup(over: Partial<LLM> = {}) {
     llm, exportDir: mkdtempSync(join(tmpdir(), 'ripple-team-')), now: () => now, repoPath: () => '/r', git: async () => ['a1 add beta signup'],
     features: () => undefined, projectFeatures: () => [{ id: 'f', title: 'Signup', state: 'BUILDING', summary: 'beta signup' }],
   });
-  return { svc, team: new Team(svc), prompts };
+  return { svc, team: new Team(svc), prompts, searches };
 }
 const wait = async (team: Team, pid: string) => { while (team.working(pid)) await new Promise(r => setTimeout(r, 5)); };
 
@@ -117,7 +124,7 @@ test('a run goes through the agents in order, logs each, and survives a failing 
   assert.equal(team.start('app', 'App', ['scout']), false, 'one run at a time');
   await wait(team, 'app');
   const log = svc.store.activity('app').reverse();
-  assert.deepEqual(log.map(l => [l.agent, l.ok]), [['scout', false], ['analyst', true], ['strategist', true]]);
+  assert.deepEqual(log.map(l => [l.agent, l.ok]), [['scout', false], ['analyst', true], ['strategist', true], ['director', true]], 'the director sums up when something worked');
   assert.match(log[0].summary, /offline/);
 });
 
@@ -129,4 +136,82 @@ test('tick does not draft a proposal that is still waiting for the manager', asy
   assert.equal((await svc.tick()).drafted, 0);
   svc.accept(item.id);
   assert.equal((await svc.tick()).drafted, 1);
+});
+
+test('more scouts take different angles in parallel, and their findings are merged', async () => {
+  const { team, searches } = setup();
+  await team.scout('app', 'App');
+  assert.equal(searches.length, 1);
+  team.setConfig('app', 'scout', { workers: 3 });
+  searches.length = 0;
+  await team.scout('app', 'App');
+  assert.equal(searches.length, 3);
+  assert.equal(new Set(searches).size, 3, 'each one has its own angle');
+});
+
+test('workers are bounded, and the director cannot be switched off', () => {
+  const { team } = setup();
+  assert.equal(team.setConfig('app', 'writer', { workers: 99 }).workers, 3);
+  assert.equal(team.setConfig('app', 'writer', { workers: 0 }).workers, 1);
+  assert.throws(() => team.setConfig('app', 'director', { enabled: false }), /leads the team/);
+});
+
+test('an agent switched off is skipped, and says so', async () => {
+  const { svc, team } = setup();
+  team.setConfig('app', 'strategist', { enabled: false });
+  team.start('app', 'App', ['strategist']);
+  await wait(team, 'app');
+  assert.equal(svc.store.items('app').length, 0);
+  assert.match(svc.store.activity('app')[0].summary, /switched off/);
+});
+
+test('instructions given to an agent reach its prompt, and only its prompt', async () => {
+  const { team, prompts } = setup();
+  team.setConfig('app', 'strategist', { instructions: 'always propose one video' });
+  team.loadDemoAccount('app', 'App');
+  await team.scout('app', 'App');
+  await team.analyse('app');
+  await team.strategize('app');
+  assert.match(prompts.proposals, /always propose one video/);
+  assert.doesNotMatch(prompts.account_analysis, /always propose one video/);
+});
+
+test('the director answers first, suggests actions, and nothing runs until they are confirmed', async () => {
+  const { svc, team } = setup();
+  directorReply = { reply: 'I would add two scouts.', talkTo: 'scout', actions: [
+    { label: 'Use 2 scouts', kind: 'configure', agents: [], brief: '', agent: 'scout', enabled: 'unchanged', workers: 2 },
+    { label: 'Run the research', kind: 'run', agents: ['scout'], brief: 'beta', agent: 'none', enabled: 'unchanged', workers: 0 },
+    { label: 'Broken', kind: 'configure', agents: [], brief: '', agent: 'none', enabled: 'off', workers: 0 },
+  ] };
+  const chat = await team.chatDirector('app', 'Research more deeply');
+  assert.deepEqual(chat.map(m => m.role), ['user', 'agent']);
+  const a = chat[1].actions;
+  assert.deepEqual(a.map(x => x.kind), ['configure', 'run', 'talk'], 'an action with no target is dropped, the handoff is added');
+  assert.equal(a[2].agent, 'scout');
+  assert.equal(svc.store.agentConfig('app', 'scout').workers, 1, 'nothing applied yet');
+  team.apply('app', 'App', a[0]);
+  assert.equal(svc.store.agentConfig('app', 'scout').workers, 2);
+});
+
+test('an agent proposes a new behaviour; it is only applied on confirmation', async () => {
+  const { svc, team } = setup();
+  agentReply = { reply: 'I will keep it short.', newInstructions: 'Keep every proposal under 10 words.' };
+  const chat = await team.chatAgent('app', 'writer', 'Write shorter');
+  assert.equal(chat.at(-1)!.actions[0].instructions, 'Keep every proposal under 10 words.');
+  assert.equal(svc.store.agentConfig('app', 'writer').instructions, '');
+  team.apply('app', 'App', chat.at(-1)!.actions[0]);
+  assert.equal(svc.store.agentConfig('app', 'writer').instructions, 'Keep every proposal under 10 words.');
+  agentReply = { reply: 'Sure.', newInstructions: '' };
+  assert.deepEqual((await team.chatAgent('app', 'writer', 'thanks')).at(-1)!.actions, []);
+  assert.equal(svc.store.chat('app', 'scout').length, 0, 'each agent has its own conversation');
+});
+
+test('after a run the director leaves a note', async () => {
+  const { svc, team } = setup();
+  team.loadDemoAccount('app', 'App');
+  team.start('app', 'App', ['scout', 'analyst', 'strategist']);
+  await wait(team, 'app');
+  const o = team.overview('app');
+  assert.equal(o.synthesis!.data.headline, 'The team found what works');
+  assert.match(svc.store.chat('app', 'director').at(-1)!.text, /Next: Decide/);
 });

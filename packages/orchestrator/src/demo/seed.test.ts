@@ -72,5 +72,7 @@ test('the team overview works with no model at all', () => {
   const { svc } = demo();
   const o = new Team(svc).overview(DEMO_PROJECT);
   assert.ok(o.audit && o.account && o.accountPosts === 8);
-  assert.equal(o.activity.length, 4);
+  assert.equal(o.activity.length, 5);
+  assert.equal(o.config.scout.workers, 2);
+  assert.ok(o.synthesis);
 });

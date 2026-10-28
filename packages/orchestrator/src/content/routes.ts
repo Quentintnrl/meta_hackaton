@@ -154,6 +154,30 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
     });
   });
 
+  // The director first, then any agent: a conversation, a configuration, and the manager's confirmation of what was suggested.
+  const Agent = z.enum(['director', 'scout', 'analyst', 'strategist', 'writer']);
+  app.get('/projects/:pid/team/chat/:agent', c => {
+    const a = Agent.safeParse(c.req.param('agent'));
+    return known(c) && a.success ? c.json(svc.store.chat(c.req.param('pid'), a.data)) : c.json({ error: 'unknown project or agent' }, 404);
+  });
+  app.post('/projects/:pid/team/chat/:agent', async c => {
+    const a = Agent.safeParse(c.req.param('agent'));
+    if (!known(c) || !a.success) return c.json({ error: 'unknown project or agent' }, 404);
+    const b = await body(c, z.object({ message: z.string().trim().min(1).max(2000) }));
+    return isResponse(b) ? b : guard(c, () => team.chatAgent(c.req.param('pid'), a.data, b.message));
+  });
+  app.patch('/projects/:pid/team/agents/:agent', async c => {
+    const a = Agent.safeParse(c.req.param('agent'));
+    if (!known(c) || !a.success) return c.json({ error: 'unknown project or agent' }, 404);
+    const b = await body(c, z.object({ enabled: z.boolean(), workers: z.number().int().min(1).max(3), instructions: z.string().max(2000) }).partial());
+    return isResponse(b) ? b : guard(c, () => team.setConfig(c.req.param('pid'), a.data, b));
+  });
+  app.post('/projects/:pid/team/actions', async c => {
+    if (!known(c)) return c.json({ error: 'unknown project' }, 404);
+    const b = await body(c, z.object({ kind: z.enum(['run', 'configure']), label: z.string().max(200).default(''), agents: z.array(Agent).max(4).optional(), brief: z.string().max(2000).optional(), agent: Agent.optional(), enabled: z.boolean().optional(), workers: z.number().int().min(1).max(3).optional(), instructions: z.string().max(2000).optional() }));
+    return isResponse(b) ? b : guard(c, () => team.apply(c.req.param('pid'), projects.get(c.req.param('pid'))!.name, b));
+  });
+
   app.post('/items/:id/accept', c => guard(c, () => svc.accept(c.req.param('id'))));
   app.post('/items/:id/reject', async c => {
     const b = await body(c, z.object({ reason: z.string().trim().max(500).default('') }));

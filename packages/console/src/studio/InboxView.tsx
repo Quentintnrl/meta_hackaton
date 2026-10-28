@@ -13,7 +13,7 @@ export function InboxView({ pid, team, view, reload, go, open }: { pid: string; 
   const steps = [
     { done: Boolean(view.profile.audience || view.profile.directives || view.profile.niche), label: 'Tell the team about your project', page: 'orders' as View, cta: 'Add orders & voice' },
     { done: team.accountPosts > 0, label: 'Give it your account', page: 'account' as View, cta: 'Add your posts' },
-    { done: Boolean(team.audit), label: 'Brief the team', page: 'inbox' as View, cta: 'Use the box above' },
+    { done: Boolean(team.audit), label: 'Brief the team', page: 'agent:director' as View, cta: 'Or talk to the Director' },
   ];
   const starting = !team.audit && proposals.length === 0;
 
@@ -30,11 +30,19 @@ export function InboxView({ pid, team, view, reload, go, open }: { pid: string; 
         {error && <p className="error">{error}</p>}
       </section>
 
+      {team.synthesis && (
+        <section className="card note-card">
+          <div className="head"><h3>Director's note</h3><button className="linkish" onClick={() => go('agent:director')}>Ask the Director →</button></div>
+          <p className="lead"><b>{team.synthesis.data.headline}</b></p>
+          <ul className="plain">{team.synthesis.data.points.slice(0, 3).map(p => <li key={p}>{p}</li>)}</ul>
+        </section>
+      )}
+
       {starting && (
         <section className="card">
           <h3>Getting started</h3>
           <ol className="steps">{steps.map((s, i) => (
-            <li key={s.label} className={s.done ? 'done' : ''}><span className="tick">{s.done ? '✓' : i + 1}</span><span>{s.label}</span>{!s.done && s.page !== 'inbox' && <button className="linkish" onClick={() => go(s.page)}>{s.cta}</button>}</li>
+            <li key={s.label} className={s.done ? 'done' : ''}><span className="tick">{s.done ? '✓' : i + 1}</span><span>{s.label}</span>{!s.done && <button className="linkish" onClick={() => go(s.page)}>{s.cta}</button>}</li>
           ))}</ol>
         </section>
       )}

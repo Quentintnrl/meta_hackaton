@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { defaultProfile, type AccountPost, type Activity, type AgentId, type Report, type Forecast, type Item, type Milestone, type Profile } from './types.ts';
+import { defaultAgentConfig, defaultProfile, type AccountPost, type Activity, type AgentConfig, type AgentId, type ChatMessage, type SuggestedAction, type Report, type Forecast, type Item, type Milestone, type Profile } from './types.ts';
 
 type Row = Record<string, string | number | null>;
 
@@ -24,6 +24,8 @@ export class ContentStore {
       CREATE TABLE IF NOT EXISTS reports (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, kind TEXT NOT NULL, data TEXT NOT NULL, simulated INTEGER NOT NULL, made_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS activity (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, agent TEXT NOT NULL, summary TEXT NOT NULL, ok INTEGER NOT NULL, made_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS account_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, text TEXT NOT NULL, format TEXT NOT NULL, likes INTEGER NOT NULL, comments INTEGER NOT NULL, shares INTEGER NOT NULL, saves INTEGER NOT NULL, posted_at TEXT NOT NULL, simulated INTEGER NOT NULL);
+      CREATE TABLE IF NOT EXISTS agent_config (project_id TEXT NOT NULL, agent TEXT NOT NULL, enabled INTEGER NOT NULL, workers INTEGER NOT NULL, instructions TEXT NOT NULL, PRIMARY KEY (project_id, agent));
+      CREATE TABLE IF NOT EXISTS chat (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, thread TEXT NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL, actions TEXT NOT NULL, made_at TEXT NOT NULL);
     `);
     // Databases created before the team existed.
     this.#addColumn('profiles', 'niche', "TEXT NOT NULL DEFAULT ''");
@@ -57,6 +59,27 @@ export class ContentStore {
     return (this.#db.prepare('SELECT * FROM activity WHERE project_id = ? ORDER BY id DESC LIMIT ?').all(projectId, limit) as Row[]).map(r => ({
       id: Number(r.id), projectId, agent: r.agent as AgentId, summary: String(r.summary), ok: r.ok === 1, at: String(r.made_at),
     }));
+  }
+
+  // --- how the manager runs each agent, and what was said to them
+  agentConfig(projectId: string, agent: AgentId): AgentConfig {
+    const r = this.#db.prepare('SELECT * FROM agent_config WHERE project_id = ? AND agent = ?').get(projectId, agent) as Row | undefined;
+    return r ? { enabled: r.enabled === 1, workers: Number(r.workers), instructions: String(r.instructions) } : { ...defaultAgentConfig };
+  }
+
+  setAgentConfig(projectId: string, agent: AgentId, patch: Partial<AgentConfig>): AgentConfig {
+    const n = { ...this.agentConfig(projectId, agent), ...patch };
+    this.#db.prepare('INSERT OR REPLACE INTO agent_config (project_id, agent, enabled, workers, instructions) VALUES (?, ?, ?, ?, ?)').run(projectId, agent, n.enabled ? 1 : 0, n.workers, n.instructions);
+    return n;
+  }
+
+  addChat(projectId: string, thread: AgentId, role: ChatMessage['role'], text: string, actions: SuggestedAction[], at: string) {
+    this.#db.prepare('INSERT INTO chat (project_id, thread, role, text, actions, made_at) VALUES (?, ?, ?, ?, ?, ?)').run(projectId, thread, role, text, JSON.stringify(actions), at);
+  }
+
+  chat(projectId: string, thread: AgentId, limit = 40): ChatMessage[] {
+    const rows = this.#db.prepare('SELECT * FROM chat WHERE project_id = ? AND thread = ? ORDER BY id DESC LIMIT ?').all(projectId, thread, limit) as Row[];
+    return rows.reverse().map(r => ({ id: Number(r.id), thread, role: r.role as ChatMessage['role'], text: String(r.text), actions: JSON.parse(String(r.actions)) as SuggestedAction[], at: String(r.made_at) }));
   }
 
   setAccount(projectId: string, posts: AccountPost[]) {
