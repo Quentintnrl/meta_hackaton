@@ -68,7 +68,7 @@ export function App() {
   const shown = effective.kind === 'feature' ? events.filter(e => e.featureId === effective.id) : scope ? events.filter(e => scope.has(e.featureId)) : events;
 
   return (
-    <div className="layout">
+    <div className={effective.kind === 'content' ? 'layout wide' : 'layout'}>
       <aside className="side">
         <div className="brand">
           <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden>
@@ -136,12 +136,12 @@ export function App() {
         {effective.kind === 'feature' && feature && <FeaturePanel key={feature.id} id={feature.id} rev={rev} project={projectOf(feature.projectId)} />}
       </main>
 
-      <aside className="timeline">
+      {effective.kind !== 'content' && <aside className="timeline">
         <h3 className="eyebrow">Timeline{currentProject ? ` · ${currentProject.name}` : ''}</h3>
         <div className="tl-scroll">
           <Timeline events={shown} only={effective.kind === 'feature' ? effective.id : undefined} />
         </div>
-      </aside>
+      </aside>}
     </div>
   );
 }

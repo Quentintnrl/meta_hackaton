@@ -51,7 +51,7 @@ Variables facultatives : `PORT` (défaut `8787`), `JOURNAL_PATH` (défaut `out/j
 
 ### Studio de communication
 
-Onglet **Communication studio** de chaque projet : une petite équipe d'agents que tu diriges. Rien de plus à configurer que `MODEL_API_KEY`.
+Entrée **Communication studio** de chaque projet : une petite équipe d'agents que tu diriges. Un sous-menu à gauche, une page à la fois : **Inbox** (ce qui attend ta décision : le brief, les propositions, les brouillons à relire ; un pas-à-pas guide le premier lancement), **Plan** (Calendar, Roadmap), **Research** (The field, Your account), **Team** (Agents & activity, Orders & voice). Rien de plus à configurer que `MODEL_API_KEY`.
 
 - **Scout** : cherche sur le web ce qui marche dans ton domaine (formats, accroches, sujets), sources à l'appui.
 - **Analyst** : compare ton compte à ce que le Scout a trouvé. Il lui faut tes posts : colle-les avec leurs chiffres (onglet *Orders & account*, n'importe quel format, le modèle les structure et n'invente aucun chiffre) ou charge le **compte de démo** (posts fictifs, toujours étiquetés « Demo data »). Il n'y a pas encore de connexion directe à Instagram Insights.
