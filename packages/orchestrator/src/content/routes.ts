@@ -4,7 +4,7 @@ import type { ProjectStore } from '../projects.ts';
 import type { ContentService } from './service.ts';
 import { Team } from './team.ts';
 import { ItemKind } from './types.ts';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 
 const Date_ = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 const NewMilestone = z.object({ title: z.string().trim().min(1).max(120), intent: z.string().trim().max(4000).default(''), targetDate: Date_, scope: z.number().int().min(1).max(50) });
@@ -115,6 +115,13 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   app.post('/items/:id/media/:index/generate', async c => {
     const b = await body(c, z.object({ visual: z.string().max(2000).optional() }));
     return isResponse(b) ? b : guard(c, () => svc.generateSlide(c.req.param('id'), Number(c.req.param('index')), b.visual));
+  });
+  // Assemble the storyboard into an MP4 from its keyframes (local ffmpeg, no model call).
+  app.post('/items/:id/video', c => guard(c, async () => { await svc.renderVideo(c.req.param('id')); return { ok: true }; }));
+  app.get('/items/:id/video', c => {
+    const id = c.req.param('id');
+    const path = svc.store.item(id) ? svc.videoPath(id) : '';
+    return path && existsSync(path) ? c.body(readFileSync(path), 200, { 'content-type': 'video/mp4', 'cache-control': 'no-store' }) : c.json({ error: 'not found' }, 404);
   });
   app.get('/items/:id/media/:file', c => {
     const path = svc.mediaPath(c.req.param('id'), c.req.param('file'));

@@ -11,6 +11,8 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
   const [media, setMedia] = useState<Media | undefined>(saved);
   const [tags, setTags] = useState((saved?.hashtags ?? []).join(' '));
   const { busy, error, run } = useAction(reload);
+  const [stamp, setStamp] = useState(0); // 0 = no video assembled yet
+  useEffect(() => { setStamp(0); fetch(contentApi.videoUrl(item.id, 0), { method: 'HEAD' }).then(r => r.ok && setStamp(Date.now())).catch(() => {}); }, [item.id]);
   useEffect(() => { setMedia(item.media); setTags((item.media?.hashtags ?? []).join(' ')); }, [item.id, item.media]);
 
   if (!media) return <p className="hint small">No media yet: have the post written, or <button className="linkish" onClick={() => setMedia({ format: 'image', hashtags: [], slides: [blank(false)] })}>build it by hand</button>.</p>;
@@ -53,7 +55,16 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
         ))}
         {media.format !== 'image' && media.slides.length < 10 && <button className="slide add-slide" onClick={() => setMedia({ ...media, slides: [...media.slides, blank(video)] })}>+ {video ? 'Add a shot' : 'Add a slide'}</button>}
       </div>
-      {video && <p className="hint small">Ripple_handoff writes the storyboard and the keyframes; the video itself is filmed or edited by you.</p>}
+      {video && (
+        <div className="videobox">
+          {stamp > 0 && <video controls playsInline src={contentApi.videoUrl(item.id, stamp)} />}
+          <div>
+            <b>{stamp > 0 ? 'Your video' : 'Make the video'}</b>
+            <p className="hint small">Assembled on your computer from the keyframes: each one held for its seconds, slow zoom, its text on top. It is free, no model call. {missing > 0 ? 'Generate the missing keyframes first.' : 'Re-assemble after any change.'}</p>
+            <button disabled={b || dirty || missing > 0 || media.slides.some(x => !x.file)} title={dirty ? 'Save your changes first' : ''} onClick={() => run('video', async () => { await contentApi.renderVideo(item.id); setStamp(Date.now()); })}>{busy === 'video' ? 'Assembling…' : stamp > 0 ? 'Re-assemble the video' : 'Assemble the video'}</button>
+          </div>
+        </div>
+      )}
 
       <label>Hashtags<input value={tags} onChange={e => setTags(e.target.value)} placeholder="#mealprep #solodev" /></label>
       <div className="chips">{hashtags.map(h => <span key={h} className="pill">{h.startsWith('#') ? h : `#${h}`}</span>)}</div>

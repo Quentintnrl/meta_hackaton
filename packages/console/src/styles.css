@@ -438,3 +438,4 @@ details.card > summary { cursor: pointer; }
 .answers { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 16px; } .answers .big { padding: 12px 24px; font-size: 15px; border-radius: 12px; }
 .note-line { display: block; width: 100%; text-align: left; border-left: 3px solid hsl(340 70% 55%); background: var(--panel); color: var(--ink); font-weight: 400; } .note-line span { color: var(--accent); margin-left: 8px; white-space: nowrap; }
 .steps li .primary, .steps li .linkish { margin-left: auto; }
+.videobox { display: flex; gap: 16px; align-items: flex-start; padding: 14px; border-radius: 12px; background: var(--soft); } .videobox video { width: 120px; border-radius: 10px; background: #000; flex: none; } .videobox > div { display: grid; gap: 6px; justify-items: start; }

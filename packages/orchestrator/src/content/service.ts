@@ -7,6 +7,7 @@ import type { LLM } from '../adapters/llm.ts';
 import { ContentStore } from './store.ts';
 import { calibration, moved, project } from './forecast.ts';
 import type { ImageGen } from '../adapters/image.ts';
+import { renderVideo } from './video.ts';
 import { draftItem, draftPost, explainForecast, proposeContent, reviseItem, revisePost, type FeatureFacts } from './assistant.ts';
 import { addDays, day, daysBetween, normalizeHashtags, type Forecast, type Item, type ItemKind, type Media, type Milestone, type Profile } from './types.ts';
 
@@ -271,6 +272,18 @@ export class ContentService {
     for (const [i, s] of (item.media?.slides ?? []).entries()) if (!s.file) item = await this.generateSlide(itemId, i);
     return item;
   }
+
+  // The video of a storyboard, assembled from its keyframes with ffmpeg. No model call, so no cost.
+  async renderVideo(itemId: string): Promise<void> {
+    const item = this.#needItem(itemId);
+    const slides = item.media?.slides ?? [];
+    if (item.media?.format !== 'video' || slides.length === 0) throw new Error('this post is not a video');
+    const missing = slides.findIndex(s => !s.file);
+    if (missing >= 0) throw new Error(`shot ${missing + 1} has no keyframe yet: generate it first`);
+    await renderVideo(slides.map(s => ({ image: this.mediaPath(itemId, s.file!)!, seconds: s.seconds, text: s.text })), this.videoPath(itemId));
+  }
+
+  videoPath(itemId: string): string { return join(this.#mediaDir, itemId, 'video.mp4'); }
 
   mediaPath(itemId: string, file: string): string | undefined {
     if (!/^[\w.-]+$/.test(file)) return undefined;
