@@ -429,3 +429,12 @@ details.card > summary { cursor: pointer; }
 .flist .fi { font-size: 15px; line-height: 1; }
 .agent-hero .avatar { flex: none; width: 52px; height: 52px; }
 .hero-card .demo { justify-self: start; margin-left: 0; }
+
+/* ---- inbox ---- */
+.today { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; } .today > div { display: grid; } .today b { font-size: 18px; letter-spacing: -.01em; }
+.deck .idea { display: grid; gap: 10px; } .deck h2 { font-size: 22px; line-height: 1.25; } .deck .top { display: flex; gap: 10px; align-items: center; }
+.when-line { color: var(--muted); } .when-line b { color: var(--ink); }
+.why-big { background: var(--soft); border-radius: 12px; padding: 12px 14px; } .why-big b { font-size: 11px; letter-spacing: .06em; text-transform: uppercase; color: var(--accent); } .why-big p { margin-top: 4px; font-size: 14px; }
+.answers { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; margin-top: 16px; } .answers .big { padding: 12px 24px; font-size: 15px; border-radius: 12px; }
+.note-line { display: block; width: 100%; text-align: left; border-left: 3px solid hsl(340 70% 55%); background: var(--panel); color: var(--ink); font-weight: 400; } .note-line span { color: var(--accent); margin-left: 8px; white-space: nowrap; }
+.steps li .primary, .steps li .linkish { margin-left: auto; }
