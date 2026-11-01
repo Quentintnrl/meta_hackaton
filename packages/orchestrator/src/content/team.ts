@@ -10,6 +10,12 @@ export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
   { id: 'writer', name: 'Writer', role: 'Drafts what you accept' },
 ];
 
+// How every agent talks to the manager: an AI advisor, never the creator,
+// answering the question with evidence instead of roleplay.
+const CHAT_IDENTITY = `You are an AI advisor, not the creator: the manager is the human who builds the project and films the videos. Never speak as them (no "I chose", "my videos", "I film", "my design skills"): speak to them ("you", "your beta"). Never apologise, never narrate yourself ("I got excited", "I ramble"), no chit-chat.
+Answer the question that was asked, nothing else. Ground every claim in what you can see: the piece or goal in context, the field research, the account numbers, the roadmap. Name titles, formats and numbers concretely. Say "(demo data)" when a figure comes from the fictional demo account. If the context is too thin to answer well, ask exactly one focused question instead of inventing.
+Reply in the same language as the manager's last message.`;
+
 export const Audit = z.object({
   summary: z.string(),
   whatWorks: z.array(z.object({ format: z.string(), why: z.string(), example: z.string(), strength: z.number().int().min(1).max(5) })).max(5), // strength: how strongly it works, 5 = the best
@@ -151,7 +157,7 @@ Engagement = likes + 2*comments + 3*shares + 3*saves.
 Average engagement per format on this account:
 ${stats.map(s => `- ${s.format}: ${s.avgEngagement} over ${s.posts} post(s)`).join('\n')}
 Recent posts:
-${posts.slice(0, 15).map(p => `- [${p.format}] ${p.text} (${engagement(p)})`).join('\n')}
+${posts.slice(0, 15).map(p => `- [${p.format}] ${p.text} (${engagement(p)})${p.itemId ? ` — this one came from the studio piece "${this.#store.item(p.itemId)?.title ?? p.itemId}": weigh linked pieces as proven winners in strengths and gaps` : ''}`).join('\n')}
 
 What works in the field: ${audit ? JSON.stringify({ whatWorks: audit.whatWorks, hooks: audit.hooks, topics: audit.topics }) : '(the scout has not reported yet)'}
 ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}`,
@@ -226,6 +232,10 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
 
     const ids = new Set(milestones.map(m => m.id));
     const taken = new Set(all.map(i => i.title.toLowerCase())); // a refused title does not come back either
+    // Proposing with no field research or account data is allowed, but the
+    // manager must see it is an early sketch, not a grounded plan.
+    const missing = [!audit && 'field research', !account && 'account data'].filter(Boolean);
+    const mark = missing.length ? ` (Early sketch: no ${missing.join(' or ')} yet — check it against what you know.)` : '';
     const made: Item[] = [];
     for (const p of proposals) {
       if (taken.has(p.title.toLowerCase())) continue;
@@ -233,7 +243,7 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       const onMilestone = p.milestoneId && ids.has(p.milestoneId);
       const date = /^\d{4}-\d{2}-\d{2}$/.test(p.date) && p.date >= today ? p.date : addDays(today, 3);
       made.push(this.#store.addItem({
-        projectId, kind: p.kind, title: p.title, brief: p.brief, rationale: p.rationale, source: p.source, origin: 'ai', status: 'idea', createdAt: svc.now.toISOString(),
+        projectId, kind: p.kind, title: p.title, brief: p.brief, rationale: `${p.rationale}${mark}`, source: p.source, origin: 'ai', status: 'idea', createdAt: svc.now.toISOString(),
         ...(onMilestone ? { milestoneId: p.milestoneId, offsetDays: p.offsetDays } : { fixedDate: date }),
       }));
     }
@@ -323,13 +333,14 @@ Milestones: ${ms.map(m => `${m.title} (${m.delivered}/${m.scope}${m.atRisk ? `, 
   }
 
   // The manager talks to the director first. It answers, and may suggest actions; nothing runs until the manager confirms.
-  async chatDirector(projectId: string, message: string) {
+  async chatDirector(projectId: string, message: string, context = '') {
     const at = () => this.#svc.now.toISOString();
     const history = this.#store.chat(projectId, 'director', 8);
     this.#store.addChat(projectId, 'director', 'user', message, [], at());
     const r = await this.#svc.llm.json(
       `You are the director of a small digital communication team (scout, analyst, strategist, writer) working for a solo developer, the manager. You speak with the manager first.
-Answer in 1 to 3 short sentences. You can suggest actions (the manager confirms each one):
+${CHAT_IDENTITY}
+Answer shortly and concretely; a list is fine when asked for several things. You can suggest actions (the manager confirms each one):
 - run: have some agents work, in this order, with a brief.
 - configure: switch an agent on or off, or change how many of it work at once (1 to ${MAX_WORKERS}: more workers = wider research or more proposals, at more cost).
 If the manager wants to talk to one agent, or change how an agent behaves, set talkTo to that agent and say so: they will speak to it directly.
@@ -341,7 +352,7 @@ ${this.#teamState(projectId)}
 
 Conversation so far:
 ${history.map(m => `${m.role === 'user' ? 'Manager' : 'You'}: ${m.text}`).join('\n') || '(none)'}
-Manager: ${message}`,
+${context ? `What the manager is looking at right now (they know it, do not repeat it back, just use it to answer):\n${context}\n` : ''}Manager: ${message}`,
       DirectorReply, 'director_reply');
     const actions: SuggestedAction[] = r.actions.map(a => a.kind === 'run'
       ? { kind: 'run' as const, label: a.label, agents: a.agents, brief: a.brief }
@@ -353,8 +364,8 @@ Manager: ${message}`,
   }
 
   // The manager talks to one agent to understand its work or change how it behaves. A behaviour change is proposed, not applied.
-  async chatAgent(projectId: string, agent: AgentId, message: string) {
-    if (agent === 'director') return this.chatDirector(projectId, message);
+  async chatAgent(projectId: string, agent: AgentId, message: string, context = '') {
+    if (agent === 'director') return this.chatDirector(projectId, message, context);
     const at = () => this.#svc.now.toISOString();
     const info = AGENTS.find(a => a.id === agent)!;
     const history = this.#store.chat(projectId, agent, 8);
@@ -363,7 +374,8 @@ Manager: ${message}`,
     const last = this.#store.activity(projectId, 40).filter(a => a.agent === agent).slice(0, 3);
     const r = await this.#svc.llm.json(
       `You are the ${info.name} of a small digital communication team: "${info.role}". You are talking to the manager, who may ask about your work, or want to change how you work.
-Answer in 1 to 3 short sentences, as yourself. If the manager asks you to behave differently, put the COMPLETE new standing instructions for you in newInstructions (merge the old ones and the new request, short and concrete) and say in the reply what will change. Otherwise newInstructions is an empty string.
+${CHAT_IDENTITY}
+Answer shortly and concretely; a list is fine when asked for several things. If the manager asks you to behave differently, put the COMPLETE new standing instructions for you in newInstructions (merge the old ones and the new request, short and concrete) and say in the reply what will change. Otherwise newInstructions is an empty string.
 ${directives(this.#svc, projectId)}
 
 Your current instructions from the manager: ${cfg.instructions || '(none)'}
@@ -373,7 +385,7 @@ ${last.map(a => `- ${a.summary}`).join('\n') || '(none yet)'}
 
 Conversation so far:
 ${history.map(m => `${m.role === 'user' ? 'Manager' : 'You'}: ${m.text}`).join('\n') || '(none)'}
-Manager: ${message}`,
+${context ? `What the manager is looking at right now (they know it, do not repeat it back, just use it to answer):\n${context}\n` : ''}Manager: ${message}`,
       AgentReply, 'agent_reply');
     const actions: SuggestedAction[] = r.newInstructions.trim() && r.newInstructions.trim() !== cfg.instructions.trim()
       ? [{ kind: 'configure', label: 'Apply this new behaviour', agent, instructions: r.newInstructions.trim() }] : [];

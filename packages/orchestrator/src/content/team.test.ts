@@ -88,6 +88,30 @@ test('the strategist reads audit, account and roadmap, and cites them', async ()
   assert.equal(made[1].fixedDate, '2026-11-10');
 });
 
+test('proposals without research are marked as early sketches', async () => {
+  const bare = await setup().team.strategize('app');
+  assert.ok(bare.length > 0);
+  assert.ok(bare.every(i => i.rationale.includes('Early sketch')), 'no audit and no account: marked');
+  const full = setup();
+  full.team.loadDemoAccount('app', 'App');
+  await full.team.scout('app', 'App');
+  await full.team.analyse('app');
+  const grounded = await full.team.strategize('app');
+  assert.ok(grounded.length > 0);
+  assert.ok(grounded.every(i => !i.rationale.includes('Early sketch')), 'audit and account present: unmarked');
+});
+
+test('chatting about a piece sends its context invisibly', async () => {
+  const { svc, team, prompts } = setup();
+  await team.chatAgent('app', 'writer', 'is this too long?', 'Piece "Beta teaser" (teaser, idea). Brief: tease.');
+  assert.match(prompts.agent_reply, /Beta teaser/, 'the agent sees the piece');
+  assert.match(prompts.agent_reply, /never speak as them/i, 'the agent stays an advisor, not the creator');
+  assert.match(prompts.agent_reply, /same language as the manager/i);
+  const thread = svc.store.chat('app', 'writer');
+  assert.ok(thread.some(m => m.role === 'user' && m.text === 'is this too long?'));
+  assert.ok(!thread.some(m => m.text.includes('Beta teaser')), 'stored messages show no context');
+});
+
 test('a refused proposal teaches the next round', async () => {
   const { svc, team, prompts } = setup();
   const [a] = await team.strategize('app');

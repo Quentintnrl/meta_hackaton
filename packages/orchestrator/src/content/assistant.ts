@@ -20,6 +20,18 @@ const KIND_HELP: Record<ItemKind, string> = {
   newsletter: 'an email to subscribers: subject line, then body',
 };
 
+// The shape each kind must keep: length caps the model would otherwise ignore.
+const KIND_SHAPE: Record<ItemKind, string> = {
+  changelog: 'Under 120 words, one line per change, no intro.',
+  'release-notes': 'Under 200 words, most important change first.',
+  devlog: '150 to 300 words, first person, one decision or lesson.',
+  'social-post': 'Caption under 60 words, hook in the first line.',
+  teaser: 'One or two sentences, under 40 words, no details.',
+  'doc-update': 'Only the changed text, no intro or summary.',
+  'demo-script': 'About 200 words max (90 seconds spoken), steps in order.',
+  newsletter: 'Subject under 50 characters, body under 300 words.',
+};
+
 const voice = (p: Profile) => [
   p.voice && `Voice of the project: ${p.voice}`,
   p.audience && `Audience: ${p.audience}`,
@@ -66,6 +78,7 @@ const Draft = z.object({ draft: z.string() });
 export async function draftItem(llm: LLM, a: { item: Item; milestone?: Milestone; profile: Profile; features: FeatureFacts[]; commits?: string[]; guidance?: string }) {
   const r = await llm.json(
     `You write ${a.item.kind} content for a software project: ${KIND_HELP[a.item.kind]}.
+Shape: ${KIND_SHAPE[a.item.kind]}
 Write only what was asked, in the project's voice. Do not invent features, numbers or dates that are not below.
 
 ${voice(a.profile)}
@@ -157,6 +170,7 @@ ${POST_RULES}
 ${voice(a.profile)}
 
 Kind: ${a.item.kind} (${KIND_HELP[a.item.kind]})
+Shape: ${KIND_SHAPE[a.item.kind]}
 Title: ${a.item.title}
 What the manager wants it to say: ${a.item.brief || '(left to you: stay close to the facts below)'}
 ${a.milestone ? `Milestone: ${a.milestone.title}. ${a.milestone.intent}` : ''}

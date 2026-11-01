@@ -38,6 +38,9 @@ const Approval = z.object({ gate: Gate, push: z.boolean().optional() });
 
 export function createApp(rt: Runtime, projects: ProjectStore, sources: ProjectSources, opts: { visualDir: string; figma?: Figma; content?: ContentService }) {
   const app = new Hono();
+  // Content routes live under /projects/:pid/content, /projects/:pid/team, /projects/:pid/account and /items: absolute paths
+  // mounted at '/', next to the dev routes (/projects, /projects/:pid/features). Keep the two namespaces disjoint:
+  // a new content route must never reuse a dev path prefix, and vice versa.
   if (opts.content) app.route('/', contentRoutes(opts.content, projects));
 
   app.get('/projects', c => c.json(projects.list()));

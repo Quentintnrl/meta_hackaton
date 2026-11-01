@@ -17,6 +17,7 @@ const NewItem = z.object({
 const PatchItem = z.object({
   title: z.string().trim().min(1).max(160), brief: z.string().max(4000), draft: z.string().max(20000), kind: ItemKind,
   offsetDays: z.number().int().min(-90).max(90), fixedDate: Date_, milestoneId: z.string(), clearFixedDate: z.boolean(),
+  seriesId: z.string().max(40).nullable(),
   media: z.object({
     format: z.enum(['image', 'carousel', 'video']),
     hashtags: z.array(z.string().max(60)).max(30),
@@ -24,7 +25,10 @@ const PatchItem = z.object({
   }),
 }).partial();
 
-// Roadmap, content calendar and the AI that helps with both. Mounted next to the feature routes.
+// Roadmap, content calendar and the AI that helps with both. Mounted at '/'
+// next to the dev feature routes (see createApp): every path below is
+// absolute, starting with /projects/:pid/content, /projects/:pid/team,
+// /projects/:pid/account, /items or /milestones.
 export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   const app = new Hono();
   const team = new Team(svc);
@@ -45,7 +49,7 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   const known = (c: Context) => projects.get(c.req.param('pid') ?? '') !== undefined;
 
   app.get('/projects/:pid/content', c => known(c)
-    ? c.json({ profile: svc.profile(c.req.param('pid')), milestones: svc.milestones(c.req.param('pid')), items: svc.calendar(c.req.param('pid')) })
+    ? c.json({ profile: svc.profile(c.req.param('pid')), milestones: svc.milestones(c.req.param('pid')), items: svc.calendar(c.req.param('pid')), series: svc.series(c.req.param('pid')) })
     : c.json({ error: 'unknown project' }, 404));
 
   app.put('/projects/:pid/profile', async c => {
@@ -161,6 +165,25 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
     });
   });
 
+  // Editorial memory: series, reuse, and which posted piece came from which studio item.
+  app.post('/projects/:pid/series', async c => {
+    if (!known(c)) return c.json({ error: 'unknown project' }, 404);
+    const b = await body(c, z.object({ name: z.string().trim().min(1).max(60) }));
+    return isResponse(b) ? b : guard(c, () => svc.saveSeries(c.req.param('pid'), b.name), 201);
+  });
+
+  app.post('/items/:id/reuse', c => guard(c, () => svc.reuseItem(c.req.param('id')), 201));
+
+  app.get('/projects/:pid/account/posts', c => known(c)
+    ? c.json(svc.store.account(c.req.param('pid')))
+    : c.json({ error: 'unknown project' }, 404));
+
+  app.patch('/projects/:pid/account/:postId', async c => {
+    if (!known(c)) return c.json({ error: 'unknown project' }, 404);
+    const b = await body(c, z.object({ itemId: z.string().max(40).nullable() }));
+    return isResponse(b) ? b : guard(c, () => { svc.linkPost(c.req.param('pid'), Number(c.req.param('postId')), b.itemId); return { ok: true }; });
+  });
+
   // The director first, then any agent: a conversation, a configuration, and the manager's confirmation of what was suggested.
   const Agent = z.enum(['director', 'scout', 'analyst', 'strategist', 'writer']);
   app.get('/projects/:pid/team/chat/:agent', c => {
@@ -170,8 +193,8 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   app.post('/projects/:pid/team/chat/:agent', async c => {
     const a = Agent.safeParse(c.req.param('agent'));
     if (!known(c) || !a.success) return c.json({ error: 'unknown project or agent' }, 404);
-    const b = await body(c, z.object({ message: z.string().trim().min(1).max(2000) }));
-    return isResponse(b) ? b : guard(c, () => team.chatAgent(c.req.param('pid'), a.data, b.message));
+    const b = await body(c, z.object({ message: z.string().trim().min(1).max(2000), context: z.string().trim().max(4000).default('') }));
+    return isResponse(b) ? b : guard(c, () => team.chatAgent(c.req.param('pid'), a.data, b.message, b.context));
   });
   app.patch('/projects/:pid/team/agents/:agent', async c => {
     const a = Agent.safeParse(c.req.param('agent'));

@@ -82,6 +82,7 @@ export interface Item {
   offsetDays?: number; // date relative to the milestone's forecast: the item moves when the forecast does
   fixedDate?: string; // or a date the user locked
   origin: 'user' | 'ai' | 'dev';
+  seriesId?: string; // the editorial line it belongs to, if any
   media?: Media; // social posts only
   rationale: string; // why the team proposes it: what it saw in trends, in the account, in the roadmap
   source: ItemSource;
@@ -117,7 +118,9 @@ export interface SuggestedAction {
 }
 export interface ChatMessage { id: number; thread: AgentId; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 
-export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean }
+export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string } // itemId: the studio piece this post came from, linked by the manager
+export interface Series { id: string; projectId: string; name: string; createdAt: string } // a recurring editorial line: a pillar or a series
+export interface ItemLink { parentId: string; childId: string; kind: 'reuse'; createdAt: string } // a piece derived from another: recycle, decline, retry
 export interface Activity { id: number; projectId: string; agent: AgentId; summary: string; ok: boolean; at: string }
 export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | 'synthesis'; data: T; simulated: boolean; at: string }
 export const engagement = (p: Pick<AccountPost, 'likes' | 'comments' | 'shares' | 'saves'>) => p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3;

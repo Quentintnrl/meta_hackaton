@@ -2,7 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { defaultAgentConfig, defaultProfile, type AccountPost, type Activity, type AgentConfig, type AgentId, type ChatMessage, type SuggestedAction, type Report, type Forecast, type Item, type Milestone, type Profile } from './types.ts';
+import { defaultAgentConfig, defaultProfile, type AccountPost, type Activity, type AgentConfig, type AgentId, type ChatMessage, type SuggestedAction, type Report, type Forecast, type Item, type ItemLink, type Milestone, type Profile, type Series } from './types.ts';
 
 type Row = Record<string, string | number | null>;
 
@@ -26,6 +26,9 @@ export class ContentStore {
       CREATE TABLE IF NOT EXISTS account_posts (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, text TEXT NOT NULL, format TEXT NOT NULL, likes INTEGER NOT NULL, comments INTEGER NOT NULL, shares INTEGER NOT NULL, saves INTEGER NOT NULL, posted_at TEXT NOT NULL, simulated INTEGER NOT NULL);
       CREATE TABLE IF NOT EXISTS agent_config (project_id TEXT NOT NULL, agent TEXT NOT NULL, enabled INTEGER NOT NULL, workers INTEGER NOT NULL, instructions TEXT NOT NULL, PRIMARY KEY (project_id, agent));
       CREATE TABLE IF NOT EXISTS chat (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, thread TEXT NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL, actions TEXT NOT NULL, made_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS series (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL);
+      CREATE TABLE IF NOT EXISTS item_links (parent_id TEXT NOT NULL, child_id TEXT NOT NULL, kind TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (parent_id, child_id));
+      CREATE TABLE IF NOT EXISTS item_versions (id INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT NOT NULL, draft TEXT NOT NULL, media TEXT, created_at TEXT NOT NULL);
     `);
     // Databases created before the team existed.
     this.#addColumn('profiles', 'niche', "TEXT NOT NULL DEFAULT ''");
@@ -34,6 +37,8 @@ export class ContentStore {
     this.#addColumn('items', 'source', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('items', 'rejected_reason', 'TEXT');
     this.#addColumn('items', 'media', 'TEXT');
+    this.#addColumn('items', 'series_id', 'TEXT');
+    this.#addColumn('account_posts', 'item_id', 'TEXT');
   }
 
   #addColumn(table: string, col: string, def: string) {
@@ -83,16 +88,22 @@ export class ContentStore {
   }
 
   setAccount(projectId: string, posts: AccountPost[]) {
+    const links = new Map((this.#db.prepare('SELECT text, item_id FROM account_posts WHERE project_id = ? AND item_id IS NOT NULL').all(projectId) as Row[])
+      .map(r => [String(r.text), String(r.item_id)] as const));
     this.#db.prepare('DELETE FROM account_posts WHERE project_id = ?').run(projectId);
-    const ins = this.#db.prepare('INSERT INTO account_posts (project_id, text, format, likes, comments, shares, saves, posted_at, simulated) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const p of posts) ins.run(projectId, p.text, p.format, p.likes, p.comments, p.shares, p.saves, p.postedAt, p.simulated ? 1 : 0);
+    const ins = this.#db.prepare('INSERT INTO account_posts (project_id, text, format, likes, comments, shares, saves, posted_at, simulated, item_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const p of posts) ins.run(projectId, p.text, p.format, p.likes, p.comments, p.shares, p.saves, p.postedAt, p.simulated ? 1 : 0, p.itemId ?? links.get(p.text) ?? null);
   }
 
   account(projectId: string): AccountPost[] {
     return (this.#db.prepare('SELECT * FROM account_posts WHERE project_id = ? ORDER BY posted_at DESC').all(projectId) as Row[]).map(r => ({
       id: Number(r.id), text: String(r.text), format: String(r.format), likes: Number(r.likes), comments: Number(r.comments), shares: Number(r.shares),
-      saves: Number(r.saves), postedAt: String(r.posted_at), simulated: r.simulated === 1,
+      saves: Number(r.saves), postedAt: String(r.posted_at), simulated: r.simulated === 1, itemId: r.item_id ? String(r.item_id) : undefined,
     }));
+  }
+
+  linkPost(postId: number, itemId: string | null) {
+    this.#db.prepare('UPDATE account_posts SET item_id = ? WHERE id = ?').run(itemId, postId);
   }
 
   // --- profile
@@ -179,10 +190,10 @@ export class ContentStore {
   }
 
   // --- items
-  addItem(i: Omit<Item, 'id' | 'revisions' | 'draft' | 'status' | 'rationale' | 'source'> & { draft?: string; status?: Item['status']; rationale?: string; source?: Item['source'] }): Item {
+  addItem(i: Omit<Item, 'id' | 'revisions' | 'draft' | 'status' | 'rationale' | 'source' | 'seriesId'> & { draft?: string; status?: Item['status']; rationale?: string; source?: Item['source']; seriesId?: string }): Item {
     const id = randomUUID().slice(0, 8);
-    this.#db.prepare('INSERT INTO items (id, project_id, milestone_id, feature_id, kind, title, brief, draft, status, offset_days, fixed_date, origin, revisions, exported_path, published_at, created_at, rationale, source) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?, ?)')
-      .run(id, i.projectId, i.milestoneId ?? null, i.featureId ?? null, i.kind, i.title, i.brief, i.draft ?? '', i.status ?? (i.brief.trim() ? 'briefed' : 'idea'), i.offsetDays ?? null, i.fixedDate ?? null, i.origin, i.createdAt, i.rationale ?? '', i.source ?? '');
+    this.#db.prepare('INSERT INTO items (id, project_id, milestone_id, feature_id, kind, title, brief, draft, status, offset_days, fixed_date, origin, revisions, exported_path, published_at, created_at, rationale, source, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?, ?, ?)')
+      .run(id, i.projectId, i.milestoneId ?? null, i.featureId ?? null, i.kind, i.title, i.brief, i.draft ?? '', i.status ?? (i.brief.trim() ? 'briefed' : 'idea'), i.offsetDays ?? null, i.fixedDate ?? null, i.origin, i.createdAt, i.rationale ?? '', i.source ?? '', i.seriesId ?? null);
     return this.item(id)!;
   }
 
@@ -196,18 +207,64 @@ export class ContentStore {
     return rows.map(r => this.#item(r));
   }
 
-  updateItem(id: string, patch: Partial<Omit<Item, 'id' | 'projectId' | 'createdAt'>> & { clearFixedDate?: boolean }): Item {
+  updateItem(id: string, patch: Partial<Omit<Item, 'id' | 'projectId' | 'createdAt' | 'seriesId'>> & { clearFixedDate?: boolean; seriesId?: string | null }): Item {
     const i = this.item(id);
     if (!i) throw new Error(`unknown item ${id}`);
     const n = { ...i, ...patch };
     const fixed = patch.clearFixedDate ? null : n.fixedDate ?? null;
-    this.#db.prepare('UPDATE items SET milestone_id = ?, feature_id = ?, kind = ?, title = ?, brief = ?, draft = ?, status = ?, offset_days = ?, fixed_date = ?, revisions = ?, exported_path = ?, published_at = ?, rationale = ?, rejected_reason = ?, media = ? WHERE id = ?')
-      .run(n.milestoneId ?? null, n.featureId ?? null, n.kind, n.title, n.brief, n.draft, n.status, n.offsetDays ?? null, fixed, n.revisions, n.exportedPath ?? null, n.publishedAt ?? null, n.rationale, n.rejectedReason ?? null, n.media ? JSON.stringify(n.media) : null, id);
+    this.#db.prepare('UPDATE items SET milestone_id = ?, feature_id = ?, kind = ?, title = ?, brief = ?, draft = ?, status = ?, offset_days = ?, fixed_date = ?, revisions = ?, exported_path = ?, published_at = ?, rationale = ?, rejected_reason = ?, media = ?, series_id = ? WHERE id = ?')
+      .run(n.milestoneId ?? null, n.featureId ?? null, n.kind, n.title, n.brief, n.draft, n.status, n.offsetDays ?? null, fixed, n.revisions, n.exportedPath ?? null, n.publishedAt ?? null, n.rationale, n.rejectedReason ?? null, n.media ? JSON.stringify(n.media) : null, n.seriesId ?? null, id);
     return this.item(id)!;
   }
 
   removeItem(id: string) {
     this.#db.prepare('DELETE FROM items WHERE id = ?').run(id);
+    this.#db.prepare('DELETE FROM item_links WHERE parent_id = ? OR child_id = ?').run(id, id);
+    this.#db.prepare('DELETE FROM item_versions WHERE item_id = ?').run(id);
+  }
+
+  // --- editorial memory: series, derivations, versions
+  series(projectId: string): Series[] {
+    return (this.#db.prepare('SELECT * FROM series WHERE project_id = ? ORDER BY name').all(projectId) as Row[]).map(r => ({
+      id: String(r.id), projectId, name: String(r.name), createdAt: String(r.created_at),
+    }));
+  }
+
+  saveSeries(projectId: string, name: string, at: string): Series {
+    const clean = name.trim().slice(0, 60);
+    if (!clean) throw new Error('name the series first');
+    const same = this.series(projectId).find(s => s.name.toLowerCase() === clean.toLowerCase());
+    if (same) return same;
+    const id = randomUUID().slice(0, 8);
+    this.#db.prepare('INSERT INTO series (id, project_id, name, created_at) VALUES (?, ?, ?, ?)').run(id, projectId, clean, at);
+    return { id, projectId, name: clean, createdAt: at };
+  }
+
+  setItemSeries(id: string, seriesId: string | null) {
+    if (seriesId && !this.#db.prepare('SELECT id FROM series WHERE id = ?').get(seriesId)) throw new Error('unknown series');
+    this.#db.prepare('UPDATE items SET series_id = ? WHERE id = ?').run(seriesId, id);
+  }
+
+  linkItems(parentId: string, childId: string, kind: ItemLink['kind'], at: string) {
+    this.#db.prepare('INSERT OR IGNORE INTO item_links (parent_id, child_id, kind, created_at) VALUES (?, ?, ?, ?)').run(parentId, childId, kind, at);
+  }
+
+  parentsOf(childId: string): Item[] {
+    const rows = this.#db.prepare('SELECT i.* FROM items i JOIN item_links l ON l.parent_id = i.id WHERE l.child_id = ? ORDER BY l.created_at').all(childId) as Row[];
+    return rows.map(r => this.#item(r));
+  }
+
+  snapshotVersion(itemId: string, at: string) {
+    const i = this.item(itemId);
+    if (!i) throw new Error(`unknown item ${itemId}`);
+    this.#db.prepare('INSERT INTO item_versions (item_id, draft, media, created_at) VALUES (?, ?, ?, ?)')
+      .run(itemId, i.draft, i.media ? JSON.stringify(i.media) : null, at);
+  }
+
+  versions(itemId: string): Array<{ id: number; draft: string; media: Item['media']; createdAt: string }> {
+    return (this.#db.prepare('SELECT * FROM item_versions WHERE item_id = ? ORDER BY id').all(itemId) as Row[]).map(r => ({
+      id: Number(r.id), draft: String(r.draft), media: r.media ? JSON.parse(String(r.media)) : undefined, createdAt: String(r.created_at),
+    }));
   }
 
   #milestone(r: Row): Milestone {
@@ -228,6 +285,7 @@ export class ContentStore {
       exportedPath: r.exported_path ? String(r.exported_path) : undefined, publishedAt: r.published_at ? String(r.published_at) : undefined,
       createdAt: String(r.created_at), rationale: String(r.rationale), source: String(r.source) as Item['source'],
       rejectedReason: r.rejected_reason ? String(r.rejected_reason) : undefined, media: r.media ? JSON.parse(String(r.media)) : undefined,
+      seriesId: r.series_id ? String(r.series_id) : undefined,
     };
   }
 }

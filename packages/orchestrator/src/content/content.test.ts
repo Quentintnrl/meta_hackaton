@@ -156,6 +156,46 @@ test('draft, revise, approve (writes a file), publish', async () => {
   assert.equal((await svc.publish(i.id)).status, 'published');
 });
 
+test('a hostile title cannot escape the export folder', async () => {
+  const { svc } = setup();
+  const i = svc.addItem({ projectId: 'app', kind: 'devlog', title: '../../evil', brief: 'x', fixedDate: '2026-11-05' });
+  await svc.draft(i.id);
+  const a = svc.approve(i.id);
+  assert.ok(!a.exportedPath!.split('/').includes('..'), 'stays inside the export folder');
+  assert.match(readFileSync(a.exportedPath!, 'utf8'), /"\.\.\/\.\.\/evil"/);
+});
+
+test('reuse starts a linked new idea and keeps its series', async () => {
+  const { svc } = setup();
+  const s = svc.saveSeries('app', 'Beta diary');
+  assert.equal(svc.saveSeries('app', 'beta DIARY').id, s.id, 'same name twice is one series');
+  const i = svc.addItem({ projectId: 'app', kind: 'devlog', title: 'Week 1', brief: 'notes', fixedDate: '2026-11-05' });
+  svc.setItemSeries(i.id, s.id);
+  await svc.draft(i.id);
+  svc.approve(i.id);
+  const child = svc.reuseItem(i.id);
+  assert.equal(child.status, 'idea');
+  assert.equal(child.seriesId, s.id);
+  assert.equal(child.draft, svc.store.item(i.id)!.draft, 'the new round starts from the same text');
+  assert.deepEqual(svc.store.parentsOf(child.id).map(p => p.id), [i.id]);
+  assert.equal(svc.schedule(child).reusedFrom, 'Week 1');
+  assert.equal(svc.schedule(i).versionCount, 1, 'approving keeps a snapshot');
+  assert.throws(() => svc.setItemSeries(i.id, 'ghost'), /unknown series in this project/);
+});
+
+test('account posts link to studio pieces and survive a re-import', () => {
+  const { svc } = setup();
+  const i = svc.addItem({ projectId: 'app', kind: 'devlog', title: 'Week 1', brief: 'notes' });
+  svc.store.setAccount('app', [{ text: 'hello', format: 'tip', likes: 10, comments: 1, shares: 0, saves: 2, postedAt: '2026-11-01', simulated: false }]);
+  const [post] = svc.store.account('app');
+  svc.linkPost('app', post.id!, i.id);
+  assert.equal(svc.store.account('app')[0].itemId, i.id);
+  assert.throws(() => svc.linkPost('app', 9999, i.id), /unknown post/);
+  assert.throws(() => svc.linkPost('other', post.id!, i.id), /unknown post|unknown piece/);
+  svc.store.setAccount('app', [{ text: 'hello', format: 'tip', likes: 11, comments: 1, shares: 0, saves: 2, postedAt: '2026-11-01', simulated: false }]);
+  assert.equal(svc.store.account('app')[0].itemId, i.id, 'same text re-imported keeps its link');
+});
+
 test('editing the text by hand makes it a draft that needs a new approval', async () => {
   const { svc } = setup();
   const i = svc.addItem({ projectId: 'app', kind: 'devlog', title: 'x', brief: 'y' });

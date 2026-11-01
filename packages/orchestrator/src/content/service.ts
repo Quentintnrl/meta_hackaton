@@ -9,7 +9,7 @@ import { calibration, moved, project } from './forecast.ts';
 import type { ImageGen } from '../adapters/image.ts';
 import { renderVideo } from './video.ts';
 import { draftItem, draftPost, explainForecast, proposeContent, reviseItem, revisePost, type FeatureFacts } from './assistant.ts';
-import { addDays, day, daysBetween, normalizeHashtags, type Forecast, type Item, type ItemKind, type Media, type Milestone, type Profile } from './types.ts';
+import { addDays, day, daysBetween, normalizeHashtags, type Forecast, type Item, type ItemKind, type Media, type Milestone, type Profile, type Series } from './types.ts';
 
 const run = promisify(execFile);
 
@@ -30,6 +30,8 @@ export interface ScheduledItem extends Item {
   date?: string; // when it is due now: the locked date, or the milestone's projection plus the offset
   plannedDate?: string; // when it was due against the user's own target
   shiftDays?: number; // how far the projection moved it
+  reusedFrom?: string; // titles of the pieces this one was derived from, if any
+  versionCount?: number; // approved snapshots kept for this piece
 }
 
 export interface MilestoneView extends Milestone {
@@ -184,6 +186,43 @@ export class ContentService {
     return this.store.updateItem(itemId, { status: 'rejected', rejectedReason: reason });
   }
 
+  // Decline a piece into a new one: same line, new round. The child starts as
+  // an idea so the manager decides again; the link remembers where it came from.
+  reuseItem(itemId: string): Item {
+    const parent = this.#needItem(itemId);
+    const child = this.store.addItem({
+      projectId: parent.projectId, milestoneId: parent.milestoneId, kind: parent.kind, title: parent.title, brief: parent.brief,
+      draft: parent.draft, seriesId: parent.seriesId, rationale: `Reused from "${parent.title}".`, source: parent.source,
+      origin: 'user', status: 'idea', createdAt: this.#now().toISOString(),
+    });
+    this.store.linkItems(parent.id, child.id, 'reuse', this.#now().toISOString());
+    return child;
+  }
+
+  series(projectId: string): Series[] {
+    return this.store.series(projectId);
+  }
+
+  saveSeries(projectId: string, name: string): Series {
+    return this.store.saveSeries(projectId, name, this.#now().toISOString());
+  }
+
+  setItemSeries(itemId: string, seriesId: string | null): Item {
+    const item = this.#needItem(itemId);
+    if (seriesId && this.store.series(item.projectId).every(s => s.id !== seriesId)) throw new Error('unknown series in this project');
+    this.store.setItemSeries(itemId, seriesId);
+    return this.store.item(itemId)!;
+  }
+
+  // Tie a posted piece back to the studio item it came from, so the next
+  // account analysis can learn from what worked.
+  linkPost(projectId: string, postId: number, itemId: string | null): void {
+    const posts = this.store.account(projectId);
+    if (!posts.some(p => p.id === postId)) throw new Error('unknown post');
+    if (itemId && this.store.item(itemId)?.projectId !== projectId) throw new Error('unknown piece in this project');
+    this.store.linkPost(postId, itemId);
+  }
+
   async draft(itemId: string, guidance?: string, commits: string[] = []): Promise<Item> {
     const item = this.#needItem(itemId);
     const milestone = item.milestoneId ? this.store.milestone(item.milestoneId) : undefined;
@@ -207,7 +246,7 @@ export class ContentService {
     return this.store.updateItem(itemId, { draft: await reviseItem(this.#llm, { item, instruction, profile }), status: 'drafted', revisions: item.revisions + 1 });
   }
 
-  editItem(itemId: string, patch: Partial<Pick<Item, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean }): Item {
+  editItem(itemId: string, patch: Partial<Pick<Item, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean; seriesId?: string | null }): Item {
     const item = this.#needItem(itemId);
     if (patch.media) patch = { ...patch, media: { ...patch.media, hashtags: normalizeHashtags(patch.media.hashtags) } };
     const edited = (patch.draft !== undefined && patch.draft !== item.draft) || (patch.media !== undefined && JSON.stringify(patch.media) !== JSON.stringify(item.media));
@@ -225,6 +264,7 @@ export class ContentService {
     const file = join(dir, `${date}-${item.kind}-${item.id}.md`);
     const post = item.media ? this.#exportMedia(item, dir, date) : '';
     writeFileSync(file, `---\ntitle: ${JSON.stringify(item.title)}\nkind: ${item.kind}\ndate: ${date}${item.media ? `\nformat: ${item.media.format}` : ''}\n---\n\n${item.draft}\n${post}`);
+    this.store.snapshotVersion(itemId, this.#now().toISOString()); // keep what was signed off: the piece can be declined later
     return this.store.updateItem(itemId, { status: 'approved', exportedPath: file });
   }
 
@@ -293,15 +333,16 @@ export class ContentService {
 
   // --- the calendar: every item with the date it is due now
   schedule(item: Item): ScheduledItem {
-    if (item.fixedDate) return { ...item, date: item.fixedDate, plannedDate: item.fixedDate, shiftDays: 0 };
+    const memory = { reusedFrom: this.store.parentsOf(item.id).map(p => p.title).join(', ') || undefined, versionCount: this.store.versions(item.id).length };
+    if (item.fixedDate) return { ...item, ...memory, date: item.fixedDate, plannedDate: item.fixedDate, shiftDays: 0 };
     const m = item.milestoneId ? this.store.milestone(item.milestoneId) : undefined;
-    if (!m) return { ...item };
+    if (!m) return { ...item, ...memory };
     const forecast = this.store.forecasts(m.id).at(-1);
     const offset = item.offsetDays ?? 0;
     const anchor = m.status === 'done' && m.doneAt ? m.doneAt.slice(0, 10) : forecast?.predictedDate ?? m.targetDate;
     const date = addDays(anchor, offset);
     const plannedDate = addDays(m.targetDate, offset);
-    return { ...item, date, plannedDate, shiftDays: Math.round(daysBetween(plannedDate, date)) };
+    return { ...item, ...memory, date, plannedDate, shiftDays: Math.round(daysBetween(plannedDate, date)) };
   }
 
   calendar(projectId: string): ScheduledItem[] {
