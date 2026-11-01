@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 export interface LLM {
   // Asks for JSON matching `schema`; the reply is validated, never trusted.
-  json<T extends z.ZodType>(prompt: string, schema: T, name: string): Promise<z.infer<T>>;
+  // `images` are data URLs the model really sees (vision input, paid tokens).
+  json<T extends z.ZodType>(prompt: string, schema: T, name: string, opts?: { images?: string[] }): Promise<z.infer<T>>;
   // Looks things up on the web and answers in prose, with the pages it relied on. Optional: not every backend can.
   search?(prompt: string): Promise<{ text: string; sources: string[] }>;
 }
@@ -33,13 +34,16 @@ export class MetaLLM implements LLM {
     return { text, sources };
   }
 
-  async json<T extends z.ZodType>(prompt: string, schema: T, name: string): Promise<z.infer<T>> {
+  async json<T extends z.ZodType>(prompt: string, schema: T, name: string, opts: { images?: string[] } = {}): Promise<z.infer<T>> {
+    // Plain text stays a string; with pictures the input becomes one user
+    // message with `input_image` parts (Responses API vision input).
+    const parts = [{ type: 'input_text', text: prompt }, ...(opts.images ?? []).map(image_url => ({ type: 'input_image', image_url }))];
     const res = await fetch(`${BASE}/responses`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.#key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: this.#model,
-        input: prompt,
+        input: parts.length > 1 ? [{ role: 'user', content: parts }] : prompt,
         text: { format: { type: 'json_schema', name, strict: true, schema: z.toJSONSchema(schema) } },
       }),
     });

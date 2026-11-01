@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ContentService } from './service.ts';
@@ -14,11 +14,13 @@ let agentReply: unknown = { reply: 'Sure.', newInstructions: '' };
 
 function setup(over: Partial<LLM> = {}) {
   const prompts: Record<string, string> = {};
+  const shots: Record<string, number> = {};
   const searches: string[] = [];
   const llm: LLM = {
     search: async p => { searches.push(p); return { text: 'Behind-the-scenes posts do well.', sources: ['https://example.com/a'] }; },
-    json: async (prompt, schema, name) => {
+    json: async (prompt, schema, name, opts) => {
       prompts[name] = prompt;
+      shots[name] = opts?.images?.length ?? 0;
       if (name === 'audit') return schema.parse({ summary: 'Build in public wins', whatWorks: [{ format: 'behind-the-scenes', why: 'trust', example: 'a', strength: 5 }], hooks: ['mistakes included'], topics: ['solo dev'], avoid: ['release notes alone'] });
       if (name === 'synthesis') return schema.parse({ headline: 'The team found what works', points: ['Build in public wins', 'Two proposals wait'], next: 'Decide on the proposals' });
       if (name === 'director_reply') return schema.parse(directorReply);
@@ -35,11 +37,12 @@ function setup(over: Partial<LLM> = {}) {
     },
     ...over,
   };
+  const dir = mkdtempSync(join(tmpdir(), 'ripple-team-'));
   const svc = new ContentService({
-    llm, exportDir: mkdtempSync(join(tmpdir(), 'ripple-team-')), now: () => now, repoPath: () => '/r', git: async () => ['a1 add beta signup'],
+    llm, exportDir: dir, now: () => now, repoPath: () => '/r', git: async () => ['a1 add beta signup'],
     features: () => undefined, projectFeatures: () => [{ id: 'f', title: 'Signup', state: 'BUILDING', summary: 'beta signup' }],
   });
-  return { svc, team: new Team(svc), prompts, searches };
+  return { svc, team: new Team(svc), prompts, shots, searches, dir };
 }
 const wait = async (team: Team, pid: string) => { while (team.working(pid)) await new Promise(r => setTimeout(r, 5)); };
 
@@ -134,6 +137,20 @@ test('each subject gets its own chat session', async () => {
   assert.ok(!prompts.agent_reply.includes('Piece A'), '...and nothing from the other session');
   await team.chatAgent('app', 'writer', 'hi', '', 'writer:item:aaa');
   assert.equal(svc.store.chat('app', 'writer').length, 2, 'a forged subject falls back to the bare thread');
+});
+
+test('asking about a post shows its pictures to the model', async () => {
+  const { svc, team, prompts, shots, dir } = setup();
+  const item = svc.store.addItem({ projectId: 'app', origin: 'ai', createdAt: now.toISOString(), kind: 'social-post', title: 'Testers', brief: 'call', status: 'drafted' });
+  svc.store.updateItem(item.id, { media: { format: 'carousel', hashtags: [], slides: [{ kind: 'image', visual: 'a plate', text: 'Plan', seconds: 0, file: '1.jpg' }] } });
+  mkdirSync(join(dir, 'media', item.id), { recursive: true });
+  writeFileSync(join(dir, 'media', item.id, '1.jpg'), Buffer.from('fakejpeg'));
+  await team.chatAgent('app', 'writer', 'What does my post show?', 'Piece "Testers" (social-post, drafted).', `item:${item.id}`);
+  assert.equal(shots.agent_reply, 1, 'the generated picture went to the model');
+  assert.match(prompts.agent_reply, /really see them/, 'the agent knows it can look');
+  await team.chatAgent('app', 'writer', 'What does my post show?', 'Piece "Testers" (social-post, drafted).', 'item:ghost');
+  assert.equal(shots.agent_reply, 0, 'an unknown piece sends no pictures');
+  assert.match(prompts.agent_reply, /cannot see pictures/, '...and the agent stays honest');
 });
 
 test('a refused proposal teaches the next round', async () => {

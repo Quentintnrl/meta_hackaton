@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import type { ContentService } from './service.ts';
 import { ItemKind, MAX_WORKERS, WORKERS, addDays, day, engagement, type AccountPost, type AgentConfig, type AgentId, type Item, type Milestone, type SuggestedAction } from './types.ts';
@@ -13,8 +14,12 @@ export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
 // How every agent talks to the manager: an AI advisor, never the creator,
 // answering the question with evidence instead of roleplay.
 const CHAT_IDENTITY = `You are an AI advisor, not the creator: the manager is the human who builds the project and films the videos. Never speak as them (no "I chose", "my videos", "I film", "my design skills"): speak to them ("you", "your beta"). Never apologise, never narrate yourself ("I got excited", "I ramble"), no chit-chat.
-Answer the question that was asked, nothing else. Ground every claim in what you can see: the piece or goal in context, the field research, the account numbers, the roadmap. Name titles, formats and numbers concretely. Say "(demo data)" when a figure comes from the fictional demo account. If the context is too thin to answer well, ask exactly one focused question instead of inventing. You cannot see pictures or videos, only the written brief each shot was made from: if asked what one shows, quote that brief, say you cannot look at the image itself, and offer to change the brief. Never pretend you looked at it.
+Answer the question that was asked, nothing else. Ground every claim in what you can see: the piece or goal in context, the field research, the account numbers, the roadmap. Name titles, formats and numbers concretely. Say "(demo data)" when a figure comes from the fictional demo account. If the context is too thin to answer well, ask exactly one focused question instead of inventing.
 Reply in the same language as the manager's last message.`;
+// Blind by default: the chat model only gets text, never the pictures.
+const BLIND = `You cannot see pictures or videos, only the written brief each shot was made from: if asked what one shows, quote that brief, say you cannot look at the image itself, and offer to change the brief. Never pretend you looked at it.`;
+// Attached pictures change that: describe what is really on them.
+const SIGHTED = `Pictures of the piece are attached to this chat: you can really see them. When asked what a post shows, describe what is actually on the pictures and quote on-image text exactly, instead of the brief. Offer to change the brief when what you see is off.`;
 
 export const Audit = z.object({
   summary: z.string(),
@@ -115,6 +120,26 @@ const LENSES = ['the dev roadmap: what is about to land and when', 'the project 
 // `agent:milestone:<id>`. Anything else falls back to the bare agent thread.
 export function chatThread(agent: AgentId, about: string): string {
   return /^(item|milestone):[A-Za-z0-9_-]{1,60}$/.test(about) ? `${agent}:${about}` : agent;
+}
+
+// Pictures the manager may ask about: data URLs of the generated shots of one
+// piece, so the chat model really sees them. Missing files just mean no vision.
+function picturesFor(svc: ContentService, projectId: string, about: string): string[] {
+  const m = /^item:([A-Za-z0-9_-]{1,60})$/.exec(about);
+  if (!m) return [];
+  const item = svc.store.item(m[1]);
+  if (!item || item.projectId !== projectId || !item.media) return [];
+  const urls: string[] = [];
+  for (const s of item.media.slides) {
+    if (!s.file || urls.length >= 3) continue;
+    try {
+      const path = svc.mediaPath(item.id, s.file);
+      if (!path) continue;
+      const mime = s.file.endsWith('.png') ? 'image/png' : 'image/jpeg';
+      urls.push(`data:${mime};base64,${readFileSync(path).toString('base64')}`);
+    } catch { /* answer from the brief instead */ }
+  }
+  return urls;
 }
 
 // The small communication team. Each agent reads what it needs, writes a report or proposals, and logs what it did.
@@ -346,6 +371,7 @@ Milestones: ${ms.map(m => `${m.title} (${m.delivered}/${m.scope}${m.atRisk ? `, 
     const r = await this.#svc.llm.json(
       `You are the director of a small digital communication team (scout, analyst, strategist, writer) working for a solo developer, the manager. You speak with the manager first.
 ${CHAT_IDENTITY}
+${BLIND}
 Answer fully but without filler: short sections or a list when the question deserves more than a line. You can suggest actions (the manager confirms each one):
 - run: have some agents work, in this order, with a brief.
 - configure: switch an agent on or off, or change how many of it work at once (1 to ${MAX_WORKERS}: more workers = wider research or more proposals, at more cost).
@@ -375,6 +401,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
   async chatAgent(projectId: string, agent: AgentId, message: string, context = '', about = '') {
     if (agent === 'director') return this.chatDirector(projectId, message, context);
     const thread = chatThread(agent, about);
+    const images = picturesFor(this.#svc, projectId, about);
     // The scout's job is the live web: in a chat it looks things up instead
     // of asking the manager to do its research. A failed search just means
     // answering from memory, never an error.
@@ -394,6 +421,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
     const r = await this.#svc.llm.json(
       `You are the ${info.name} of a small digital communication team: "${info.role}". You are talking to the manager, who may ask about your work, or want to change how you work.
 ${CHAT_IDENTITY}
+${images.length > 0 ? SIGHTED : BLIND}
 Answer fully but without filler: short sections or a list when the question deserves more than a line. If the manager asks you to behave differently, put the COMPLETE new standing instructions for you in newInstructions (merge the old ones and the new request, short and concrete) and say in the reply what will change. Otherwise newInstructions is an empty string.
 ${directives(this.#svc, projectId)}
 
@@ -405,7 +433,7 @@ ${last.map(a => `- ${a.summary}`).join('\n') || '(none yet)'}
 Conversation so far:
 ${history.map(m => `${m.role === 'user' ? 'Manager' : 'You'}: ${m.text}`).join('\n') || '(none)'}
 ${context ? `What the manager is looking at right now (they know it, do not repeat it back, just use it to answer):\n${context}\n` : ''}${research ? `${research}\n` : ''}Manager: ${message}`,
-      AgentReply, 'agent_reply');
+      AgentReply, 'agent_reply', images.length > 0 ? { images } : undefined);
     const actions: SuggestedAction[] = r.newInstructions.trim() && r.newInstructions.trim() !== cfg.instructions.trim()
       ? [{ kind: 'configure', label: 'Apply this new behaviour', agent, instructions: r.newInstructions.trim() }] : [];
     this.#store.addChat(projectId, thread, 'agent', r.reply, actions, at());
