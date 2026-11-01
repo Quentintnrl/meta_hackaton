@@ -50,7 +50,7 @@ export function CalendarView({ view, openId, open }: { view: ContentView; openId
             );
           })}
         </div>
-        <p className="legend small hint">○ briefed &nbsp; ◐ drafted &nbsp; ● approved &nbsp; ✓ published &nbsp; ⚑ milestone lands (projected) &nbsp; <em className="late">+3d</em> pushed back by the projection</p>
+        <p className="legend small hint"><span>○ briefed</span><span>◐ drafted</span><span>● approved</span><span>✓ published</span><span>⚑ milestone lands (projected)</span><span><em className="late">+3d</em> pushed back by the projection</span></p>
         {undated.length > 0 && <><h5>No date yet</h5><div className="chips">{undated.map(i => <button key={i.id} className="pill-item" style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)}>{i.title}</button>)}</div></>}
         {items.length === 0 && <p className="hint">The calendar fills when you accept proposals from the team.</p>}
       </section>
