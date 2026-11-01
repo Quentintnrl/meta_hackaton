@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync } from 'node:fs';
+import { mkdtempSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Journal } from '../journal.ts';
@@ -65,7 +65,11 @@ test('generated pictures exist on disk and the rest of the post can be generated
   const { svc } = demo();
   const carousel = svc.calendar(DEMO_PROJECT).find(i => i.media?.format === 'carousel')!;
   assert.equal(carousel.media!.slides.filter(s => s.file).length, 2);
-  for (const s of carousel.media!.slides.filter(x => x.file)) assert.ok(svc.mediaPath(carousel.id, s.file!));
+  for (const s of carousel.media!.slides.filter(x => x.file)) {
+    const path = svc.mediaPath(carousel.id, s.file!);
+    assert.ok(path);
+    assert.ok(statSync(path!).size > 8000, 'a true picture, not a flat placeholder');
+  }
 });
 
 test('the team overview works with no model at all', () => {
