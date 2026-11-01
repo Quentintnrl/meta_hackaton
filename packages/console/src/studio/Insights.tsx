@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { teamApi, type Audit, type TeamView } from '../api';
+import { useEffect, useState } from 'react';
+import { contentApi, teamApi, type AccountPost, type Audit, type ContentItem, type TeamView } from '../api';
 import { ago, useAction } from './shared';
 
 // One colour per format name, stable, so a format has the same colour in every chart.
@@ -112,10 +112,11 @@ export function AccountCard({ team }: { team: TeamView }) {
 }
 
 // Where the Analyst gets its numbers: pasted by the manager, or fictional demo posts.
-export function AccountData({ pid, team, reload }: { pid: string; team: TeamView; reload: () => Promise<void> }) {
+export function AccountData({ pid, team, items, reload }: { pid: string; team: TeamView; items: ContentItem[]; reload: () => Promise<void> }) {
   const [paste, setPaste] = useState('');
   const { busy, error, run } = useAction(reload);
   return (
+    <>
     <details className="card" open={team.accountPosts === 0}>
       <summary><b>{team.accountPosts > 0 ? 'Update your posts' : 'Add your posts'}</b> <span className="hint small">{team.accountPosts > 0 ? `${team.accountPosts} loaded${team.account?.simulated ? ' (demo)' : ''}` : 'needed for the comparison'}</span></summary>
       <label>Paste your recent posts with their numbers<textarea rows={5} value={paste} onChange={e => setPaste(e.target.value)} placeholder={'Any format, copied from your analytics:\n“How we built the first screen” — 410 likes, 38 comments, 52 shares — 2026-10-12'} /></label>
@@ -125,5 +126,40 @@ export function AccountData({ pid, team, reload }: { pid: string; team: TeamView
         <button disabled={busy !== ''} onClick={() => run('demo', () => teamApi.setAccount(pid, { demo: true }))}>Use a demo account</button>
       </div>
     </details>
+    {team.accountPosts > 0 && <PostLinks pid={pid} items={items} />}
+    </>
+  );
+}
+
+// Which studio piece each posted piece came from: the team learns from what worked.
+function PostLinks({ pid, items }: { pid: string; items: ContentItem[] }) {
+  const [posts, setPosts] = useState<AccountPost[] | null>(null);
+  const [failed, setFailed] = useState('');
+  const [saving, setSaving] = useState<number | null>(null);
+  useEffect(() => { contentApi.accountPosts(pid).then(setPosts).catch(e => setFailed((e as Error).message)); }, [pid]);
+  if (failed) return <p className="error">{failed}</p>;
+  if (!posts?.length) return null;
+  const pieces = items.filter(i => i.status === 'approved' || i.status === 'published');
+  const link = async (postId: number, itemId: string | null) => {
+    setSaving(postId); setFailed('');
+    try { await contentApi.linkPost(pid, postId, itemId); setPosts(await contentApi.accountPosts(pid)); }
+    catch (e) { setFailed((e as Error).message); }
+    setSaving(null);
+  };
+  return (
+    <section className="card">
+      <div className="head"><h3>What each post came from</h3></div>
+      <p className="hint small">Link a posted piece to the studio item it came from. The team reads the winners first next time.</p>
+      <ul className="rows">{posts.map(p => (
+        <li key={p.id}>
+          <span className="rowmain"><b>{p.text.slice(0, 80)}{p.text.length > 80 ? '…' : ''}</b></span>
+          <span className="hint small">{p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3} engagement{p.simulated ? ' · demo' : ''}</span>
+          <select aria-label={`Studio piece for "${p.text.slice(0, 40)}"`} disabled={saving === p.id} value={p.itemId ?? ''} onChange={e => void link(p.id!, e.target.value || null)}>
+            <option value="">Not linked</option>
+            {pieces.map(i => <option key={i.id} value={i.id}>{i.title} ({i.status})</option>)}
+          </select>
+        </li>
+      ))}</ul>
+    </section>
   );
 }

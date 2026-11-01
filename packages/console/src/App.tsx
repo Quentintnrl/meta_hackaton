@@ -7,33 +7,7 @@ import { Studio } from './studio/Studio';
 import { FeaturePanel } from './FeaturePanel';
 import { Timeline } from './Timeline';
 import { useHashPath, writeHashPath } from './route';
-
-type View = { kind: 'new-project' } | { kind: 'project'; id: string } | { kind: 'content'; id: string } | { kind: 'new-feature'; projectId: string; prefill?: { title: string; design: string } } | { kind: 'feature'; id: string };
-
-// The URL is the source of truth for where the user is: parsing it back
-// gives the view, so a refresh lands on the same page.
-function parseView(path: string): View | null {
-  const segs = path.split('/').filter(Boolean);
-  if (segs.length === 0) return null;
-  if (segs[0] === 'new') return { kind: 'new-project' };
-  if (segs[0] === 'features' && segs[1]) return { kind: 'feature', id: segs[1] };
-  if (segs[0] === 'projects' && segs[1]) {
-    if (segs[2] === 'content') return { kind: 'content', id: segs[1] };
-    if (segs[2] === 'new-feature') return { kind: 'new-feature', projectId: segs[1] };
-    if (segs.length === 2) return { kind: 'project', id: segs[1] };
-  }
-  return null;
-}
-
-function viewToHash(view: View): string {
-  switch (view.kind) {
-    case 'new-project': return '/new';
-    case 'project': return `/projects/${view.id}`;
-    case 'content': return `/projects/${view.id}/content`;
-    case 'new-feature': return `/projects/${view.projectId}/new-feature`;
-    case 'feature': return `/features/${view.id}`;
-  }
-}
+import { appViewToHash as viewToHash, parseAppView as parseView, type AppView as View } from './route-path.ts';
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { contentApi, type ContentView, type Feature, type Forecast, type Milestone, type Project } from '../api';
+import { contentApi, type AgentId, type ContentView, type Feature, type Forecast, type Milestone, type Project } from '../api';
 import { fmt, today, useAction } from './shared';
 import type { View } from './Studio';
 
@@ -53,7 +53,7 @@ function DateLine({ m, contentDates }: { m: Milestone & { forecast?: Forecast };
   );
 }
 
-export function RoadmapView({ view, project, features, reload, go }: { view: ContentView; project: Project; features: Feature[]; reload: () => Promise<void>; go: (v: View) => void }) {
+export function RoadmapView({ view, project, features, reload, go, askAgent }: { view: ContentView; project: Project; features: Feature[]; reload: () => Promise<void>; go: (v: View) => void; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void }) {
   const ms = view.milestones;
   const late = ms.filter(m => m.atRisk).length;
   const planned = view.items.filter(i => !['idea', 'rejected', 'published'].includes(i.status) && i.milestoneId).length;
@@ -75,13 +75,13 @@ export function RoadmapView({ view, project, features, reload, go }: { view: Con
           <div className="bigstat"><b>{planned}</b><span>pieces of content planned</span></div>
         </div>
       )}
-      {ms.map(m => <Goal key={m.id} m={m} features={features} view={view} reload={reload} go={go} />)}
+      {ms.map(m => <Goal key={m.id} m={m} features={features} view={view} reload={reload} go={go} askAgent={askAgent} />)}
       <NewGoal projectId={project.id} reload={reload} first={ms.length === 0} />
     </div>
   );
 }
 
-function Goal({ m, features, view, reload, go }: { m: Milestone & { forecast?: Forecast; atRisk: boolean; slipDays: number; accuracy?: { errorDays: number }; delivered: number }; features: Feature[]; view: ContentView; reload: () => Promise<void>; go: (v: View) => void }) {
+function Goal({ m, features, view, reload, go, askAgent }: { m: Milestone & { forecast?: Forecast; atRisk: boolean; slipDays: number; accuracy?: { errorDays: number }; delivered: number }; features: Feature[]; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void }) {
   const { busy, error, run } = useAction(reload);
   const [why, setWhy] = useState<Forecast[] | null>(null);
   const f = m.forecast;
@@ -120,6 +120,7 @@ function Goal({ m, features, view, reload, go }: { m: Milestone & { forecast?: F
         <button className="linkish left" onClick={() => go('calendar')}>{mine.length ? `${mine.length} piece${mine.length > 1 ? 's' : ''} of content planned${next ? ` · next: ${next.title}, ${fmt(next.date)}` : ''} →` : 'No content planned yet: ask the Strategist →'}</button>
         <div className="row nomargin">
           {f && <button onClick={async () => setWhy(why ? null : await contentApi.forecasts(m.id))}>{why ? 'Hide' : 'Why this date?'}</button>}
+          <button className="linkish" onClick={() => askAgent('strategist', 'milestone', m.id)}>Ask the Strategist →</button>
           {m.status === 'open' && <button disabled={busy !== ''} onClick={() => run('done', () => contentApi.markDone(m.id))}>Mark as done</button>}
           <button className="linkish" disabled={busy !== ''} onClick={() => run('rm', () => contentApi.removeMilestone(m.id))}>Remove</button>
         </div>

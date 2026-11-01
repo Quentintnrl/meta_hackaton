@@ -1,16 +1,27 @@
 import { useEffect, useRef, useState } from 'react';
-import { contentApi, SOCIAL_KINDS, type ContentItem, type Milestone } from '../api';
+import { contentApi, SOCIAL_KINDS, type AgentId, type ContentItem, type Milestone, type Series } from '../api';
 import { PostBuilder, PostPreview } from './PostBuilder';
-import { KindChip, fmt, useAction } from './shared';
+import { KindChip, credit, fmt, useAction } from './shared';
 
 // The working surface of one piece: say what you want, let the Writer draft, ask for changes, sign off.
-export function ItemEditor({ item, milestones, reload, onClose }: { item: ContentItem; milestones: Milestone[]; reload: () => Promise<void>; onClose: () => void }) {
+export function ItemEditor({ item, milestones, series, reload, onClose, goItem, askAgent }: { item: ContentItem; milestones: Milestone[]; series: Series[]; reload: () => Promise<void>; onClose: () => void; goItem: (id: string) => void; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void }) {
   const { busy, error, run } = useAction(reload);
   const [brief, setBrief] = useState(item.brief);
   const [draft, setDraft] = useState(item.draft);
   const [ask, setAsk] = useState('');
-  useEffect(() => { setBrief(item.brief); setDraft(item.draft); }, [item.id, item.brief, item.draft]);
+  const [seriesName, setSeriesName] = useState(series.find(s => s.id === item.seriesId)?.name ?? '');
+  useEffect(() => { setBrief(item.brief); setDraft(item.draft); setSeriesName(series.find(s => s.id === item.seriesId)?.name ?? ''); }, [item.id, item.brief, item.draft, item.seriesId]);
   const b = busy !== '';
+  const saveSeriesName = () => {
+    const clean = seriesName.trim();
+    if (!clean) { if (item.seriesId) void run('series', () => contentApi.patchItem(item.id, { seriesId: null })); return; }
+    const found = series.find(s => s.name.toLowerCase() === clean.toLowerCase());
+    if (found && found.id === item.seriesId) return;
+    void run('series', async () => {
+      const s = found ?? await contentApi.saveSeries(item.projectId, clean);
+      await contentApi.patchItem(item.id, { seriesId: s.id });
+    });
+  };
   // Auto-save edits shortly after the user stops typing, so Approve never waits on a forgotten Save.
   const draftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const briefTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -43,10 +54,15 @@ export function ItemEditor({ item, milestones, reload, onClose }: { item: Conten
     <aside className="editor card" aria-label={`Editing ${item.title}`}>
       <div className="head"><KindChip kind={item.kind} /><span className={`badge ${item.status === 'published' || item.status === 'approved' ? 'done' : item.status === 'drafted' ? 'work' : 'wait'}`}><i />{item.status}</span><button className="x" onClick={onClose} aria-label="Close">×</button></div>
       <h3>{item.title}</h3>
-      <p className="hint small">{fmt(item.date)}{ms ? ` · ${ms.title}` : ''}{item.shiftDays ? ` · moved ${item.shiftDays > 0 ? '+' : ''}${item.shiftDays} d by the projection` : ''}</p>
+      <p className="hint small">{fmt(item.date)}{ms ? ` · ${ms.title}` : ''}{item.shiftDays ? ` · moved ${item.shiftDays > 0 ? '+' : ''}${item.shiftDays} d by the projection` : ''} · {credit(item)}</p>
       {item.rationale && <p className="why"><b>Why</b> {item.rationale}</p>}
+      {item.reusedFrom && <p className="hint small">Reused from {item.reusedFrom}</p>}
+      {!!item.versionCount && <p className="hint small">{item.versionCount} approved version{item.versionCount > 1 ? 's' : ''} kept</p>}
+      <label>Series <span className="opt">optional</span><input value={seriesName} list={`series-${item.id}`} onChange={e => setSeriesName(e.target.value)} onBlur={saveSeriesName} onKeyDown={e => e.key === 'Enter' && saveSeriesName()} placeholder="e.g. Beta diary" />
+        <datalist id={`series-${item.id}`}>{series.map(s => <option key={s.id} value={s.name} />)}</datalist></label>
       <label>What it should say<textarea rows={2} value={brief} onChange={e => queueBriefSave(e.target.value)} onBlur={() => { if (briefTimer.current) clearTimeout(briefTimer.current); if (brief !== item.brief) void run('brief', () => contentApi.patchItem(item.id, { brief })); }} /></label>
       <div className="row">
+        <button className="linkish" onClick={() => askAgent('writer', 'item', item.id)}>Ask the Writer →</button>
         <button className="primary" disabled={b} onClick={() => run('draft', () => contentApi.draft(item.id, ask.trim() || undefined))}>{busy === 'draft' ? 'The Writer is on it…' : item.draft ? 'Rewrite' : 'Have it written'}</button>
         <input value={ask} onChange={e => setAsk(e.target.value)} placeholder={item.draft ? 'Ask for a change: shorter, funnier…' : 'Direction (optional)'} onKeyDown={e => e.key === 'Enter' && item.draft && ask.trim() && run('revise', async () => { await contentApi.revise(item.id, ask.trim()); setAsk(''); })} />
         {item.draft && <button disabled={b || !ask.trim()} onClick={() => run('revise', async () => { await contentApi.revise(item.id, ask.trim()); setAsk(''); })}>{busy === 'revise' ? 'Revising…' : 'Revise'}</button>}
@@ -61,6 +77,7 @@ export function ItemEditor({ item, milestones, reload, onClose }: { item: Conten
         <button disabled={b || !canApprove} title={approveHint} onClick={approveNow}>{busy === 'approve' ? 'Approving…' : dirtyDraft || dirtyBrief ? 'Save & approve' : 'Approve'}</button>
         <button disabled={b || item.status !== 'approved'} onClick={() => run('publish', () => contentApi.publish(item.id))}>Mark published</button>
         <label className="inline lock"><span>Lock date</span><input type="date" value={item.fixedDate ?? ''} onChange={e => run('date', () => e.target.value ? contentApi.patchItem(item.id, { fixedDate: e.target.value }) : contentApi.patchItem(item.id, { clearFixedDate: true }))} /></label>
+        <button className="linkish" disabled={b} title="Start a new idea from this piece" onClick={() => run('reuse', async () => { const n = await contentApi.reuseItem(item.id); goItem(n.id); })}>{busy === 'reuse' ? 'Reusing…' : 'Reuse as new idea'}</button>
         <button className="linkish" disabled={b} onClick={() => run('rm', async () => { await contentApi.removeItem(item.id); onClose(); })}>Delete</button>
       </div>
       {item.exportedPath && <p className="hint small">Approved copy saved: <code>{item.exportedPath}</code></p>}

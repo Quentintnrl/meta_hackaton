@@ -1,5 +1,13 @@
 import { useState } from 'react';
-import type { AgentId, ItemKind, ItemSource } from '../api';
+import type { AgentId, ContentItem, ItemKind, ItemSource } from '../api';
+
+// Who made a piece, in words: the AI team shows its hand, hand edits show as yours.
+export const credit = (i: Pick<ContentItem, 'origin' | 'status' | 'revisions'>): string => {
+  if (i.origin === 'dev') return 'From the dev workflow';
+  if (i.status === 'idea') return i.origin === 'ai' ? 'Suggested by the Strategist' : 'Added by you';
+  if (i.status === 'briefed') return 'Accepted — waiting for the Writer';
+  return i.revisions > 0 ? 'Drafted by the Writer' : 'Edited by hand';
+};
 
 export const today = () => new Date().toISOString().slice(0, 10);
 export const fmt = (iso?: string) => iso ? new Date(iso + 'T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', timeZone: 'UTC' }) : 'no date';

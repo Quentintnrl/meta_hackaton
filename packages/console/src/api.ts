@@ -118,10 +118,12 @@ export interface ContentItem {
   media?: Media;
   id: string; projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; draft: string; status: ItemStatus;
   offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string; rationale: string; source: ItemSource; rejectedReason?: string;
-  date?: string; plannedDate?: string; shiftDays?: number;
+  seriesId?: string; date?: string; plannedDate?: string; shiftDays?: number; reusedFrom?: string; versionCount?: number;
 }
 export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; niche: string; directives: string }
-export interface ContentView { profile: Profile; milestones: Milestone[]; items: ContentItem[] }
+export interface Series { id: string; projectId: string; name: string; createdAt: string }
+export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string }
+export interface ContentView { profile: Profile; milestones: Milestone[]; items: ContentItem[]; series: Series[] }
 
 const send = <T>(method: string, path: string, body?: unknown) => call<T>(path, { method, body: JSON.stringify(body ?? {}) });
 
@@ -147,7 +149,7 @@ export const teamApi = {
   run: (pid: string, agents: AgentId[], brief: string) => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents, brief }),
   setAccount: (pid: string, b: { paste?: string; demo?: boolean }) => send<TeamView>('PUT', `/projects/${pid}/account`, b),
   chat: (pid: string, agent: AgentId) => call<ChatMessage[]>(`/projects/${pid}/team/chat/${agent}`),
-  say: (pid: string, agent: AgentId, message: string) => send<ChatMessage[]>('POST', `/projects/${pid}/team/chat/${agent}`, { message }),
+  say: (pid: string, agent: AgentId, message: string, context?: string) => send<ChatMessage[]>('POST', `/projects/${pid}/team/chat/${agent}`, { message, context }),
   configure: (pid: string, agent: AgentId, patch: Partial<AgentConfig>) => send<AgentConfig>('PATCH', `/projects/${pid}/team/agents/${agent}`, patch),
   apply: (pid: string, a: SuggestedAction) => send<{ started?: boolean }>('POST', `/projects/${pid}/team/actions`, a),
   accept: (id: string) => send<ContentItem>('POST', `/items/${id}/accept`),
@@ -166,7 +168,11 @@ export const contentApi = {
   unlink: (id: string, featureId: string) => send<Milestone>('DELETE', `/milestones/${id}/features/${featureId}`),
   plan: (id: string, guidance?: string) => send<ContentItem[]>('POST', `/milestones/${id}/plan`, { guidance }),
   addItem: (pid: string, b: { kind: ItemKind; title: string; brief: string; milestoneId?: string; offsetDays?: number; fixedDate?: string }) => send<ContentItem>('POST', `/projects/${pid}/items`, b),
-  patchItem: (id: string, b: Partial<Pick<ContentItem, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean }) => send<ContentItem>('PATCH', `/items/${id}`, b),
+  patchItem: (id: string, b: Partial<Pick<ContentItem, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean; seriesId?: string | null }) => send<ContentItem>('PATCH', `/items/${id}`, b),
+  saveSeries: (pid: string, name: string) => send<Series>('POST', `/projects/${pid}/series`, { name }),
+  reuseItem: (id: string) => send<ContentItem>('POST', `/items/${id}/reuse`),
+  accountPosts: (pid: string) => call<AccountPost[]>(`/projects/${pid}/account/posts`),
+  linkPost: (pid: string, postId: number, itemId: string | null) => send<{ ok: true }>('PATCH', `/projects/${pid}/account/${postId}`, { itemId }),
   generateSlide: (id: string, index: number, visual?: string) => send<ContentItem>('POST', `/items/${id}/media/${index}/generate`, { visual }),
   generateMissing: (id: string) => send<ContentItem>('POST', `/items/${id}/media/generate`),
   renderVideo: (id: string) => send<{ ok: boolean }>('POST', `/items/${id}/video`),

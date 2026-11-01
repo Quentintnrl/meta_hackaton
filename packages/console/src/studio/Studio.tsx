@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import { contentApi, teamApi, type AgentId, type ContentView, type Feature, type Project, type TeamView } from '../api';
 import { useHashPath, writeHashPath } from '../route';
+import { parseStudio as parseStudioPath, studioToHash, type About } from '../route-path.ts';
 import { InboxView } from './InboxView';
 import { CalendarView } from './CalendarView';
 import { RoadmapView } from './RoadmapView';
 import { SettingsView } from './SettingsView';
 import { DirectorPage } from './DirectorPage';
-import { AgentPage } from './AgentPage';
+import { ABOUT, AgentPage } from './AgentPage';
+import { ChatDrawer } from './Chat';
 import { AccountCard, AccountData, AuditCard } from './Insights';
 import { ItemEditor } from './ItemEditor';
 import { TeamPulse, agentState } from './Agents';
@@ -24,34 +26,27 @@ const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: st
 
 // The communication team of a project: a sub-menu on the left, one page at a time.
 // The open page (and drawer) lives in the URL, so a refresh lands back here.
-const AGENT_IDS: AgentId[] = ['director', 'scout', 'analyst', 'strategist', 'writer'];
-
-function parseStudio(path: string, projectId: string): { page: View; openId: string | null } {
-  const prefix = `/projects/${projectId}/content`;
-  const rest = path.startsWith(prefix) ? path.slice(prefix.length).split('/').filter(Boolean) : [];
-  let page: View = 'inbox';
-  let tail = rest;
-  if (tail[0] === 'agent' && (AGENT_IDS as string[]).includes(tail[1])) { page = `agent:${tail[1]}` as View; tail = tail.slice(2); }
-  else if (tail[0] === 'inbox' || tail[0] === 'calendar' || tail[0] === 'roadmap' || tail[0] === 'field' || tail[0] === 'account' || tail[0] === 'orders') { page = tail[0]; tail = tail.slice(1); }
-  const openId = tail[0] === 'item' && tail[1] ? tail[1] : null;
-  return { page, openId };
-}
+const parseStudio = (path: string, projectId: string): { page: View; openId: string | null; about: About | null } => {
+  const { page, openId, about } = parseStudioPath(path, projectId);
+  return { page: page as View, openId, about };
+};
 
 export function Studio({ project, features }: { project: Project; features: Feature[] }) {
   const hashPath = useHashPath();
-  const { page, openId } = parseStudio(hashPath, project.id);
-  const base = `/projects/${project.id}/content`;
-  const segOf = (v: View) => (v.startsWith('agent:') ? `agent/${v.slice(6)}` : v);
-  const setPage = (v: View) => writeHashPath(openId ? `${base}/${segOf(v)}/item/${openId}` : `${base}/${segOf(v)}`);
-  const setOpenId = (id: string | null) => writeHashPath(id ? `${base}/${segOf(page)}/item/${id}` : `${base}/${segOf(page)}`);
+  const { page, openId, about } = parseStudio(hashPath, project.id);
+  // The drawer lives next to the page: navigating keeps it, closing drops it.
+  const setPage = (v: View) => writeHashPath(studioToHash(project.id, v, openId, about));
+  const setOpenId = (id: string | null) => writeHashPath(studioToHash(project.id, page, id, about));
+  const clearAbout = () => writeHashPath(studioToHash(project.id, page, openId));
   const [view, setView] = useState<ContentView | null>(null);
   const [team, setTeam] = useState<TeamView | null>(null);
+  const [loadError, setLoadError] = useState('');
 
   const reload = useCallback(async () => {
     const [v, t] = await Promise.all([contentApi.view(project.id), teamApi.view(project.id)]);
-    setView(v); setTeam(t);
+    setView(v); setTeam(t); setLoadError('');
   }, [project.id]);
-  useEffect(() => { reload().catch(() => {}); }, [reload]);
+  useEffect(() => { reload().catch(e => setLoadError((e as Error).message)); }, [reload]);
 
   // While the team works, keep watching: proposals appear as soon as the Strategist is done.
   useEffect(() => {
@@ -60,20 +55,46 @@ export function Studio({ project, features }: { project: Project; features: Feat
     return () => clearInterval(timer);
   }, [team?.working, reload]);
 
-  if (!view || !team) return <section className="card"><p className="hint">Loading…</p></section>;
+  if (!view || !team) return <section className="card">{loadError ? <><p className="error">The studio did not load: {loadError}</p><p><button className="primary" onClick={() => reload().catch(e => setLoadError((e as Error).message))}>Retry</button></p></> : <p className="hint">Loading…</p>}</section>;
 
   const waiting = view.items.filter(i => i.status === 'idea' || i.status === 'briefed').length + view.items.filter(i => i.status === 'drafted').length;
   const late = view.milestones.filter(m => m.atRisk).length;
   const nav: Array<{ group?: string; items: Array<[View, string, number?, string?]> }> = [
-    { items: [['inbox', 'Inbox', waiting]] },
+    { group: 'Decide', items: [['inbox', 'Inbox', waiting]] },
     { group: 'Plan', items: [['calendar', 'Calendar'], ['roadmap', 'Roadmap', late, 'late']] },
-    { group: 'Research', items: [['field', 'The field'], ['account', 'Your account']] },
-    { group: 'Team', items: [['agent:director', 'Director'], ['agent:scout', 'Scout'], ['agent:analyst', 'Analyst'], ['agent:strategist', 'Strategist'], ['agent:writer', 'Writer'], ['orders', 'Orders & voice']] },
+    { group: 'Learn', items: [['field', 'The field'], ['account', 'Your account']] },
+    { group: 'Team', items: [['agent:director', 'Director'], ['agent:scout', 'Scout'], ['agent:analyst', 'Analyst'], ['agent:strategist', 'Strategist'], ['agent:writer', 'Writer']] },
+    { group: 'Settings', items: [['orders', 'Orders & voice']] },
   ];
+  // Open a side chat with an agent, staying on the page: the agent sees the
+  // piece or goal, the manager just asks. Closing the drawer drops the context.
+  const askAgent = (agent: AgentId, kind?: 'item' | 'milestone', id?: string) =>
+    writeHashPath(studioToHash(project.id, page, openId, { agent, kind: kind ?? null, id: id ?? null }));
   const open = view.items.find(i => i.id === openId);
   const agentId = page.startsWith('agent:') ? page.slice(6) as AgentId : undefined;
   const agentInfo = agentId && team.agents.find(a => a.id === agentId);
   const info = agentInfo ? { title: agentInfo.name, about: agentInfo.role + '.' } : PAGES[page as keyof typeof PAGES];
+  // What a chat is about, resolved for the prompt; nothing is shown except its title.
+  const resolveAbout = (a: About): { agent: AgentId; kind: 'item' | 'milestone' | null; id: string | null; label: string; context: string } | null => {
+    if (!( ['director', 'scout', 'analyst', 'strategist', 'writer'] as string[] ).includes(a.agent)) return null;
+    if (a.kind === 'item' && a.id) {
+      const i = view.items.find(x => x.id === a.id);
+      if (!i) return null;
+      return { agent: a.agent as AgentId, kind: 'item', id: a.id, label: i.title, context: `Piece "${i.title}" (${i.kind}, ${i.status}). Brief: ${i.brief || '(none)'}${i.rationale ? ` Why it was suggested: ${i.rationale}` : ''}${i.draft ? ` Current text (may be long): ${i.draft.slice(0, 600)}` : ''}` };
+    }
+    if (a.kind === 'milestone' && a.id) {
+      const m = view.milestones.find(x => x.id === a.id);
+      if (!m) return null;
+      return { agent: a.agent as AgentId, kind: 'milestone', id: a.id, label: m.title, context: `Goal "${m.title}": ${m.intent || '(no description)'}. Wanted by ${m.targetDate}.` };
+    }
+    return { agent: a.agent as AgentId, kind: null, id: null, label: '', context: '' };
+  };
+  const resolved = about ? resolveAbout(about) : null;
+  // On the agent's own page the chat is the page: feed it there. Anywhere
+  // else the same context opens the side drawer instead.
+  const onOwnPage = resolved ? page === `agent:${resolved.agent}` : false;
+  const pageCtx = onOwnPage && resolved ? { label: resolved.label, context: resolved.context || undefined } : null;
+  const drawerCtx = !onOwnPage ? resolved : null;
 
   return (
     <div className="studio">
@@ -93,17 +114,18 @@ export function Studio({ project, features }: { project: Project; features: Feat
       </nav>
 
       <div className="studio-main">
-        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p></header>
-        {page === 'inbox' && <InboxView pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} />}
+        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p><p className="hint small">An AI team proposes, you decide. <button className="linkish" onClick={() => setPage('agent:director')}>Meet the team →</button></p></header>
+        {page === 'inbox' && <InboxView pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'calendar' && <CalendarView view={view} openId={openId} open={setOpenId} />}
-        {page === 'roadmap' && <RoadmapView view={view} project={project} features={features} reload={reload} go={setPage} />}
-        {page === 'field' && <AuditCard audit={team.audit} />}
-        {page === 'account' && <div className="stack"><AccountCard team={team} /><AccountData pid={project.id} team={team} reload={reload} /></div>}
+        {page === 'roadmap' && <RoadmapView view={view} project={project} features={features} reload={reload} go={setPage} askAgent={askAgent} />}
+        {page === 'field' && <div className="stack"><div><button className="linkish" onClick={() => askAgent('scout')}>Ask the Scout →</button></div><AuditCard audit={team.audit} /></div>}
+        {page === 'account' && <div className="stack"><div><button className="linkish" onClick={() => askAgent('analyst')}>Ask the Analyst →</button></div><AccountCard team={team} /><AccountData pid={project.id} team={team} items={view.items} reload={reload} /></div>}
         {page === 'agent:director' && <DirectorPage pid={project.id} team={team} view={view} reload={reload} go={setPage} />}
-        {agentId && agentId !== 'director' && <AgentPage key={agentId} pid={project.id} agent={agentId} team={team} view={view} reload={reload} go={setPage} />}
+        {agentId && agentId !== 'director' && <AgentPage key={agentId} pid={project.id} agent={agentId} team={team} view={view} reload={reload} go={setPage} aboutCtx={pageCtx} onClearAbout={clearAbout} />}
         {page === 'orders' && <SettingsView pid={project.id} view={view} reload={reload} />}
       </div>
-      {open && <ItemEditor item={open} milestones={view.milestones} reload={reload} onClose={() => setOpenId(null)} />}
+      {open && <ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('inbox'); setOpenId(id); }} askAgent={askAgent} />}
+      {drawerCtx && <ChatDrawer pid={project.id} agent={drawerCtx.agent} role={team.agents.find(a => a.id === drawerCtx.agent)?.role ?? ''} team={team} starters={drawerCtx.agent === 'director' ? [] : ABOUT[drawerCtx.agent].starters} context={drawerCtx.context || undefined} aboutLabel={drawerCtx.label || undefined} onClose={clearAbout} reload={reload} goAgent={a => writeHashPath(studioToHash(project.id, `agent:${a}`, openId, { agent: a, kind: drawerCtx.kind, id: drawerCtx.id }))} />}
     </div>
   );
 }

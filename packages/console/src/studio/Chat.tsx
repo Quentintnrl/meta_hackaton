@@ -1,11 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { teamApi, type AgentId, type ChatMessage, type SuggestedAction } from '../api';
+import { Avatar, agentState } from './Agents';
+import type { TeamView } from '../api';
 import { ago } from './shared';
 
 const NAME: Record<AgentId, string> = { director: 'Director', scout: 'Scout', analyst: 'Analyst', strategist: 'Strategist', writer: 'Writer' };
 
 // A conversation with one member of the team. Suggested actions appear as buttons: nothing happens until the manager clicks.
-export function Chat({ pid, agent, reload, goAgent, placeholder, starters }: { pid: string; agent: AgentId; reload: () => Promise<void>; goAgent: (a: AgentId) => void; placeholder: string; starters: string[] }) {
+// `context` is sent to the agent with every message but never shown: the manager talks as if the agent already saw the piece.
+export function Chat({ pid, agent, reload, goAgent, placeholder, starters, context, aboutLabel, onClearAbout, autofocus }: { pid: string; agent: AgentId; reload: () => Promise<void>; goAgent: (a: AgentId) => void; placeholder: string; starters: string[]; context?: string; aboutLabel?: string; onClearAbout?: () => void; autofocus?: boolean }) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -20,7 +23,7 @@ export function Chat({ pid, agent, reload, goAgent, placeholder, starters }: { p
     if (!message.trim() || busy) return;
     setBusy(true); setError(''); setText('');
     setMessages(m => [...m, { id: -1, thread: agent, role: 'user', text: message, actions: [], at: new Date().toISOString() }]);
-    try { setMessages(await teamApi.say(pid, agent, message)); } catch (e) { setError((e as Error).message); setMessages(await teamApi.chat(pid, agent).catch(() => [])); } finally { setBusy(false); }
+    try { setMessages(await teamApi.say(pid, agent, message, context)); } catch (e) { setError((e as Error).message); setMessages(await teamApi.chat(pid, agent).catch(() => [])); } finally { setBusy(false); }
   }
 
   async function confirm(key: string, a: SuggestedAction) {
@@ -53,10 +56,25 @@ export function Chat({ pid, agent, reload, goAgent, placeholder, starters }: { p
         <div ref={end} />
       </div>
       {error && <p className="error">{error}</p>}
+      {aboutLabel && <p className="hint small">About “{aboutLabel}” — {NAME[agent]} already sees it, just ask. <button className="linkish" onClick={onClearAbout}>Clear</button></p>}
       <form className="composer" onSubmit={e => { e.preventDefault(); void send(text); }}>
-        <input value={text} onChange={e => setText(e.target.value)} placeholder={placeholder} aria-label={`Message the ${NAME[agent]}`} />
+        <input autoFocus={autofocus} value={text} onChange={e => setText(e.target.value)} placeholder={placeholder} aria-label={`Message the ${NAME[agent]}`} />
         <button className="primary" disabled={busy || !text.trim()}>Send</button>
       </form>
     </div>
+  );
+}
+
+// The same conversation as a side drawer: opened from where the manager
+// works, closed without leaving the page.
+export function ChatDrawer({ pid, agent, role, team, starters, context, aboutLabel, onClose, reload, goAgent }: { pid: string; agent: AgentId; role: string; team: TeamView; starters: string[]; context?: string; aboutLabel?: string; onClose: () => void; reload: () => Promise<void>; goAgent: (a: AgentId) => void }) {
+  return (
+    <aside className="editor card" aria-label={`Chat with the ${NAME[agent]}`}>
+      <div className="head"><Avatar id={agent} state={agentState(team, agent)} size={30} /><span><b>{NAME[agent]}</b><br /><span className="hint small">{role}</span></span><button className="x" onClick={onClose} aria-label="Close chat">×</button></div>
+      {aboutLabel
+        ? <p className="hint small">About “{aboutLabel}” — it already sees the details, just ask.</p>
+        : <p className="hint small">Talk it through, or change how it works.</p>}
+      <Chat pid={pid} agent={agent} reload={reload} goAgent={goAgent} placeholder={aboutLabel ? `Ask about “${aboutLabel}”…` : `Ask the ${NAME[agent]}…`} starters={starters} context={context} autofocus />
+    </aside>
   );
 }

@@ -61,7 +61,7 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
             <label>{video ? 'Voiceover / on-screen text' : 'Text over the picture'}<input value={x.text} onChange={e => setSlide(i, { text: e.target.value })} /></label>
             <div className="row">
               {video && <label className="inline sec"><span>Seconds</span><input type="number" min={1} max={90} value={x.seconds} onChange={e => setSlide(i, { seconds: Number(e.target.value) })} /></label>}
-              <button disabled={b || dirty || !x.visual.trim()} title={dirty ? 'Save your changes first' : ''} onClick={() => run(`gen${i}`, () => contentApi.generateSlide(item.id, i))}>{busy === `gen${i}` ? 'Drawing…' : x.file ? 'Redraw' : video ? 'Generate keyframe' : 'Generate picture'}</button>
+              <button disabled={b || dirty || !x.visual.trim()} title={dirty ? 'Save your changes first' : !x.visual.trim() ? 'Describe the picture first' : ''} onClick={() => run(`gen${i}`, () => contentApi.generateSlide(item.id, i))}>{busy === `gen${i}` ? 'Drawing…' : x.file ? 'Redraw' : video ? 'Generate keyframe' : 'Generate picture'}</button>
               {media.slides.length > (media.format === 'image' ? 1 : 2) && <button className="linkish" onClick={() => setMedia({ ...media, slides: media.slides.filter((_, j) => j !== i) })}>Remove</button>}
             </div>
           </div>
@@ -92,7 +92,8 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
   );
 }
 
-// What it will look like in a feed: the first picture, how many there are, the description, the hashtags.
+// What it will look like in a feed: every slide or shot (not just the
+// first), its words, the description, the hashtags.
 export function PostPreview({ item }: { item: ContentItem }) {
   const m = item.media;
   if (!m) return null;
@@ -104,6 +105,14 @@ export function PostPreview({ item }: { item: ContentItem }) {
         {m.format !== 'image' && <b className="pv-tag">{m.format === 'video' ? `▶ ${m.slides.reduce((a, s) => a + s.seconds, 0)}s` : `1/${m.slides.length}`}</b>}
         {first && first.text && <i className="pv-text">{first.text}</i>}
       </div>
+      {m.format !== 'image' && (
+        <ol className="pv-shots">{m.slides.map((s, i) => (
+          <li key={i} className={s.file ? 'done' : ''}>
+            <b>{m.format === 'video' ? `Shot ${i + 1} · ${s.seconds}s` : `Slide ${i + 1}`}</b>
+            <span>{s.file ? (s.text || 'No words on this one') : 'Not generated yet'}</span>
+          </li>
+        ))}</ol>
+      )}
       <p className="pv-caption">{item.draft}</p>
       <p className="pv-tags">{m.hashtags.join(' ')}</p>
     </div>

@@ -6,14 +6,14 @@ import { Chat } from './Chat';
 import { Switch, Workers } from './DirectorPage';
 import type { View } from './Studio';
 
-const ABOUT: Record<Exclude<AgentId, 'director'>, { does: string; workers: string; ideas: string[]; starters: string[] }> = {
+export const ABOUT: Record<Exclude<AgentId, 'director'>, { does: string; workers: string; ideas: string[]; starters: string[] }> = {
   scout: { does: 'Searches the web for what works in your field.', workers: 'Each extra researcher takes another angle (formats, hooks and topics, what flops) at the same time.', ideas: ['Only look at video formats', 'Ignore big brands, focus on solo developers', 'Always cite recent examples'], starters: ['What did you find?', 'Look only at video formats from now on', 'How reliable are your sources?'] },
   analyst: { does: 'Compares your account with what the Scout found.', workers: 'One analyst is enough: it reads all your posts.', ideas: ['Weigh shares more than likes', 'Compare only the last 3 months', 'Be blunt about what does not work'], starters: ['What is my weakest format?', 'Be blunter in your analysis', 'How do you measure engagement?'] },
   strategist: { does: 'Reads your roadmap and proposes content, with its evidence.', workers: 'Each extra strategist looks through another lens (roadmap, your account, field trends) and the proposals are merged.', ideas: ['Always propose one video', 'Max 3 proposals at a time', 'Favour posts tied to a milestone'], starters: ['Why these proposals?', 'Propose fewer, better ideas', 'Focus on the beta launch'] },
   writer: { does: 'Drafts what you accept: caption, hashtags, slides or storyboard.', workers: 'Extra writers draft several accepted pieces at the same time.', ideas: ['Shorter captions, max 3 hashtags', 'Always end with a question', 'More humour, fewer adjectives'], starters: ['Write shorter captions from now on', 'Always end with a question', 'What do you draft first?'] },
 };
 
-export function AgentPage({ pid, agent, team, view, reload, go }: { pid: string; agent: Exclude<AgentId, 'director'>; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void }) {
+export function AgentPage({ pid, agent, team, view, reload, go, aboutCtx, onClearAbout }: { pid: string; agent: Exclude<AgentId, 'director'>; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; aboutCtx?: { label: string; context?: string } | null; onClearAbout?: () => void }) {
   const info = team.agents.find(a => a.id === agent)!;
   const about = ABOUT[agent];
   const cfg = team.config[agent];
@@ -65,7 +65,7 @@ export function AgentPage({ pid, agent, team, view, reload, go }: { pid: string;
 
       <section className="card">
         <h3>Talk to the {info.name}</h3>
-        <Chat pid={pid} agent={agent} reload={reload} goAgent={a => go(`agent:${a}`)} placeholder={`Ask the ${info.name}, or tell it how to work…`} starters={about.starters} />
+        <Chat pid={pid} agent={agent} reload={reload} goAgent={a => go(`agent:${a}`)} placeholder={aboutCtx ? `Ask about “${aboutCtx.label}”…` : `Ask the ${info.name}, or tell it how to work…`} starters={about.starters} context={aboutCtx?.context} aboutLabel={aboutCtx?.label} onClearAbout={onClearAbout} />
       </section>
 
       {mine.length > 0 && <section className="card"><h3>Recent work</h3><ul className="feed">{mine.slice(0, 6).map(a => <li key={a.id}><i className="dot" /><span className={a.ok ? '' : 'error'}>{a.summary}</span><time>{ago(a.at)}</time></li>)}</ul></section>}
