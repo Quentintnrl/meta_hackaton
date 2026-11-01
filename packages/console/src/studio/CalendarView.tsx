@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { ContentItem, ContentView } from '../api';
-import { KIND_HUE, today } from './shared';
+import { KIND_HUE, credit, logicFor, today } from './shared';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const iso = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -42,7 +42,7 @@ export function CalendarView({ view, openId, open }: { view: ContentView; openId
                 <span className="n">{d}</span>
                 {landings.get(key)?.map(t => <span key={t} className="landing" title="Projected landing">⚑ {t}</span>)}
                 {byDate.get(key)?.map(i => (
-                  <button key={i.id} className={`pill-item ${i.id === openId ? 'sel' : ''}`} style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)} title={`${i.title} (${i.status})`}>
+                  <button key={i.id} className={`pill-item ${i.id === openId ? 'sel' : ''}`} style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)} title={`${i.title} (${i.status}) — ${credit(i)}${logicFor(i) ? ` · ${logicFor(i)}` : ''}`}>
                     <span>{STATUS_MARK[i.status]}</span> {i.title}{i.shiftDays ? <em className={i.shiftDays > 0 ? 'late' : 'early'}> {i.shiftDays > 0 ? '+' : ''}{i.shiftDays}d</em> : null}
                   </button>
                 ))}

@@ -309,6 +309,14 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
   async #run(projectId: string, projectName: string, agents: AgentId[], brief: string) {
     const store = this.#store;
     const nowIso = () => this.#svc.now.toISOString();
+    // Say the plan out loud first: who does what, in which order, and what the manager gets.
+    const crew = agents.filter(a => a !== 'director');
+    if (crew.length) {
+      const job: Record<string, string> = { scout: 'researches what works in the field', analyst: 'compares your account with the field', strategist: 'proposes pieces for you to decide on', writer: 'drafts what you accepted' };
+      const names: Record<string, string> = Object.fromEntries(AGENTS.map(a => [a.id, a.name]));
+      store.addChat(projectId, 'director', 'agent',
+        `Here's what I'm doing${brief ? ` for "${brief}"` : ''}: ${crew.map((a, n) => `${n + 1}. ${names[a]} ${job[a]}`).join(', ')}. You decide at each step; nothing is posted on its own.`, [], nowIso());
+    }
     let ran = 0, failed = 0;
     const step = async (agent: AgentId, fn: () => Promise<string>) => {
       if (!agents.includes(agent)) return;
@@ -379,7 +387,7 @@ Milestones: ${ms.map(m => `${m.title} (${m.delivered}/${m.scope}${m.atRisk ? `, 
 ${CHAT_IDENTITY}
 ${BLIND}
 Answer fully but without filler: short sections or a list when the question deserves more than a line. You can suggest actions (the manager confirms each one):
-- run: have some agents work, in this order, with a brief.
+- run: have some agents work, in this order, with a brief. When you suggest a run, spell out who does what in which order and what the manager gets at the end.
 - configure: switch an agent on or off, or change how many of it work at once (1 to ${MAX_WORKERS}: more workers = wider research or more proposals, at more cost).
 If the manager wants to talk to one agent, or change how an agent behaves, set talkTo to that agent and say so: they will speak to it directly.
 Only suggest what the manager's message calls for.

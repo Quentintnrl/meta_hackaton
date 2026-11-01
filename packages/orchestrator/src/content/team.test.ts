@@ -191,6 +191,9 @@ test('a run goes through the agents in order, logs each, and survives a failing 
   const log = svc.store.activity('app').reverse();
   assert.deepEqual(log.map(l => [l.agent, l.ok]), [['scout', false], ['analyst', true], ['strategist', true], ['director', true]], 'the director sums up when something worked');
   assert.match(log[0].summary, /offline/);
+  const plan = svc.store.chat('app', 'director').find(m => m.role === 'agent' && m.text.startsWith("Here's what I'm doing"));
+  assert.ok(plan, 'the director announces the plan first');
+  assert.match(plan!.text, /Scout researches.*Strategist proposes/, 'who does what, in order');
 });
 
 test('tick does not draft a proposal that is still waiting for the manager', async () => {

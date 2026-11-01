@@ -1,5 +1,5 @@
 import { contentApi, type AgentId, type ContentView, type TeamView } from '../api';
-import { KindChip, credit, fmt, useAction } from './shared';
+import { KindChip, credit, fmt, logicFor, useAction } from './shared';
 import { IdeaDeck } from './Pieces';
 import type { View } from './Studio';
 
@@ -23,7 +23,7 @@ export function TodayView({ team, view, reload, go, open, askAgent }: { team: Te
         <section className="card">
           <div className="head"><h3>Review <span className="count">{toReview.length}</span></h3></div>
           <ul className="rows">{toReview.map(i => (
-            <li key={i.id}><button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{credit(i)} · Open →</span></button>
+            <li key={i.id}><button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{credit(i)}{logicFor(i) ? ` · ${logicFor(i)}` : ''} · Open →</span></button>
               <span className="row"><button className="linkish" onClick={() => askAgent('writer', 'item', i.id)}>Ask the Writer →</button></span></li>
           ))}</ul>
         </section>
@@ -50,7 +50,7 @@ function PublishQueue({ items, reload, open }: { items: ContentView['items']; re
     <section className="card">
       <div className="head"><h3>Publish <span className="count">{items.length}</span></h3></div>
       <ul className="rows">{items.map(i => (
-        <li key={i.id}><button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{fmt(i.date)} · Open →</span></button>
+        <li key={i.id}><button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{fmt(i.date)}{logicFor(i) ? ` · ${logicFor(i)}` : ''} · Open →</span></button>
           <span className="row"><button className="primary" disabled={busy !== ''} onClick={() => run(`pub-${i.id}`, () => contentApi.publish(i.id))}>{busy === `pub-${i.id}` ? 'Publishing…' : 'Mark published'}</button></span></li>
       ))}</ul>
       {error && <p className="error">{error}</p>}

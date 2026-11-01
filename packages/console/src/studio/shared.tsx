@@ -27,6 +27,15 @@ export const SOURCE: Record<Exclude<ItemSource, ''>, { label: string; hint: stri
   manager: { label: 'Your brief', hint: 'You asked for it' },
 };
 
+// The communication logic behind a piece, in one clause: which agent saw what.
+export const logicFor = (i: Pick<ContentItem, 'origin' | 'source'>): string => {
+  if (i.origin !== 'ai') return '';
+  return i.source === 'trend' ? 'the Scout saw it work in the field'
+    : i.source === 'account' ? 'the Analyst spotted it in your numbers'
+    : i.source === 'roadmap' ? 'the Strategist tied it to what you are building'
+    : i.source === 'manager' ? 'you asked for it' : '';
+};
+
 export const AGENT_HUE: Record<AgentId, number> = { director: 340, scout: 200, analyst: 150, strategist: 270, writer: 20 };
 
 export function useAction(after: () => Promise<void> | void) {
