@@ -32,32 +32,32 @@ function demo() {
 test('the demo features come back from the journal in the claimed states', () => {
   const { rt } = demo();
   const states = Object.fromEntries(rt.list().map(f => [f.id, f.state]));
-  assert.deepEqual(states, { 'login-screen': 'APPLIED', 'meal-planner': 'APPLIED', 'dark-mode': 'APPLIED', 'recipe-search': 'PR_READY' });
+  assert.deepEqual(states, { 'dark-mode': 'APPLIED', 'recipe-search': 'PR_READY' });
 });
 
-test('the roadmap shows a finished milestone, one slipping, one far away', () => {
+test('the roadmap shows one goal with a corrected projection', () => {
   const { svc } = demo();
-  const [alpha, beta, list] = svc.milestones(DEMO_PROJECT);
-  assert.equal(alpha.status, 'done');
-  assert.equal(alpha.delivered, 2);
+  const [beta] = svc.milestones(DEMO_PROJECT);
   assert.equal(beta.delivered, 1, 'only dark mode is merged');
   assert.equal(beta.atRisk, true);
   assert.equal(beta.forecast!.calibration, 1.3);
-  assert.equal(svc.store.forecasts(beta.id).length, 3, 'the history of its projections is there');
-  assert.equal(list.delivered, 0);
+  assert.equal(svc.store.forecasts(beta.id).length, 2, 'the first projection and its correction');
 });
 
 test('the content covers every stage, and the account is labelled as fictional', () => {
   const { svc, content } = demo();
   const items = svc.calendar(DEMO_PROJECT);
   const by = (s: string) => items.filter(i => i.status === s).length;
-  assert.equal(by('idea'), 4);
-  assert.equal(by('rejected'), 1);
-  assert.ok(by('briefed') >= 3 && by('drafted') >= 3 && by('approved') === 1 && by('published') === 1);
-  assert.deepEqual(new Set(items.filter(i => i.media).map(i => i.media!.format)), new Set(['carousel', 'video', 'image']));
+  assert.equal(by('idea'), 1);
+  assert.equal(by('briefed'), 1);
+  assert.equal(by('drafted'), 1);
+  assert.equal(by('approved'), 1);
+  assert.equal(by('published'), 1);
+  assert.deepEqual(new Set(items.filter(i => i.media).map(i => i.media!.format)), new Set(['carousel', 'image']));
   assert.ok(items.some(i => (i.shiftDays ?? 0) > 0), 'something is pushed back by the projection');
   assert.ok(items.filter(i => i.status === 'idea').every(i => i.rationale && i.source));
   assert.equal(content.latestReport(DEMO_PROJECT, 'account')!.simulated, true);
+  assert.equal(content.latestReport(DEMO_PROJECT, 'audit')!.simulated, true, 'the seeded audit is fictional too');
   assert.ok(content.account(DEMO_PROJECT).every(p => p.simulated));
 });
 

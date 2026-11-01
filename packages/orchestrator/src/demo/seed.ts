@@ -39,8 +39,6 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   };
   const toPlan = [{ type: 'PLAN_READY' }, { type: 'APPROVE', gate: 'plan' }, { type: 'BUILD_DONE' }, { type: 'VISUAL_OK' }];
   const toMerged = [...toPlan, { type: 'APPROVE', gate: 'merge' }, { type: 'MERGE_DONE' }];
-  feature('login-screen', 'Login screen', 'Email and magic-link sign-in', toMerged);
-  feature('meal-planner', 'Weekly meal planner', 'Drag recipes onto the days of the week', toMerged);
   feature('dark-mode', 'Dark mode', 'A dark theme that follows the system setting', toMerged);
   feature('recipe-search', 'Recipe search', 'Search recipes by ingredient, with filters', toPlan); // built and checked, waiting for the merge
 
@@ -54,22 +52,11 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     directives: 'Never mention pricing. Prefer short videos and carousels over long text. At most two posts a week.',
   });
 
-  // --- roadmap: one milestone that landed late (the team learned from it), one in progress, one far away
-  const alpha = s.addMilestone({ projectId: P, title: 'Closed alpha', intent: 'Five friends can sign in and plan a week of meals.', targetDate: d(-14), startDate: d(-34), scope: 2, createdAt: at(-34) });
-  for (const f of ['login-screen', 'meal-planner']) s.link(alpha.id, f);
-  s.addForecast({ milestoneId: alpha.id, madeAt: at(-34), predictedDate: d(-14), rawRemainingDays: 20, calibration: 1, done: 0, scope: 2, confidence: 'low', note: 'First projection, taken from your own plan.' });
-  s.addForecast({ milestoneId: alpha.id, madeAt: at(-26), predictedDate: d(-12), rawRemainingDays: 14, calibration: 1, done: 1, scope: 2, confidence: 'medium', note: 'One of two delivered after 8 days: the pace is slower than the plan, so the date moves two days.' });
-  s.addForecast({ milestoneId: alpha.id, madeAt: at(-18), predictedDate: d(-11), rawRemainingDays: 8, calibration: 1, done: 1, scope: 2, confidence: 'medium', note: 'The second feature is taking longer than the first. I now say one day later.' });
-  s.updateMilestone(alpha.id, { status: 'done', doneAt: at(-6) }); // landed 5 days after the last projection: the lesson
-
+  // --- roadmap: one goal, two projections (the second corrects the first: the pace is slower than the plan)
   const beta = s.addMilestone({ projectId: P, title: 'Public beta', intent: 'Ten testers plan a week of meals and find recipes. The story: no more "what is for dinner".', targetDate: d(18), startDate: d(-12), scope: 4, createdAt: at(-12) });
   for (const f of ['dark-mode', 'recipe-search']) s.link(beta.id, f);
   s.addForecast({ milestoneId: beta.id, madeAt: at(-12), predictedDate: d(18), rawRemainingDays: 30, calibration: 1, done: 0, scope: 4, confidence: 'low', note: 'First projection, taken from your own plan.' });
-  s.addForecast({ milestoneId: beta.id, madeAt: at(-5), predictedDate: d(24), rawRemainingDays: 21, calibration: 1.3, done: 1, scope: 4, confidence: 'medium', note: 'One of four delivered after 7 days. The closed alpha landed 30% later than my raw projection, so I now correct for it: x1.3. I was too optimistic before.' });
-  s.addForecast({ milestoneId: beta.id, madeAt: at(-1), predictedDate: d(27), rawRemainingDays: 23, calibration: 1.3, done: 1, scope: 4, confidence: 'medium', note: 'Recipe search is built but not merged yet, so nothing new counts as delivered. Three days later than yesterday.' });
-
-  const list = s.addMilestone({ projectId: P, title: 'Shopping list', intent: 'The week plan becomes a shopping list, grouped by aisle.', targetDate: d(52), startDate: d(-3), scope: 3, createdAt: at(-3) });
-  s.addForecast({ milestoneId: list.id, madeAt: at(-3), predictedDate: d(52), rawRemainingDays: 55, calibration: 1.3, done: 0, scope: 3, confidence: 'low', note: 'First projection, taken from your own plan.' });
+  s.addForecast({ milestoneId: beta.id, madeAt: at(-5), predictedDate: d(24), rawRemainingDays: 21, calibration: 1.3, done: 1, scope: 4, confidence: 'medium', note: 'One of four delivered after 7 days. The pace is slower than the plan, so I correct for it: x1.3.' });
 
   // --- what the Scout found, and the Analyst's comparison with the account
   s.addReport(P, 'audit', {
@@ -83,7 +70,7 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     topics: ['meal prep', 'food waste', 'solo developer', 'weeknight dinners'],
     avoid: ['release notes alone', 'feature lists'],
     sources: ['https://example.com/food-tech-content-report', 'https://example.com/indie-launch-playbook'],
-  }, false, at(0));
+  }, true, at(0)); // fictional, like everything else here: the team must say so
   const posts = demoAccount('Mealkinator', now);
   s.setAccount(P, posts);
   s.addReport(P, 'account', {
@@ -98,13 +85,8 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   const pic = (name: string, itemId: string, file: string) => { mkdirSync(join(o.mediaDir, itemId), { recursive: true }); writeFileSync(join(o.mediaDir, itemId, file), Buffer.from(PICTURES[name], 'base64')); return file; };
   const media = (format: Media['format'], hashtags: string[], slides: Media['slides']): Media => ({ format, hashtags, slides });
 
-  // proposals waiting for the manager
+  // one idea to decide on
   add({ kind: 'teaser', title: 'The beta is 3 weeks away', brief: 'A mistakes-included teaser of the week planner.', rationale: 'Behind-the-scenes posts earn 5x your release posts, and the beta is projected in about 4 weeks.', source: 'roadmap', origin: 'ai', status: 'idea', milestoneId: beta.id, offsetDays: -21 });
-  add({ kind: 'social-post', title: '30-second tutorial: plan a week in one tap', brief: 'Screen recording of the planner.', rationale: 'Tutorials get the most saves in the field; your account has posted none this month.', source: 'account', origin: 'ai', status: 'idea', fixedDate: d(4) });
-  add({ kind: 'devlog', title: 'What broke while building recipe search', brief: 'An honest list of what went wrong this week.', rationale: 'Trend: the "mistakes included" hook performs, and recipe search is the feature being built right now.', source: 'trend', origin: 'ai', status: 'idea', fixedDate: d(7) });
-  add({ kind: 'newsletter', title: 'Beta waitlist: what to expect', brief: 'Tell the waitlist what the beta contains and how to join.', rationale: 'The beta milestone is the next thing to land, and you have no message for people waiting.', source: 'roadmap', origin: 'ai', status: 'idea', milestoneId: beta.id, offsetDays: -7 });
-  const refused = add({ kind: 'social-post', title: 'Our pricing explained', brief: 'Explain the plans.', rationale: 'Trend: transparency posts perform.', source: 'trend', origin: 'ai', status: 'idea', fixedDate: d(6) });
-  s.updateItem(refused.id, { status: 'rejected', rejectedReason: 'Never mention pricing: it is not decided yet.' });
 
   // a carousel, drafted, two pictures generated
   const carousel = add({ kind: 'social-post', title: 'We are looking for ten testers', brief: 'Call for testers, friendly, with a clear way in.', status: 'drafted', milestoneId: beta.id, offsetDays: -14 });
@@ -118,37 +100,21 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     ]),
   });
 
-  // a video teaser: storyboard, no keyframe yet
-  const video = add({ kind: 'teaser', title: 'The week planner in 20 seconds', brief: 'Fast, funny, one tap.', status: 'drafted', milestoneId: beta.id, offsetDays: -5 });
-  s.updateItem(video.id, {
-    draft: 'Monday: no idea. Tuesday: no idea. Wednesday: ... We built the fix.',
-    revisions: 1,
-    media: media('video', ['#mealprep', '#shorts', '#buildinpublic'], [
-      { kind: 'video', visual: 'A person staring into an open fridge, harsh light', text: 'Every evening at 6pm.', seconds: 3 },
-      { kind: 'video', visual: 'Phone screen: the empty week planner', text: 'We built this.', seconds: 4 },
-      { kind: 'video', visual: 'Screen recording: dragging three recipes onto Monday, Tuesday, Wednesday', text: 'One tap per day.', seconds: 8 },
-      { kind: 'video', visual: 'The person smiling, closing the fridge', text: 'Beta soon. Link in bio.', seconds: 5 },
-    ]),
-  });
-
-  // an approved single image, a published devlog, a changelog from the dev side, plain-text pieces
+  // an approved single image and a published devlog
   const single = add({ kind: 'social-post', title: 'Dark mode is here', brief: 'Short and a bit smug.', status: 'approved', fixedDate: d(1) });
   s.updateItem(single.id, { draft: 'Your midnight snack planning just got easier on the eyes.\n\nDark mode, now in Mealkinator.', revisions: 1, media: media('image', ['#darkmode', '#indiedev', '#mealprep'], [{ kind: 'image', visual: 'The app in dark mode on a phone, resting on a kitchen counter at night', text: 'Dark mode', seconds: 0, file: pic('plum', single.id, '1-demo.jpg') }]) });
-  add({ kind: 'devlog', title: 'Week 3: what the alpha taught us', brief: 'x', status: 'published', fixedDate: d(-6), draft: 'Five friends, five different ways to break the planner. Here is what we fixed first.' });
-  add({ kind: 'changelog', title: 'Changelog: dark mode', brief: 'What this feature changes for the people who use the app.', origin: 'dev', featureId: 'dark-mode', status: 'drafted', fixedDate: d(0), draft: '- Dark theme that follows your system setting\n- Recipe photos keep their colours in dark mode' });
-  add({ kind: 'release-notes', title: 'Beta release notes', brief: 'What testers get and what is still rough.', status: 'briefed', milestoneId: beta.id, offsetDays: 0 });
-  add({ kind: 'demo-script', title: 'Beta demo video script', brief: 'Two minutes, one day of planning.', status: 'briefed', milestoneId: beta.id, offsetDays: 2 });
-  add({ kind: 'doc-update', title: 'README: how to join the beta', brief: 'Add the signup link and what to expect.', status: 'briefed', milestoneId: beta.id, offsetDays: -1 });
+  add({ kind: 'devlog', title: 'Week 3: what building taught us', brief: 'x', status: 'published', fixedDate: d(-6), draft: 'Five friends, five different ways to break the planner. Here is what we fixed first.' });
+  add({ kind: 'newsletter', title: 'Beta waitlist: what to expect', brief: 'Tell the waitlist what the beta contains and how to join.', status: 'briefed', milestoneId: beta.id, offsetDays: -7 });
 
   // --- what the team did
   s.log(P, 'scout', 'Found 3 formats that work and 4 topics. Build-in-public and quick tutorials lead.', true, at(-0.02));
   s.log(P, 'analyst', 'Compared 8 posts with the field. Memes and behind-the-scenes outperform; no tutorials lately.', true, at(-0.015));
-  s.log(P, 'strategist', 'Proposed 5 piece(s) of content. Waiting for your decision.', true, at(-0.01));
-  s.log(P, 'writer', 'Drafted 2 accepted piece(s).', true, at(-0.5));
+  s.log(P, 'strategist', 'Proposed one piece of content. Waiting for your decision.', true, at(-0.01));
+  s.log(P, 'writer', 'Drafted one accepted piece.', true, at(-0.5));
   s.addReport(P, 'synthesis', {
     headline: 'The beta is running late, and your account has no tutorial yet.',
-    points: ['Quick tutorials earn the most saves in the field; you have posted none this month.', 'The beta is projected after the date you want, so teasers are scheduled against the new date.', 'Four proposals wait for your decision in the Inbox.'],
-    next: 'Accept the 30-second tutorial, it is the biggest gap.',
+    points: ['Quick tutorials earn the most saves in the field; you have posted none this month.', 'The beta is projected after the date you want, so teasers are scheduled against the new date.', 'One proposal waits for your decision in Today.'],
+    next: 'Decide on the beta teaser, it is the next thing to land.',
   }, false, at(-0.005));
   s.log(P, 'director', 'The beta is running late, and your account has no tutorial yet.', true, at(-0.005));
   s.setAgentConfig(P, 'scout', { workers: 2 });
