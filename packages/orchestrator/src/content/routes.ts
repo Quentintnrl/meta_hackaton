@@ -204,7 +204,7 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   });
   app.post('/projects/:pid/team/actions', async c => {
     if (!known(c)) return c.json({ error: 'unknown project' }, 404);
-    const b = await body(c, z.object({ kind: z.enum(['run', 'configure']), label: z.string().max(200).default(''), agents: z.array(Agent).max(4).optional(), brief: z.string().max(2000).optional(), agent: Agent.optional(), enabled: z.boolean().optional(), workers: z.number().int().min(1).max(3).optional(), instructions: z.string().max(2000).optional() }));
+    const b = await body(c, z.object({ kind: z.enum(['run', 'configure', 'generate']), label: z.string().max(200).default(''), agents: z.array(Agent).max(4).optional(), brief: z.string().max(2000).optional(), agent: Agent.optional(), enabled: z.boolean().optional(), workers: z.number().int().min(1).max(3).optional(), instructions: z.string().max(2000).optional(), itemId: z.string().max(40).optional(), index: z.number().int().min(0).max(20).optional() }));
     return isResponse(b) ? b : guard(c, () => team.apply(c.req.param('pid'), projects.get(c.req.param('pid'))!.name, b));
   });
 

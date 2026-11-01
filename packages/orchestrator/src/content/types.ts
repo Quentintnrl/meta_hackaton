@@ -107,7 +107,7 @@ export const defaultAgentConfig: AgentConfig = { enabled: true, workers: 1, inst
 
 // What the director (or an agent) suggests the manager does. Nothing happens until the manager confirms.
 export interface SuggestedAction {
-  kind: 'run' | 'configure' | 'talk';
+  kind: 'run' | 'configure' | 'talk' | 'generate';
   label: string;
   agents?: AgentId[]; // run
   brief?: string; // run
@@ -115,6 +115,8 @@ export interface SuggestedAction {
   enabled?: boolean; // configure
   workers?: number; // configure
   instructions?: string; // configure
+  itemId?: string; // generate: the piece getting pictures
+  index?: number; // generate: one shot (0-based), or every missing shot when absent
 }
 export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 

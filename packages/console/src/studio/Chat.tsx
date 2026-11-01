@@ -32,7 +32,8 @@ export function Chat({ pid, agent, reload, goAgent, placeholder, starters, conte
   }
 
   const describe = (a: SuggestedAction) => a.kind === 'run' ? `${(a.agents ?? []).map(x => NAME[x]).join(' → ')}${a.brief ? `: “${a.brief}”` : ''}`
-    : a.kind === 'configure' ? [a.agent && NAME[a.agent], a.enabled === undefined ? '' : a.enabled ? 'on' : 'off', a.workers ? `${a.workers} at once` : '', a.instructions ? `new behaviour: “${a.instructions}”` : ''].filter(Boolean).join(' · ') : '';
+    : a.kind === 'configure' ? [a.agent && NAME[a.agent], a.enabled === undefined ? '' : a.enabled ? 'on' : 'off', a.workers ? `${a.workers} at once` : '', a.instructions ? `new behaviour: “${a.instructions}”` : ''].filter(Boolean).join(' · ')
+    : a.kind === 'generate' ? 'Paid image call, one per shot' : '';
 
   return (
     <div className="chat">

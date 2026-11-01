@@ -129,7 +129,7 @@ const send = <T>(method: string, path: string, body?: unknown) => call<T>(path, 
 
 export type AgentId = 'director' | 'scout' | 'analyst' | 'strategist' | 'writer';
 export interface AgentConfig { enabled: boolean; workers: number; instructions: string }
-export interface SuggestedAction { kind: 'run' | 'configure' | 'talk'; label: string; agents?: AgentId[]; brief?: string; agent?: AgentId; enabled?: boolean; workers?: number; instructions?: string }
+export interface SuggestedAction { kind: 'run' | 'configure' | 'talk' | 'generate'; label: string; agents?: AgentId[]; brief?: string; agent?: AgentId; enabled?: boolean; workers?: number; instructions?: string; itemId?: string; index?: number }
 export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 export interface Synthesis { headline: string; points: string[]; next: string }
 export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number }>; hooks: string[]; topics: string[]; avoid: string[]; sources: string[] }

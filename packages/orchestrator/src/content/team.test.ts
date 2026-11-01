@@ -10,7 +10,7 @@ import type { LLM } from '../adapters/llm.ts';
 const now = new Date('2026-11-01T09:00:00Z');
 
 let directorReply: unknown = { reply: 'On it.', talkTo: 'none', actions: [] };
-let agentReply: unknown = { reply: 'Sure.', newInstructions: '' };
+let agentReply: unknown = { reply: 'Sure.', newInstructions: '', generate: '' };
 
 function setup(over: Partial<LLM> = {}) {
   const prompts: Record<string, string> = {};
@@ -41,6 +41,7 @@ function setup(over: Partial<LLM> = {}) {
   const svc = new ContentService({
     llm, exportDir: dir, now: () => now, repoPath: () => '/r', git: async () => ['a1 add beta signup'],
     features: () => undefined, projectFeatures: () => [{ id: 'f', title: 'Signup', state: 'BUILDING', summary: 'beta signup' }],
+    images: { generate: async () => Buffer.from('fake-image') },
   });
   return { svc, team: new Team(svc), prompts, shots, searches, dir };
 }
@@ -153,6 +154,23 @@ test('asking about a post shows its pictures to the model', async () => {
   assert.match(prompts.agent_reply, /cannot see pictures/, '...and the agent stays honest');
 });
 
+test('the writer offers to generate the missing pictures, and one click does it', async () => {
+  const { svc, team } = setup();
+  const item = svc.store.addItem({ projectId: 'app', origin: 'ai', createdAt: now.toISOString(), kind: 'social-post', title: 'Posters', brief: 'call', status: 'drafted' });
+  svc.store.updateItem(item.id, { media: { format: 'image', hashtags: [], slides: [{ kind: 'image', visual: 'a poster', text: 'Hi', seconds: 0 }] } });
+  agentReply = { reply: 'I can generate it.', newInstructions: '', generate: item.id };
+  const msgs = await team.chatAgent('app', 'writer', 'generate the image of the post', 'Piece "Posters" (social-post, drafted).', `item:${item.id}`);
+  const offer = msgs.at(-1)!.actions.find(a => a.kind === 'generate');
+  assert.ok(offer, 'a generate button is proposed, nothing generated yet');
+  assert.ok(!svc.store.item(item.id)!.media!.slides[0].file);
+  await team.apply('app', 'App', offer!);
+  assert.ok(svc.store.item(item.id)!.media!.slides[0].file, 'the picture was generated on confirmation');
+  agentReply = { reply: 'Nope.', newInstructions: '', generate: 'ffffffff' };
+  const again = await team.chatAgent('app', 'writer', 'generate it', 'Piece "Posters" (social-post, drafted).', `item:${item.id}`);
+  assert.ok(!again.at(-1)!.actions.some(a => a.kind === 'generate'), 'a forged piece id is ignored');
+  agentReply = { reply: 'Sure.', newInstructions: '', generate: '' };
+});
+
 test('a refused proposal teaches the next round', async () => {
   const { svc, team, prompts } = setup();
   const [a] = await team.strategize('app');
@@ -263,13 +281,13 @@ test('the director answers first, suggests actions, and nothing runs until they 
 
 test('an agent proposes a new behaviour; it is only applied on confirmation', async () => {
   const { svc, team } = setup();
-  agentReply = { reply: 'I will keep it short.', newInstructions: 'Keep every proposal under 10 words.' };
+  agentReply = { reply: 'I will keep it short.', newInstructions: 'Keep every proposal under 10 words.', generate: '' };
   const chat = await team.chatAgent('app', 'writer', 'Write shorter');
   assert.equal(chat.at(-1)!.actions[0].instructions, 'Keep every proposal under 10 words.');
   assert.equal(svc.store.agentConfig('app', 'writer').instructions, '');
   team.apply('app', 'App', chat.at(-1)!.actions[0]);
   assert.equal(svc.store.agentConfig('app', 'writer').instructions, 'Keep every proposal under 10 words.');
-  agentReply = { reply: 'Sure.', newInstructions: '' };
+  agentReply = { reply: 'Sure.', newInstructions: '', generate: '' };
   assert.deepEqual((await team.chatAgent('app', 'writer', 'thanks')).at(-1)!.actions, []);
   assert.equal(svc.store.chat('app', 'scout').length, 0, 'each agent has its own conversation');
 });
