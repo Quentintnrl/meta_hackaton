@@ -1,7 +1,7 @@
 # Ripple_handoff — design
 
 Projet du Meta Global AI Developer Hackathon, piste **Indie** (solo). Rendu : 4 novembre 2026, 21h (heure de l'Est).
-Statut : conception, aucun code.
+Statut : implémenté (pipeline dev + communication studio). Ce document reste la conception d'origine : en cas de doute, le code fait foi.
 
 L'app de démo (Mealkinator) est un projet séparé : voir `../mealkinator`. Ce document ne décrit que Ripple_handoff.
 

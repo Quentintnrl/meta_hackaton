@@ -81,6 +81,13 @@ Si tu vois `ENETUNREACH` (IPv6 indisponible), l'orchestrateur est déjà lancé 
 
 `scripts/api-smoke.mjs` vérifie que ta clé Meta marche (`node scripts/api-smoke.mjs`).
 
+## Contribuer : où mettre un test
+
+- Stack de test : `node:test` + `assert/strict`, co-localisé (`*.test.ts` à côté du source), phrases lisibles qui décrivent le comportement. Imports avec extension `.ts`. Faux LLM par fichier (`setup()` en tête de chaque test content/team).
+- Orchestrateur : `pnpm --filter orchestrator test` (~12 s). Les tests lents sont ceux qui creusent git, worktrees et tmp (`builder`, `integrator`, `recovery`, `clone`) : ~200 ms à 8 s chacun, ils font l'essentiel du temps total. Le reste est instantané.
+- Console : `pnpm --filter console test` — uniquement les helpers purs sans React (`route-path.test.ts`, URLs par sous-page). Pas de harnais pour les composants : on vérifie par `pnpm typecheck` + test manuel sur la démo (`http://localhost:5190`, données `simulated`). `src/node-test.d.ts` remplace `@types/node` (store pnpm en lecture seule : aucun paquet ne peut être ajouté).
+- `pnpm test` à la racine lance les deux. `pnpm typecheck` doit passer avant tout commit.
+
 ## Où vont les fichiers
 
 Tout ce qui est généré est dans `out/` (ignoré par git) : journal, base des projets, copies de travail des branches
