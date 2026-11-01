@@ -26,8 +26,11 @@ export function appViewToHash(view: AppView): string {
   }
 }
 
-export const STUDIO_PAGES = ['inbox', 'calendar', 'roadmap', 'field', 'account', 'orders'];
+export const STUDIO_PAGES = ['today', 'create', 'calendar', 'team'];
 export const STUDIO_AGENTS = ['director', 'scout', 'analyst', 'strategist', 'writer'];
+
+// Old pages land on their replacement: nothing bookmarked breaks.
+const LEGACY_PAGE: Record<string, string> = { inbox: 'today', roadmap: 'calendar', field: 'team', account: 'team', orders: 'team' };
 
 export function studioBase(projectId: string): string {
   return `/projects/${projectId}/content`;
@@ -42,10 +45,11 @@ export type About = { agent: string; kind: 'item' | 'milestone' | null; id: stri
 export function parseStudio(path: string, projectId: string): { page: string; openId: string | null; about: About | null } {
   const prefix = studioBase(projectId);
   const rest = path.startsWith(prefix) ? path.slice(prefix.length).split('/').filter(Boolean) : [];
-  let page = 'inbox';
+  let page = 'today';
   let tail = rest;
   if (tail[0] === 'agent' && STUDIO_AGENTS.includes(tail[1])) { page = `agent:${tail[1]}`; tail = tail.slice(2); }
   else if ((STUDIO_PAGES as string[]).includes(tail[0])) { page = tail[0]; tail = tail.slice(1); }
+  else if (LEGACY_PAGE[tail[0]]) { page = LEGACY_PAGE[tail[0]]; tail = tail.slice(1); }
   const openId = tail[0] === 'item' && tail[1] ? tail[1] : null;
   if (openId) tail = tail.slice(2);
   const about: About | null = (tail[0] === 'about' && STUDIO_AGENTS.includes(tail[1]))

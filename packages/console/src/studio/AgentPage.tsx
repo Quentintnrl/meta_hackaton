@@ -26,10 +26,10 @@ export function AgentPage({ pid, agent, team, view, reload, go, aboutCtx, onClea
   const items = view.items;
 
   const result = {
-    scout: team.audit && <ResultStats stats={[[team.audit.data.whatWorks.length, 'formats'], [team.audit.data.hooks.length, 'hooks'], [team.audit.data.topics.length, 'topics'], [team.audit.data.sources.length, 'sources']]} cta="Open the field" onGo={() => go('field')} note={`Researched ${ago(team.audit.at)}`} />,
-    analyst: team.account && <ResultStats stats={[[team.account.data.postCount, 'posts compared'], [team.account.data.stats[0]?.format ?? '–', 'best format'], [team.account.data.gaps.length, 'gaps found']]} cta="Open the comparison" onGo={() => go('account')} note={team.account.simulated ? 'On demo data' : `Compared ${ago(team.account.at)}`} />,
-    strategist: <ResultStats stats={[[items.filter(i => i.status === 'idea').length, 'waiting for you'], [items.filter(i => ['briefed', 'drafted', 'approved'].includes(i.status) && i.origin === 'ai').length, 'accepted'], [items.filter(i => i.status === 'rejected').length, 'refused']]} cta="Open the Inbox" onGo={() => go('inbox')} note="Refusals teach it what you do not want." />,
-    writer: <ResultStats stats={[[items.filter(i => i.status === 'briefed' && !i.draft).length, 'waiting to be written'], [items.filter(i => i.status === 'drafted').length, 'drafts to review'], [items.filter(i => i.status === 'approved' || i.status === 'published').length, 'approved']]} cta="Review drafts" onGo={() => go('inbox')} note="" />,
+    scout: team.audit && <ResultStats stats={[[team.audit.data.whatWorks.length, 'formats'], [team.audit.data.hooks.length, 'hooks'], [team.audit.data.topics.length, 'topics'], [team.audit.data.sources.length, 'sources']]} cta="See the findings" onGo={() => go('team')} note={`Researched ${ago(team.audit.at)}`} />,
+    analyst: team.account && <ResultStats stats={[[team.account.data.postCount, 'posts compared'], [team.account.data.stats[0]?.format ?? '–', 'best format'], [team.account.data.gaps.length, 'gaps found']]} cta="See the comparison" onGo={() => go('team')} note={team.account.simulated ? 'On demo data' : `Compared ${ago(team.account.at)}`} />,
+    strategist: <ResultStats stats={[[items.filter(i => i.status === 'idea').length, 'waiting for you'], [items.filter(i => ['briefed', 'drafted', 'approved'].includes(i.status) && i.origin === 'ai').length, 'accepted'], [items.filter(i => i.status === 'rejected').length, 'refused']]} cta="Decide in Today" onGo={() => go('today')} note="Refusals teach it what you do not want." />,
+    writer: <ResultStats stats={[[items.filter(i => i.status === 'briefed' && !i.draft).length, 'waiting to be written'], [items.filter(i => i.status === 'drafted').length, 'drafts to review'], [items.filter(i => i.status === 'approved' || i.status === 'published').length, 'approved']]} cta="Review in Today" onGo={() => go('today')} note="" />,
   }[agent];
 
   return (

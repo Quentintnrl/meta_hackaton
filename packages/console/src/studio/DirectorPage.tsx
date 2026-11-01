@@ -23,7 +23,7 @@ export function Switch({ on, disabled, onChange, label }: { on: boolean; disable
 }
 
 // The org chart: the director on top, its four agents below, each with its own dials.
-function OrgChart({ pid, team, go, reload }: { pid: string; team: TeamView; go: (v: View) => void; reload: () => Promise<void> }) {
+export function OrgChart({ pid, team, go, reload, onAsk }: { pid: string; team: TeamView; go: (v: View) => void; reload: () => Promise<void>; onAsk?: (agent: AgentId) => void }) {
   const { busy, run } = useAction(reload);
   const crew = team.agents.filter(a => a.id !== 'director');
   const set = (a: AgentId, patch: Parameters<typeof teamApi.configure>[2]) => run('cfg', () => teamApi.configure(pid, a, patch));
@@ -45,6 +45,7 @@ function OrgChart({ pid, team, go, reload }: { pid: string; team: TeamView; go: 
             </button>
             <div className="dial"><span className="hint small">{c.workers} {UNIT[a.id]}{c.workers > 1 ? 's' : ''}</span><Workers agent={a.id} value={c.workers} disabled={busy !== '' || !c.enabled} onChange={n => set(a.id, { workers: n })} /></div>
             <div className="dial"><span className="hint small">{c.enabled ? 'On' : 'Off'}</span><Switch on={c.enabled} disabled={busy !== ''} onChange={v => set(a.id, { enabled: v })} label={`${a.name} on or off`} /></div>
+            {onAsk && <div className="dial"><button className="linkish" onClick={() => onAsk(a.id)}>Ask →</button></div>}
           </div>
         );
       })}</div>
@@ -73,7 +74,7 @@ export function DirectorPage({ pid, team, view, reload, go }: { pid: string; tea
           <section className="card">
             <h3>Right now</h3>
             <ul className="plain">
-              <li><button className="linkish tight" onClick={() => go('inbox')}>{waiting} proposal{waiting === 1 ? '' : 's'}</button> waiting for you</li>
+              <li><button className="linkish tight" onClick={() => go('today')}>{waiting} proposal{waiting === 1 ? '' : 's'}</button> waiting for you</li>
               <li>{team.accountPosts} posts loaded · field research {team.audit ? 'done' : 'not done'}</li>
             </ul>
           </section>

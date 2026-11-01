@@ -340,7 +340,7 @@ Milestones: ${ms.map(m => `${m.title} (${m.delivered}/${m.scope}${m.atRisk ? `, 
     const r = await this.#svc.llm.json(
       `You are the director of a small digital communication team (scout, analyst, strategist, writer) working for a solo developer, the manager. You speak with the manager first.
 ${CHAT_IDENTITY}
-Answer shortly and concretely; a list is fine when asked for several things. You can suggest actions (the manager confirms each one):
+Answer fully but without filler: short sections or a list when the question deserves more than a line. You can suggest actions (the manager confirms each one):
 - run: have some agents work, in this order, with a brief.
 - configure: switch an agent on or off, or change how many of it work at once (1 to ${MAX_WORKERS}: more workers = wider research or more proposals, at more cost).
 If the manager wants to talk to one agent, or change how an agent behaves, set talkTo to that agent and say so: they will speak to it directly.
@@ -366,6 +366,16 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
   // The manager talks to one agent to understand its work or change how it behaves. A behaviour change is proposed, not applied.
   async chatAgent(projectId: string, agent: AgentId, message: string, context = '') {
     if (agent === 'director') return this.chatDirector(projectId, message, context);
+    // The scout's job is the live web: in a chat it looks things up instead
+    // of asking the manager to do its research. A failed search just means
+    // answering from memory, never an error.
+    let research = '';
+    if (agent === 'scout' && this.#svc.llm.search) {
+      try {
+        const r = await this.#svc.llm.search(message.slice(0, 500));
+        research = `Fresh web results for this exact question (quote site names when you use them):\n${r.text}\nSources: ${r.sources.slice(0, 6).join(', ')}`;
+      } catch { /* answer from the audit instead */ }
+    }
     const at = () => this.#svc.now.toISOString();
     const info = AGENTS.find(a => a.id === agent)!;
     const history = this.#store.chat(projectId, agent, 8);
@@ -375,7 +385,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
     const r = await this.#svc.llm.json(
       `You are the ${info.name} of a small digital communication team: "${info.role}". You are talking to the manager, who may ask about your work, or want to change how you work.
 ${CHAT_IDENTITY}
-Answer shortly and concretely; a list is fine when asked for several things. If the manager asks you to behave differently, put the COMPLETE new standing instructions for you in newInstructions (merge the old ones and the new request, short and concrete) and say in the reply what will change. Otherwise newInstructions is an empty string.
+Answer fully but without filler: short sections or a list when the question deserves more than a line. If the manager asks you to behave differently, put the COMPLETE new standing instructions for you in newInstructions (merge the old ones and the new request, short and concrete) and say in the reply what will change. Otherwise newInstructions is an empty string.
 ${directives(this.#svc, projectId)}
 
 Your current instructions from the manager: ${cfg.instructions || '(none)'}
@@ -385,7 +395,7 @@ ${last.map(a => `- ${a.summary}`).join('\n') || '(none yet)'}
 
 Conversation so far:
 ${history.map(m => `${m.role === 'user' ? 'Manager' : 'You'}: ${m.text}`).join('\n') || '(none)'}
-${context ? `What the manager is looking at right now (they know it, do not repeat it back, just use it to answer):\n${context}\n` : ''}Manager: ${message}`,
+${context ? `What the manager is looking at right now (they know it, do not repeat it back, just use it to answer):\n${context}\n` : ''}${research ? `${research}\n` : ''}Manager: ${message}`,
       AgentReply, 'agent_reply');
     const actions: SuggestedAction[] = r.newInstructions.trim() && r.newInstructions.trim() !== cfg.instructions.trim()
       ? [{ kind: 'configure', label: 'Apply this new behaviour', agent, instructions: r.newInstructions.trim() }] : [];

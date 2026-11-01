@@ -1,90 +1,48 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { api, label, tone, type Feature, type JournalEntry, type Project } from './api';
-import { NewFeature } from './NewFeature';
-import { NewProject } from './NewProject';
-import { ProjectPanel } from './ProjectPanel';
+import { useCallback, useEffect, useState } from 'react';
+import { api, type Project } from './api';
+import { NewStudio } from './NewStudio';
 import { Studio } from './studio/Studio';
-import { FeaturePanel } from './FeaturePanel';
-import { Timeline } from './Timeline';
 import { useHashPath, writeHashPath } from './route';
-import { appViewToHash as viewToHash, parseAppView as parseView, type AppView as View } from './route-path.ts';
+import { parseAppView as parseView } from './route-path.ts';
 
+// Content only: the dev pipeline (projects panel, features, timeline) is
+// hidden from the UI but kept on disk and in the API. One studio per project.
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [features, setFeatures] = useState<Feature[]>([]); // all projects; each feature carries its projectId
   const [loaded, setLoaded] = useState(false); // projects fetched at least once
-  const [prefill, setPrefill] = useState<{ projectId: string; prefill: { title: string; design: string } } | null>(null); // prefill text cannot live in the URL
-  const [events, setEvents] = useState<JournalEntry[]>([]);
   const [online, setOnline] = useState(false);
-  const [rev, setRev] = useState(0); // bumped on every event so open panels refetch
 
   const refresh = useCallback(async () => {
     try {
-      const ps = await api.projects();
-      setProjects(ps);
-      setFeatures((await Promise.all(ps.map(p => api.features(p.id)))).flat());
-    } catch { /* offline: the status dot says so */ }
+      setProjects(await api.projects());
+      setOnline(true);
+    } catch { setOnline(false); }
     setLoaded(true);
   }, []);
+  useEffect(() => {
+    void refresh();
+    const timer = setInterval(refresh, 10000);
+    document.addEventListener('visibilitychange', refresh);
+    return () => { clearInterval(timer); document.removeEventListener('visibilitychange', refresh); };
+  }, [refresh]);
 
   // The URL drives the view: every navigation writes it, back/forward just work.
   const path = useHashPath();
-  const view: View | null = parseView(path);
-  const go = (next: View, nextPrefill?: { title: string; design: string }) => {
-    setPrefill(next.kind === 'new-feature' && nextPrefill ? { projectId: next.projectId, prefill: nextPrefill } : null);
-    writeHashPath(viewToHash(next));
-  };
+  const view = parseView(path);
+  const studioId = view?.kind === 'content' ? view.id : undefined;
+  const showForm = view?.kind === 'new-project';
 
-  // Land on something useful, with a real URL: the first project, or the form to add one.
-  // Unknown hashes land here too, so every URL always resolves to a real page.
+  // Land on the studio, with a real URL. Old dev URLs land here too.
   useEffect(() => {
-    if (loaded && parseView(path) === null) writeHashPath(projects[0] ? `/projects/${projects[0].id}` : '/new');
-  }, [path, loaded, projects]);
+    if (!loaded || showForm) return;
+    const known = studioId && projects.some(p => p.id === studioId);
+    if (!known) writeHashPath(projects[0] ? `/projects/${projects[0].id}/content` : '/new');
+  }, [path, loaded, projects, showForm, studioId]);
 
-  const lastId = useRef(0);
-  const add = useCallback((incoming: JournalEntry[]) => {
-    const fresh = incoming.filter(e => e.id > lastId.current);
-    if (!fresh.length) return;
-    lastId.current = Math.max(...fresh.map(e => e.id));
-    setEvents(prev => [...prev, ...fresh.filter(e => !prev.some(p => p.id === e.id))]);
-    setRev(r => r + 1);
-    refresh();
-  }, [refresh]);
-
-  // Two ways to learn what happened. The event stream is instant, but can silently die (a proxy outliving a server
-  // restart keeps the connection open and carries nothing). So the journal is also polled: the page always catches up.
-  useEffect(() => {
-    const es = new EventSource('/api/events');
-    const types = ['CREATED', 'STATE', 'EVENT', 'PLAN', 'BUILD', 'BEFORE', 'VISUAL', 'VISUAL_SKIPPED', 'MERGE', 'ERROR'];
-    types.forEach(t => es.addEventListener(t, m => add([JSON.parse((m as MessageEvent).data) as JournalEntry])));
-    es.onopen = () => refresh();
-
-    const poll = async () => {
-      if (document.hidden) return;
-      try {
-        add(await api.journal(lastId.current));
-        setOnline(true);
-      } catch {
-        setOnline(false);
-      }
-    };
-    void poll();
-    const timer = setInterval(poll, 2500);
-    document.addEventListener('visibilitychange', poll); // catch up the moment the tab comes back
-    return () => { es.close(); clearInterval(timer); document.removeEventListener('visibilitychange', poll); };
-  }, [add, refresh]);
-
-  // Before the default redirect runs, show the same fallback as before.
-  const effective: View = view ?? (projects[0] ? { kind: 'project', id: projects[0].id } : { kind: 'new-project' });
-  const feature = effective.kind === 'feature' ? features.find(f => f.id === effective.id) : undefined;
-  const projectOf = (id: string) => projects.find(p => p.id === id);
-  const currentProject = projectOf(effective.kind === 'feature' ? feature?.projectId ?? '' : effective.kind === 'new-project' ? '' : effective.kind === 'new-feature' ? effective.projectId : effective.id);
-
-  const scope = currentProject ? new Set(features.filter(f => f.projectId === currentProject.id).map(f => f.id)) : undefined;
-  const shown = effective.kind === 'feature' ? events.filter(e => e.featureId === effective.id) : scope ? events.filter(e => scope.has(e.featureId)) : events;
+  const project = projects.find(p => p.id === studioId);
 
   return (
-    <div className={effective.kind === 'content' ? 'layout wide' : 'layout'}>
+    <div className="layout wide">
       <aside className="side">
         <div className="brand">
           <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden>
@@ -98,67 +56,21 @@ export function App() {
           </div>
         </div>
 
-        <h3 className="eyebrow">Projects</h3>
-        {projects.map(p => {
-          const mine = features.filter(f => f.projectId === p.id);
-          return (
-            <div key={p.id} className="project">
-              <button className={effective.kind === 'project' && effective.id === p.id ? 'item active' : 'item'} onClick={() => go({ kind: 'project', id: p.id })}>
-                <b>{p.name}</b>
-              </button>
-              <div className="children">
-                {mine.map(f => (
-                  <button key={f.id} className={effective.kind === 'feature' && effective.id === f.id ? 'item child active' : 'item child'} onClick={() => go({ kind: 'feature', id: f.id })}>
-                    <span>{f.title}</span>
-                    <span className={`badge ${tone(f.state)}`}><i />{label(f.state)}</span>
-                  </button>
-                ))}
-                <button className="add" onClick={() => go({ kind: 'new-feature', projectId: p.id })}>+ New feature</button>
-                <button className={effective.kind === 'content' && effective.id === p.id ? 'add active' : 'add'} onClick={() => go({ kind: 'content', id: p.id })}>Communication studio</button>
-              </div>
-            </div>
-          );
-        })}
-        <button className="new" onClick={() => go({ kind: 'new-project' })}><span>+</span> Add project</button>
+        <h3 className="eyebrow">Studios</h3>
+        {projects.map(p => (
+          <div key={p.id} className="project">
+            <button className={p.id === studioId ? 'item active' : 'item'} onClick={() => writeHashPath(`/projects/${p.id}/content`)}>
+              <b>{p.name}</b>
+            </button>
+          </div>
+        ))}
+        <button className="new" onClick={() => writeHashPath('/new')}><span>+</span> New studio</button>
       </aside>
 
       <main className="main">
-        {effective.kind === 'new-project' && <NewProject first={projects.length === 0} onCreated={(p, description) => {
-          refresh();
-          // From scratch: the description is the first feature, ready to plan.
-          if (description) go({ kind: 'new-feature', projectId: p.id }, { title: `First version of ${p.name}`, design: description });
-          else go({ kind: 'project', id: p.id });
-        }} />}
-        {effective.kind === 'project' && projectOf(effective.id) && (
-          <ProjectPanel
-            key={effective.id}
-            project={projectOf(effective.id)!}
-            features={features.filter(f => f.projectId === effective.id)}
-            onOpen={id => go({ kind: 'feature', id })}
-            onNewFeature={() => go({ kind: 'new-feature', projectId: effective.id })}
-            onRemoved={() => { writeHashPath('/'); refresh(); }}
-          />
-        )}
-        {effective.kind === 'content' && projectOf(effective.id) && <Studio key={effective.id} project={projectOf(effective.id)!} features={features.filter(f => f.projectId === effective.id)} />}
-        {effective.kind === 'new-feature' && projectOf(effective.projectId) && (
-          <NewFeature
-            key={effective.projectId + (prefill?.projectId === effective.projectId ? prefill.prefill.title : '')}
-            projectId={effective.projectId}
-            projectName={projectOf(effective.projectId)!.name}
-            prefill={prefill?.projectId === effective.projectId ? prefill.prefill : undefined}
-            existing={features.map(f => f.id)}
-            onCreated={id => { refresh(); go({ kind: 'feature', id }); }}
-          />
-        )}
-        {effective.kind === 'feature' && feature && <FeaturePanel key={feature.id} id={feature.id} rev={rev} project={projectOf(feature.projectId)} />}
+        {showForm && <NewStudio first={projects.length === 0} onCreated={p => { refresh(); writeHashPath(`/projects/${p.id}/content`); }} />}
+        {!showForm && project && <Studio key={project.id} project={project} />}
       </main>
-
-      {effective.kind !== 'content' && <aside className="timeline">
-        <h3 className="eyebrow">Timeline{currentProject ? ` · ${currentProject.name}` : ''}</h3>
-        <div className="tl-scroll">
-          <Timeline events={shown} only={effective.kind === 'feature' ? effective.id : undefined} />
-        </div>
-      </aside>}
     </div>
   );
 }

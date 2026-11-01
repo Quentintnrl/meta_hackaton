@@ -17,7 +17,7 @@ function Meter({ value }: { value: number }) {
 
 export function AuditCard({ audit }: { audit?: { data: Audit; at: string } }) {
   const [open, setOpen] = useState<string | null>(null);
-  if (!audit) return <section className="card empty"><p>The Scout has not looked yet.</p><p className="hint small">Brief the team from the Inbox, or open the Scout and press “Run Scout now”.</p></section>;
+  if (!audit) return <section className="card empty"><p>The Scout has not looked yet.</p><p className="hint small">Brief the team from Create, or ask it directly with the button above.</p></section>;
   const a = audit.data;
   const best = [...a.whatWorks].sort((x, y) => (y.strength ?? 3) - (x.strength ?? 3));
   return (

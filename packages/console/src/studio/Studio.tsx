@@ -2,26 +2,24 @@ import { useCallback, useEffect, useState } from 'react';
 import { contentApi, teamApi, type AgentId, type ContentView, type Feature, type Project, type TeamView } from '../api';
 import { useHashPath, writeHashPath } from '../route';
 import { parseStudio as parseStudioPath, studioToHash, type About } from '../route-path.ts';
-import { InboxView } from './InboxView';
 import { CalendarView } from './CalendarView';
 import { RoadmapView } from './RoadmapView';
-import { SettingsView } from './SettingsView';
 import { DirectorPage } from './DirectorPage';
 import { ABOUT, AgentPage } from './AgentPage';
 import { ChatDrawer } from './Chat';
-import { AccountCard, AccountData, AuditCard } from './Insights';
 import { ItemEditor } from './ItemEditor';
-import { TeamPulse, agentState } from './Agents';
+import { TodayView } from './TodayView';
+import { CreateView } from './CreateView';
+import { TeamView as TeamPage } from './TeamView';
+import { TeamPulse } from './Agents';
 
-export type View = 'inbox' | 'calendar' | 'roadmap' | 'field' | 'account' | 'orders' | `agent:${AgentId}`;
+export type View = 'today' | 'create' | 'calendar' | 'team' | `agent:${AgentId}`;
 
 const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: string }> = {
-  inbox: { title: 'Inbox', about: 'What needs your decision today.' },
-  calendar: { title: 'Calendar', about: 'Everything planned, by date. Click a piece to work on it.' },
-  roadmap: { title: 'Roadmap', about: 'Your milestones, and where the team projects they will really land.' },
-  field: { title: 'The field', about: 'What works for projects like yours, found by the Scout.' },
-  account: { title: 'Your account', about: 'How your posts compare with the field, found by the Analyst.' },
-  orders: { title: 'Orders & voice', about: 'What you tell the team once.' },
+  today: { title: 'Today', about: 'Decide, review, publish.' },
+  create: { title: 'Create', about: 'Ask for ideas, write what was accepted.' },
+  calendar: { title: 'Calendar', about: 'Goals and dates. Click a piece to work on it.' },
+  team: { title: 'Team', about: 'Who does what, what they found, what you told them.' },
 };
 
 // The communication team of a project: a sub-menu on the left, one page at a time.
@@ -31,7 +29,7 @@ const parseStudio = (path: string, projectId: string): { page: View; openId: str
   return { page: page as View, openId, about };
 };
 
-export function Studio({ project, features }: { project: Project; features: Feature[] }) {
+export function Studio({ project }: { project: Project }) {
   const hashPath = useHashPath();
   const { page, openId, about } = parseStudio(hashPath, project.id);
   // The drawer lives next to the page: navigating keeps it, closing drops it.
@@ -57,14 +55,13 @@ export function Studio({ project, features }: { project: Project; features: Feat
 
   if (!view || !team) return <section className="card">{loadError ? <><p className="error">The studio did not load: {loadError}</p><p><button className="primary" onClick={() => reload().catch(e => setLoadError((e as Error).message))}>Retry</button></p></> : <p className="hint">Loading…</p>}</section>;
 
-  const waiting = view.items.filter(i => i.status === 'idea' || i.status === 'briefed').length + view.items.filter(i => i.status === 'drafted').length;
+  const waiting = view.items.filter(i => i.status === 'idea').length + view.items.filter(i => i.status === 'drafted').length + view.items.filter(i => i.status === 'approved').length;
   const late = view.milestones.filter(m => m.atRisk).length;
-  const nav: Array<{ group?: string; items: Array<[View, string, number?, string?]> }> = [
-    { group: 'Decide', items: [['inbox', 'Inbox', waiting]] },
-    { group: 'Plan', items: [['calendar', 'Calendar'], ['roadmap', 'Roadmap', late, 'late']] },
-    { group: 'Learn', items: [['field', 'The field'], ['account', 'Your account']] },
-    { group: 'Team', items: [['agent:director', 'Director'], ['agent:scout', 'Scout'], ['agent:analyst', 'Analyst'], ['agent:strategist', 'Strategist'], ['agent:writer', 'Writer']] },
-    { group: 'Settings', items: [['orders', 'Orders & voice']] },
+  const nav: Array<[View, string, number?, string?]> = [
+    ['today', 'Today', waiting],
+    ['create', 'Create'],
+    ['calendar', 'Calendar', late, 'late'],
+    ['team', 'Team'],
   ];
   // Open a side chat with an agent, staying on the page: the agent sees the
   // piece or goal, the manager just asks. Closing the drawer drops the context.
@@ -100,31 +97,24 @@ export function Studio({ project, features }: { project: Project; features: Feat
     <div className="studio">
       <nav className="subnav" aria-label="Studio">
         <span className="eyebrow">{project.name}</span>
-        {nav.map((g, i) => (
-          <div key={i} className="navgroup">
-            {g.group && <span className="navlabel">{g.group}</span>}
-            {g.items.map(([id, label, n, tone]) => (
-              <button key={id} className={page === id ? 'navitem on' : 'navitem'} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>
-                <span className="navlabelrow">{id.startsWith('agent:') && <i className={`ndot ${agentState(team, id.slice(6) as AgentId)} ${team.config[id.slice(6) as AgentId]?.enabled === false ? 'off' : ''}`} />}{label}</span>{n ? <span className={`count ${tone ?? ''}`}>{n}</span> : null}
-              </button>
-            ))}
-          </div>
+        {nav.map(([id, label, n, tone]) => (
+          <button key={id} className={page === id || (id === 'team' && page.startsWith('agent:')) ? 'navitem on' : 'navitem'} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>
+            <span className="navlabelrow">{label}</span>{n ? <span className={`count ${tone ?? ''}`}>{n}</span> : null}
+          </button>
         ))}
         <TeamPulse team={team} onOpen={() => setPage('agent:director')} />
       </nav>
 
       <div className="studio-main">
-        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p><p className="hint small">An AI team proposes, you decide. <button className="linkish" onClick={() => setPage('agent:director')}>Meet the team →</button></p></header>
-        {page === 'inbox' && <InboxView pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
-        {page === 'calendar' && <CalendarView view={view} openId={openId} open={setOpenId} />}
-        {page === 'roadmap' && <RoadmapView view={view} project={project} features={features} reload={reload} go={setPage} askAgent={askAgent} />}
-        {page === 'field' && <div className="stack"><div><button className="linkish" onClick={() => askAgent('scout')}>Ask the Scout →</button></div><AuditCard audit={team.audit} /></div>}
-        {page === 'account' && <div className="stack"><div><button className="linkish" onClick={() => askAgent('analyst')}>Ask the Analyst →</button></div><AccountCard team={team} /><AccountData pid={project.id} team={team} items={view.items} reload={reload} /></div>}
+        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about} An AI team proposes, you decide.</p></header>
+        {page === 'today' && <TodayView team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
+        {page === 'create' && <CreateView pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
+        {page === 'calendar' && <div className="stack"><RoadmapView view={view} project={project} features={[]} reload={reload} go={setPage} askAgent={askAgent} /><CalendarView view={view} openId={openId} open={setOpenId} /></div>}
+        {page === 'team' && <TeamPage pid={project.id} team={team} view={view} reload={reload} go={setPage} askAgent={askAgent} />}
         {page === 'agent:director' && <DirectorPage pid={project.id} team={team} view={view} reload={reload} go={setPage} />}
         {agentId && agentId !== 'director' && <AgentPage key={agentId} pid={project.id} agent={agentId} team={team} view={view} reload={reload} go={setPage} aboutCtx={pageCtx} onClearAbout={clearAbout} />}
-        {page === 'orders' && <SettingsView pid={project.id} view={view} reload={reload} />}
       </div>
-      {open && <ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('inbox'); setOpenId(id); }} askAgent={askAgent} />}
+      {open && <ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('today'); setOpenId(id); }} askAgent={askAgent} />}
       {drawerCtx && <ChatDrawer pid={project.id} agent={drawerCtx.agent} role={team.agents.find(a => a.id === drawerCtx.agent)?.role ?? ''} team={team} starters={drawerCtx.agent === 'director' ? [] : ABOUT[drawerCtx.agent].starters} context={drawerCtx.context || undefined} aboutLabel={drawerCtx.label || undefined} onClose={clearAbout} reload={reload} goAgent={a => writeHashPath(studioToHash(project.id, `agent:${a}`, openId, { agent: a, kind: drawerCtx.kind, id: drawerCtx.id }))} />}
     </div>
   );

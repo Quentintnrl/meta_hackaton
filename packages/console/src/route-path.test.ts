@@ -19,20 +19,22 @@ test('app hashes round-trip', () => {
 test('studio hashes keep page and drawer', () => {
   assert.deepEqual(parseStudio('/projects/p/content/calendar/item/abc123', 'p'), { page: 'calendar', openId: 'abc123', about: null });
   assert.deepEqual(parseStudio('/projects/p/content/agent/writer', 'p'), { page: 'agent:writer', openId: null, about: null });
-  assert.deepEqual(parseStudio('/projects/p/content', 'p'), { page: 'inbox', openId: null, about: null });
-  assert.deepEqual(parseStudio('/projects/p/content/nonsense', 'p'), { page: 'inbox', openId: null, about: null }, 'unknown page falls back');
-  assert.deepEqual(parseStudio('/projects/p/content/agent/nobody', 'p'), { page: 'inbox', openId: null, about: null }, 'unknown agent is not a page');
-  assert.deepEqual(parseStudio('/projects/other/content/calendar', 'p'), { page: 'inbox', openId: null, about: null }, 'another project is not parsed');
+  assert.deepEqual(parseStudio('/projects/p/content', 'p'), { page: 'today', openId: null, about: null });
+  assert.deepEqual(parseStudio('/projects/p/content/nonsense', 'p'), { page: 'today', openId: null, about: null }, 'unknown page falls back');
+  assert.deepEqual(parseStudio('/projects/p/content/agent/nobody', 'p'), { page: 'today', openId: null, about: null }, 'unknown agent is not a page');
+  assert.deepEqual(parseStudio('/projects/other/content/calendar', 'p'), { page: 'today', openId: null, about: null }, 'another project is not parsed');
+  assert.deepEqual(parseStudio('/projects/p/content/inbox', 'p').page, 'today', 'old inbox lands on today');
+  assert.deepEqual(parseStudio('/projects/p/content/orders', 'p').page, 'team', 'old orders lands on team');
   assert.equal(studioToHash('p', 'agent:scout', 'abc123'), '/projects/p/content/agent/scout/item/abc123');
-  assert.equal(studioToHash('p', 'inbox', null), '/projects/p/content/inbox');
+  assert.equal(studioToHash('p', 'today', null), '/projects/p/content/today');
 });
 
 test('studio hashes carry invisible chat context', () => {
   const about = { agent: 'writer', kind: 'item', id: 'abc123' } as const;
   assert.equal(studioToHash('p', 'agent:writer', null, about), '/projects/p/content/agent/writer/about/writer/item/abc123');
   assert.deepEqual(parseStudio('/projects/p/content/agent/writer/about/writer/item/abc123', 'p'), { page: 'agent:writer', openId: null, about: { agent: 'writer', kind: 'item', id: 'abc123' } });
-  assert.deepEqual(parseStudio('/projects/p/content/inbox/about/writer/item/abc123', 'p'), { page: 'inbox', openId: null, about: { agent: 'writer', kind: 'item', id: 'abc123' } }, 'the drawer lives on any page');
-  assert.deepEqual(parseStudio('/projects/p/content/inbox/about/writer', 'p').about, { agent: 'writer', kind: null, id: null }, 'agent alone means a plain chat');
-  assert.deepEqual(parseStudio('/projects/p/content/inbox/about/nobody', 'p').about, null, 'unknown agent is ignored');
-  assert.equal(studioToHash('p', 'inbox', null), '/projects/p/content/inbox');
+  assert.deepEqual(parseStudio('/projects/p/content/today/about/writer/item/abc123', 'p'), { page: 'today', openId: null, about: { agent: 'writer', kind: 'item', id: 'abc123' } }, 'the drawer lives on any page');
+  assert.deepEqual(parseStudio('/projects/p/content/today/about/writer', 'p').about, { agent: 'writer', kind: null, id: null }, 'agent alone means a plain chat');
+  assert.deepEqual(parseStudio('/projects/p/content/today/about/nobody', 'p').about, null, 'unknown agent is ignored');
+  assert.equal(studioToHash('p', 'today', null), '/projects/p/content/today');
 });

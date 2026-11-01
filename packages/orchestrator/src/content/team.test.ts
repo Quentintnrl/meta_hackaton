@@ -101,6 +101,16 @@ test('proposals without research are marked as early sketches', async () => {
   assert.ok(grounded.every(i => !i.rationale.includes('Early sketch')), 'audit and account present: unmarked');
 });
 
+test('the scout looks the question up instead of bouncing it back', async () => {
+  const { team, prompts, searches } = setup();
+  await team.chatAgent('app', 'scout', 'what angle do meal prep apps take?');
+  assert.ok(searches.some(s => s.includes('meal prep')), 'the question went to web search');
+  assert.match(prompts.agent_reply, /Behind-the-scenes posts do well/, 'fresh results reached the prompt');
+  const before = searches.length;
+  await team.chatAgent('app', 'writer', 'is this too long?');
+  assert.equal(searches.length, before, 'other agents answer from memory');
+});
+
 test('chatting about a piece sends its context invisibly', async () => {
   const { svc, team, prompts } = setup();
   await team.chatAgent('app', 'writer', 'is this too long?', 'Piece "Beta teaser" (teaser, idea). Brief: tease.');
