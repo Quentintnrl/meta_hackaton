@@ -108,15 +108,15 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
 
   // --- what the team did
   s.log(P, 'scout', 'Found 3 formats that work and 4 topics. Build-in-public and quick tutorials lead.', true, at(-0.02));
-  s.log(P, 'analyst', 'Compared 8 posts with the field. Memes and behind-the-scenes outperform; no tutorials lately.', true, at(-0.015));
+  s.log(P, 'analyst', 'Compared 14 posts with the field. Tutorials earn the most saves, memes win on shares, releases barely move.', true, at(-0.015));
   s.log(P, 'strategist', 'Proposed one piece of content. Waiting for your decision.', true, at(-0.01));
   s.log(P, 'writer', 'Drafted one accepted piece.', true, at(-0.5));
   s.addReport(P, 'synthesis', {
-    headline: 'The beta is running late, and your account has no tutorial yet.',
-    points: ['Quick tutorials earn the most saves in the field; you have posted none this month.', 'The beta is projected after the date you want, so teasers are scheduled against the new date.', 'One proposal waits for your decision in Today.'],
+    headline: 'The beta is running late, and your tutorials save best.',
+    points: ['Tutorials earn the most saves on your account; the Sunday-reset one leads.', 'The beta is projected after the date you want, so teasers are scheduled against the new date.', 'One proposal waits for your decision in Today.'],
     next: 'Decide on the beta teaser, it is the next thing to land.',
   }, false, at(-0.005));
-  s.log(P, 'director', 'The beta is running late, and your account has no tutorial yet.', true, at(-0.005));
+  s.log(P, 'director', 'The beta is running late, and your tutorials save best.', true, at(-0.005));
   s.setAgentConfig(P, 'scout', { workers: 2 });
   s.setAgentConfig(P, 'writer', { instructions: 'Keep captions under 400 characters, warm and a little self-mocking.' });
   s.addChat(P, 'director', 'user', 'What should we do this week?', [], at(-0.004));

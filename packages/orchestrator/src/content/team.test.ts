@@ -59,7 +59,7 @@ test('the analyst needs an account, and flags demo data as simulated', async () 
   team.loadDemoAccount('app', 'App');
   await team.scout('app', 'App');
   const r = await team.analyse('app');
-  assert.equal(r.postCount, 8);
+  assert.equal(r.postCount, 14);
   assert.equal(svc.store.latestReport('app', 'account')!.simulated, true);
 });
 

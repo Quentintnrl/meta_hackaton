@@ -75,6 +75,12 @@ export function demoAccount(name: string, now: Date): AccountPost[] {
     ['release', `New in ${name}: small fixes, big relief`, 70, 3, 5, 6],
     ['announcement', `${name} is looking for its first testers`, 140, 22, 19, 9],
     ['meme', `Me, after fixing one bug and creating two`, 520, 27, 140, 12],
+    ['behind-the-scenes', `The fridge photo that started it all: our planner was a whiteboard`, 280, 25, 30, 40],
+    ['tutorial', `Sunday reset: plan 5 dinners in 12 minutes`, 310, 18, 80, 150],
+    ['question', `What ruins your weeknight dinners? Mine is the 6pm fridge stare`, 150, 64, 12, 8],
+    ['testimonial', `I stopped ordering takeout on Tuesdays`, 260, 20, 45, 60],
+    ['release', `${name} 0.3 is out: recipe search is here`, 120, 10, 14, 20],
+    ['meme', `POV: it's 6pm and the fridge is empty`, 610, 31, 170, 15],
   ];
   return rows.map(([format, text, likes, comments, shares, saves], i) => ({ text, format, likes, comments, shares, saves, postedAt: addDays(day(now), -4 - i * 5), simulated: true }));
 }
