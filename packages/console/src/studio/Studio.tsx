@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { contentApi, teamApi, type AgentId, type ContentView, type Feature, type Project, type TeamView } from '../api';
+import { useHashPath, writeHashPath } from '../route';
 import { InboxView } from './InboxView';
 import { CalendarView } from './CalendarView';
 import { RoadmapView } from './RoadmapView';
@@ -22,11 +23,29 @@ const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: st
 };
 
 // The communication team of a project: a sub-menu on the left, one page at a time.
+// The open page (and drawer) lives in the URL, so a refresh lands back here.
+const AGENT_IDS: AgentId[] = ['director', 'scout', 'analyst', 'strategist', 'writer'];
+
+function parseStudio(path: string, projectId: string): { page: View; openId: string | null } {
+  const prefix = `/projects/${projectId}/content`;
+  const rest = path.startsWith(prefix) ? path.slice(prefix.length).split('/').filter(Boolean) : [];
+  let page: View = 'inbox';
+  let tail = rest;
+  if (tail[0] === 'agent' && (AGENT_IDS as string[]).includes(tail[1])) { page = `agent:${tail[1]}` as View; tail = tail.slice(2); }
+  else if (tail[0] === 'inbox' || tail[0] === 'calendar' || tail[0] === 'roadmap' || tail[0] === 'field' || tail[0] === 'account' || tail[0] === 'orders') { page = tail[0]; tail = tail.slice(1); }
+  const openId = tail[0] === 'item' && tail[1] ? tail[1] : null;
+  return { page, openId };
+}
+
 export function Studio({ project, features }: { project: Project; features: Feature[] }) {
-  const [page, setPage] = useState<View>('inbox');
+  const hashPath = useHashPath();
+  const { page, openId } = parseStudio(hashPath, project.id);
+  const base = `/projects/${project.id}/content`;
+  const segOf = (v: View) => (v.startsWith('agent:') ? `agent/${v.slice(6)}` : v);
+  const setPage = (v: View) => writeHashPath(openId ? `${base}/${segOf(v)}/item/${openId}` : `${base}/${segOf(v)}`);
+  const setOpenId = (id: string | null) => writeHashPath(id ? `${base}/${segOf(page)}/item/${id}` : `${base}/${segOf(page)}`);
   const [view, setView] = useState<ContentView | null>(null);
   const [team, setTeam] = useState<TeamView | null>(null);
-  const [openId, setOpenId] = useState<string | null>(null);
 
   const reload = useCallback(async () => {
     const [v, t] = await Promise.all([contentApi.view(project.id), teamApi.view(project.id)]);

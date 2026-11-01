@@ -6,13 +6,40 @@ import { ProjectPanel } from './ProjectPanel';
 import { Studio } from './studio/Studio';
 import { FeaturePanel } from './FeaturePanel';
 import { Timeline } from './Timeline';
+import { useHashPath, writeHashPath } from './route';
 
 type View = { kind: 'new-project' } | { kind: 'project'; id: string } | { kind: 'content'; id: string } | { kind: 'new-feature'; projectId: string; prefill?: { title: string; design: string } } | { kind: 'feature'; id: string };
+
+// The URL is the source of truth for where the user is: parsing it back
+// gives the view, so a refresh lands on the same page.
+function parseView(path: string): View | null {
+  const segs = path.split('/').filter(Boolean);
+  if (segs.length === 0) return null;
+  if (segs[0] === 'new') return { kind: 'new-project' };
+  if (segs[0] === 'features' && segs[1]) return { kind: 'feature', id: segs[1] };
+  if (segs[0] === 'projects' && segs[1]) {
+    if (segs[2] === 'content') return { kind: 'content', id: segs[1] };
+    if (segs[2] === 'new-feature') return { kind: 'new-feature', projectId: segs[1] };
+    if (segs.length === 2) return { kind: 'project', id: segs[1] };
+  }
+  return null;
+}
+
+function viewToHash(view: View): string {
+  switch (view.kind) {
+    case 'new-project': return '/new';
+    case 'project': return `/projects/${view.id}`;
+    case 'content': return `/projects/${view.id}/content`;
+    case 'new-feature': return `/projects/${view.projectId}/new-feature`;
+    case 'feature': return `/features/${view.id}`;
+  }
+}
 
 export function App() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]); // all projects; each feature carries its projectId
-  const [view, setView] = useState<View | null>(null);
+  const [loaded, setLoaded] = useState(false); // projects fetched at least once
+  const [prefill, setPrefill] = useState<{ projectId: string; prefill: { title: string; design: string } } | null>(null); // prefill text cannot live in the URL
   const [events, setEvents] = useState<JournalEntry[]>([]);
   const [online, setOnline] = useState(false);
   const [rev, setRev] = useState(0); // bumped on every event so open panels refetch
@@ -23,7 +50,22 @@ export function App() {
       setProjects(ps);
       setFeatures((await Promise.all(ps.map(p => api.features(p.id)))).flat());
     } catch { /* offline: the status dot says so */ }
+    setLoaded(true);
   }, []);
+
+  // The URL drives the view: every navigation writes it, back/forward just work.
+  const path = useHashPath();
+  const view: View | null = parseView(path);
+  const go = (next: View, nextPrefill?: { title: string; design: string }) => {
+    setPrefill(next.kind === 'new-feature' && nextPrefill ? { projectId: next.projectId, prefill: nextPrefill } : null);
+    writeHashPath(viewToHash(next));
+  };
+
+  // Land on something useful, with a real URL: the first project, or the form to add one.
+  // Unknown hashes land here too, so every URL always resolves to a real page.
+  useEffect(() => {
+    if (loaded && parseView(path) === null) writeHashPath(projects[0] ? `/projects/${projects[0].id}` : '/new');
+  }, [path, loaded, projects]);
 
   const lastId = useRef(0);
   const add = useCallback((incoming: JournalEntry[]) => {
@@ -58,7 +100,7 @@ export function App() {
     return () => { es.close(); clearInterval(timer); document.removeEventListener('visibilitychange', poll); };
   }, [add, refresh]);
 
-  // Land on something useful: the first project, or the form to add one.
+  // Before the default redirect runs, show the same fallback as before.
   const effective: View = view ?? (projects[0] ? { kind: 'project', id: projects[0].id } : { kind: 'new-project' });
   const feature = effective.kind === 'feature' ? features.find(f => f.id === effective.id) : undefined;
   const projectOf = (id: string) => projects.find(p => p.id === id);
@@ -87,50 +129,51 @@ export function App() {
           const mine = features.filter(f => f.projectId === p.id);
           return (
             <div key={p.id} className="project">
-              <button className={effective.kind === 'project' && effective.id === p.id ? 'item active' : 'item'} onClick={() => setView({ kind: 'project', id: p.id })}>
+              <button className={effective.kind === 'project' && effective.id === p.id ? 'item active' : 'item'} onClick={() => go({ kind: 'project', id: p.id })}>
                 <b>{p.name}</b>
               </button>
               <div className="children">
                 {mine.map(f => (
-                  <button key={f.id} className={effective.kind === 'feature' && effective.id === f.id ? 'item child active' : 'item child'} onClick={() => setView({ kind: 'feature', id: f.id })}>
+                  <button key={f.id} className={effective.kind === 'feature' && effective.id === f.id ? 'item child active' : 'item child'} onClick={() => go({ kind: 'feature', id: f.id })}>
                     <span>{f.title}</span>
                     <span className={`badge ${tone(f.state)}`}><i />{label(f.state)}</span>
                   </button>
                 ))}
-                <button className="add" onClick={() => setView({ kind: 'new-feature', projectId: p.id })}>+ New feature</button>
-                <button className={effective.kind === 'content' && effective.id === p.id ? 'add active' : 'add'} onClick={() => setView({ kind: 'content', id: p.id })}>Communication studio</button>
+                <button className="add" onClick={() => go({ kind: 'new-feature', projectId: p.id })}>+ New feature</button>
+                <button className={effective.kind === 'content' && effective.id === p.id ? 'add active' : 'add'} onClick={() => go({ kind: 'content', id: p.id })}>Communication studio</button>
               </div>
             </div>
           );
         })}
-        <button className="new" onClick={() => setView({ kind: 'new-project' })}><span>+</span> Add project</button>
+        <button className="new" onClick={() => go({ kind: 'new-project' })}><span>+</span> Add project</button>
       </aside>
 
       <main className="main">
         {effective.kind === 'new-project' && <NewProject first={projects.length === 0} onCreated={(p, description) => {
           refresh();
           // From scratch: the description is the first feature, ready to plan.
-          setView(description ? { kind: 'new-feature', projectId: p.id, prefill: { title: `First version of ${p.name}`, design: description } } : { kind: 'project', id: p.id });
+          if (description) go({ kind: 'new-feature', projectId: p.id }, { title: `First version of ${p.name}`, design: description });
+          else go({ kind: 'project', id: p.id });
         }} />}
         {effective.kind === 'project' && projectOf(effective.id) && (
           <ProjectPanel
             key={effective.id}
             project={projectOf(effective.id)!}
             features={features.filter(f => f.projectId === effective.id)}
-            onOpen={id => setView({ kind: 'feature', id })}
-            onNewFeature={() => setView({ kind: 'new-feature', projectId: effective.id })}
-            onRemoved={() => { setView(null); refresh(); }}
+            onOpen={id => go({ kind: 'feature', id })}
+            onNewFeature={() => go({ kind: 'new-feature', projectId: effective.id })}
+            onRemoved={() => { writeHashPath('/'); refresh(); }}
           />
         )}
         {effective.kind === 'content' && projectOf(effective.id) && <Studio key={effective.id} project={projectOf(effective.id)!} features={features.filter(f => f.projectId === effective.id)} />}
         {effective.kind === 'new-feature' && projectOf(effective.projectId) && (
           <NewFeature
-            key={effective.projectId + (effective.prefill?.title ?? '')}
+            key={effective.projectId + (prefill?.projectId === effective.projectId ? prefill.prefill.title : '')}
             projectId={effective.projectId}
             projectName={projectOf(effective.projectId)!.name}
-            prefill={effective.prefill}
+            prefill={prefill?.projectId === effective.projectId ? prefill.prefill : undefined}
             existing={features.map(f => f.id)}
-            onCreated={id => { refresh(); setView({ kind: 'feature', id }); }}
+            onCreated={id => { refresh(); go({ kind: 'feature', id }); }}
           />
         )}
         {effective.kind === 'feature' && feature && <FeaturePanel key={feature.id} id={feature.id} rev={rev} project={projectOf(feature.projectId)} />}
