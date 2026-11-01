@@ -16,13 +16,26 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
   useEffect(() => { setMedia(item.media); setTags((item.media?.hashtags ?? []).join(' ')); }, [item.id, item.media]);
 
   if (!media) return <p className="hint small">No media yet: have the post written, or <button className="linkish" onClick={() => setMedia({ format: 'image', hashtags: [], slides: [blank(false)] })}>build it by hand</button>.</p>;
-  const hashtags = tags.split(/[\s,]+/).filter(Boolean);
+  // Same cleanup as the server (normalizeHashtags): strip odd characters,
+  // add the #, drop duplicates, keep 20. The preview shows what is saved.
+  const hashtags = (() => {
+    const out: string[] = [];
+    for (const t of tags.split(/[\s,]+/).filter(Boolean)) {
+      const clean = t.replace(/[^\p{L}\p{N}_]/gu, '');
+      if (clean && !out.some(o => o.toLowerCase() === `#${clean}`.toLowerCase())) out.push(`#${clean}`);
+    }
+    return out.slice(0, 20);
+  })();
   const edited: Media = { ...media, hashtags };
   const dirty = JSON.stringify(edited) !== JSON.stringify(saved);
   const b = busy !== '';
   const video = media.format === 'video';
   const setSlide = (i: number, patch: Partial<Slide>) => setMedia({ ...media, slides: media.slides.map((x, j) => j === i ? { ...x, ...patch } : x) });
   const setFormat = (format: MediaFormat) => {
+    // Switching to one image drops the other slides: ask first when that loses work.
+    if (format === 'image' && media.slides.length > 1 && media.slides.slice(1).some(x => x.visual.trim() || x.text.trim() || x.file)) {
+      if (!window.confirm(`Switching to a single image drops the other ${media.slides.length - 1} slides. Continue?`)) return;
+    }
     const v = format === 'video';
     let slides = media.slides.map(x => ({ ...x, kind: v ? 'video' as const : 'image' as const, seconds: v ? x.seconds || 5 : 0 }));
     if (format === 'image') slides = slides.slice(0, 1);
@@ -68,7 +81,7 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
       )}
 
       <label>Hashtags<input value={tags} onChange={e => setTags(e.target.value)} placeholder="#mealprep #solodev" /></label>
-      <div className="chips">{hashtags.map(h => <span key={h} className="pill">{h.startsWith('#') ? h : `#${h}`}</span>)}</div>
+      <div className="chips">{hashtags.map(h => <span key={h} className="pill">{h}</span>)}{hashtags.length >= 20 && <span className="hint small">20 max, the rest is dropped</span>}</div>
 
       <div className="row">
         {dirty && <button className="primary" disabled={b} onClick={() => run('savemedia', () => contentApi.patchItem(item.id, { media: edited }))}>Save media</button>}
