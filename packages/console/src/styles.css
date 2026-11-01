@@ -251,7 +251,7 @@ details > summary { cursor: pointer; list-style: none; } details > summary::-web
 .pill-item:hover:not(:disabled) { background: hsl(var(--h) 80% 50% / .24); } .pill-item.sel { outline: 2px solid hsl(var(--h) 65% 50%); }
 .pill-item em { font-style: normal; font-weight: 700; } em.late { color: var(--wait); } em.early { color: var(--done); }
 .legend { margin-top: 10px; }
-.editor { position: sticky; top: 16px; display: grid; gap: 4px; max-height: calc(100vh - 32px); overflow: auto; } .editor .head { justify-content: flex-start; } .editor .x { margin-left: auto; padding: 2px 10px; font-size: 18px; line-height: 1; }
+.editor { position: sticky; top: 16px; display: grid; gap: 4px; max-height: calc(100vh - 32px); overflow: auto; } .editor .head { justify-content: flex-start; } .editor .x { margin-left: auto; padding: 6px 12px; font-size: 20px; font-weight: 700; line-height: 1; border-color: transparent; background: transparent; color: var(--ink); } .editor .x:hover:not(:disabled) { background: var(--soft); color: var(--ink); }
 .editor .row input { flex: 1; min-width: 140px; } .editor .draft { font-family: Inter, system-ui, sans-serif; font-size: 13.5px; line-height: 1.6; } label.lock { margin: 0 0 0 auto; display: flex; align-items: center; gap: 6px; font-weight: 400; } label.lock input { width: auto; }
 
 /* roadmap */
