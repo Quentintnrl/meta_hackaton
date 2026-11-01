@@ -22,7 +22,7 @@ export function SettingsView({ pid, view, reload }: { pid: string; view: Content
           <label>Audience<input value={p.audience} onChange={e => setP({ ...p, audience: e.target.value })} placeholder="Busy home cooks" /></label>
           <label>Language<input value={p.language} onChange={e => setP({ ...p, language: e.target.value })} /></label>
         </div>
-        <label className="inline"><span>Let the Writer draft accepted pieces a few days before they are due (never approves or publishes)</span><input type="checkbox" style={{ width: 'auto' }} checked={p.autoDraft} onChange={e => setP({ ...p, autoDraft: e.target.checked })} /></label>
+        <label className="inline"><span>Let the Writer draft accepted pieces 3 days before they are due (never approves or publishes)</span><input type="checkbox" style={{ width: 'auto' }} checked={p.autoDraft} onChange={e => setP({ ...p, autoDraft: e.target.checked })} /></label>
       </section>
       {error && <p className="error">{error}</p>}
       <div className="row"><button className="primary" disabled={!dirty || busy !== ''} onClick={() => run('save', () => contentApi.setProfile(pid, p))}>{dirty ? 'Save changes' : 'Saved'}</button></div>
