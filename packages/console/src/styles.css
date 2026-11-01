@@ -296,6 +296,9 @@ details > summary { cursor: pointer; list-style: none; } details > summary::-web
 .editor { max-height: calc(100vh - 32px); }
 /* the editor is a drawer over the page */
 .editor { position: fixed; top: 0; right: 0; bottom: 0; width: min(480px, 100vw); max-height: none; border-radius: 0; z-index: 20; overflow: auto; box-shadow: -12px 0 40px -12px rgba(0, 0, 0, .25); align-content: start; }
+/* piece and chat open together: side by side instead of stacked */
+.editor + .editor { right: min(480px, 100vw); z-index: 21; border-left: 1px solid var(--line); }
+@media (max-width: 1000px) { .editor + .editor { right: 0; } }
 
 /* studio shell: a sub-menu and one page at a time */
 .layout.wide { grid-template-columns: 264px minmax(0, 1fr); } .main:has(.studio) { max-width: none; padding: 0; margin: 0; }
