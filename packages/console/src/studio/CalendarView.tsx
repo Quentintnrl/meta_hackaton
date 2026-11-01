@@ -4,7 +4,7 @@ import { KIND_HUE, today } from './shared';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const iso = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
-const STATUS_MARK: Record<string, string> = { briefed: '○', drafted: '◐', approved: '●', published: '✓', idea: '·' };
+const STATUS_MARK: Record<string, string> = { briefed: '○', drafted: '◐', approved: '●', published: '✓' }; // ideas live in the inbox, never here
 
 export function CalendarView({ view, openId, open }: { view: ContentView; openId: string | null; open: (id: string) => void }) {
   const now = new Date();
