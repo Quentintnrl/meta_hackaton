@@ -56,7 +56,7 @@ export function ItemEditor({ item, milestones, reload, onClose }: { item: Conten
         {(dirtyDraft || saving) && <span className="hint small">{saving ? 'Saving…' : 'Unsaved changes — saving shortly…'}</span>}
         {dirtyDraft && !saving && <span className="row"><button disabled={b} onClick={() => { if (draftTimer.current) clearTimeout(draftTimer.current); void run('save', () => contentApi.patchItem(item.id, { draft })); }}>Save now</button></span>}
       </label>}
-      {SOCIAL_KINDS.includes(item.kind) && (item.draft || item.media) && <PostBuilder item={item} reload={reload} />}
+      {SOCIAL_KINDS.includes(item.kind) && <PostBuilder item={item} reload={reload} />}
       <div className="row">
         <button disabled={b || !canApprove} title={approveHint} onClick={approveNow}>{busy === 'approve' ? 'Approving…' : dirtyDraft || dirtyBrief ? 'Save & approve' : 'Approve'}</button>
         <button disabled={b || item.status !== 'approved'} onClick={() => run('publish', () => contentApi.publish(item.id))}>Mark published</button>
