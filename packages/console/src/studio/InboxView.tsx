@@ -15,6 +15,7 @@ export function InboxView({ pid, team, view, reload, go, open }: { pid: string; 
   const [asking, setAsking] = useState(false);
   const { busy, error, run } = useAction(reload);
   const ideas = view.items.filter(i => i.status === 'idea');
+  const briefed = view.items.filter(i => i.status === 'briefed');
   const toReview = view.items.filter(i => i.status === 'drafted');
   const working = Boolean(team.working);
   const steps = [
@@ -23,14 +24,14 @@ export function InboxView({ pid, team, view, reload, go, open }: { pid: string; 
     { done: Boolean(team.audit), label: 'Ask the team for ideas', page: 'inbox' as View, cta: '' },
   ];
   const starting = !team.audit && ideas.length === 0;
-  const todo = ideas.length + toReview.length;
+  const todo = ideas.length + briefed.length + toReview.length;
   const ask = () => run('run', async () => { await teamApi.run(pid, ['scout', 'analyst', 'strategist'], brief.trim()); setBrief(''); setAsking(false); });
 
   return (
     <div className="stack">
       <div className="today">
         <div><b>{todo === 0 ? 'You are all caught up' : `${todo} thing${todo > 1 ? 's' : ''} for you`}</b>
-          <span className="hint small">{ideas.length > 0 && `${ideas.length} idea${ideas.length > 1 ? 's' : ''} to answer`}{ideas.length > 0 && toReview.length > 0 && ' · '}{toReview.length > 0 && `${toReview.length} draft${toReview.length > 1 ? 's' : ''} to read`}</span></div>
+          <span className="hint small">{ideas.length > 0 && `${ideas.length} idea${ideas.length > 1 ? 's' : ''} to answer`}{ideas.length > 0 && (briefed.length > 0 || toReview.length > 0) && ' · '}{briefed.length > 0 && `${briefed.length} waiting to be written`}{briefed.length > 0 && toReview.length > 0 && ' · '}{toReview.length > 0 && `${toReview.length} draft${toReview.length > 1 ? 's' : ''} to read`}</span></div>
         <button disabled={working} onClick={() => setAsking(!asking)}>{working ? 'The team is working…' : asking ? 'Close' : '+ Ask for new ideas'}</button>
       </div>
 
@@ -59,6 +60,8 @@ export function InboxView({ pid, team, view, reload, go, open }: { pid: string; 
 
       {ideas.length > 0 && <IdeaDeck key={ideas[0].id} ideas={ideas} milestones={view.milestones} reload={reload} />}
 
+      {briefed.length > 0 && <BriefedList pid={pid} briefed={briefed} autoDraft={view.profile.autoDraft} reload={reload} go={go} open={open} />}
+
       {toReview.length > 0 && (
         <section className="card">
           <div className="head"><h3>Drafts ready for you to read <span className="count">{toReview.length}</span></h3></div>
@@ -76,6 +79,25 @@ export function InboxView({ pid, team, view, reload, go, open }: { pid: string; 
         <section className="card empty"><h3>Nothing needs you</h3><p>Ask the team for new ideas, or look at the <button className="linkish" onClick={() => go('calendar')}>calendar</button>.</p></section>
       )}
     </div>
+  );
+}
+
+// Accepted pieces the Writer has not drafted yet: visible here, not lost in the calendar.
+function BriefedList({ briefed, autoDraft, reload, go, open }: { pid: string; briefed: ContentItem[]; autoDraft: boolean; reload: () => Promise<void>; go: (v: View) => void; open: (id: string) => void }) {
+  const { busy, error, run } = useAction(reload);
+  return (
+    <section className="card">
+      <div className="head"><h3>Waiting to be written <span className="count">{briefed.length}</span></h3><button className="linkish" onClick={() => go('calendar')}>See in calendar →</button></div>
+      <p className="hint small">{autoDraft ? 'The Writer drafts these on its own 3 days before they are due. You can also start one now.' : 'Auto-draft is off. Start one now, or let the Writer do it in Orders & voice.'}</p>
+      {!autoDraft && <p className="hint small"><button className="linkish" onClick={() => go('orders')}>Turn on auto-draft →</button></p>}
+      <ul className="rows">{briefed.map(i => (
+        <li key={i.id}>
+          <button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{fmt(i.fixedDate ?? i.date)} · Open →</span></button>
+          <span className="row"><button className="primary" disabled={busy !== ''} onClick={() => run(`draft-${i.id}`, () => contentApi.draft(i.id))}>{busy === `draft-${i.id}` ? 'Writing…' : 'Write it now'}</button></span>
+        </li>
+      ))}</ul>
+      {error && <p className="error">{error}</p>}
+    </section>
   );
 }
 

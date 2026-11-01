@@ -43,7 +43,7 @@ export function Studio({ project, features }: { project: Project; features: Feat
 
   if (!view || !team) return <section className="card"><p className="hint">Loading…</p></section>;
 
-  const waiting = view.items.filter(i => i.status === 'idea').length + view.items.filter(i => i.status === 'drafted').length;
+  const waiting = view.items.filter(i => i.status === 'idea' || i.status === 'briefed').length + view.items.filter(i => i.status === 'drafted').length;
   const late = view.milestones.filter(m => m.atRisk).length;
   const nav: Array<{ group?: string; items: Array<[View, string, number?, string?]> }> = [
     { items: [['inbox', 'Inbox', waiting]] },
