@@ -77,7 +77,8 @@ export function Studio({ project }: { project: Project }) {
     if (a.kind === 'item' && a.id) {
       const i = view.items.find(x => x.id === a.id);
       if (!i) return null;
-      return { agent: a.agent as AgentId, kind: 'item', id: a.id, label: i.title, context: `Piece "${i.title}" (${i.kind}, ${i.status}). Brief: ${i.brief || '(none)'}${i.rationale ? ` Why it was suggested: ${i.rationale}` : ''}${i.draft ? ` Current text (may be long): ${i.draft.slice(0, 600)}` : ''}` };
+      const media = i.media ? ` Media: ${i.media.format} with ${i.media.slides.length} shot(s): ${i.media.slides.map((s, n) => `${n + 1}. made from "${s.visual}"${s.text ? `, on it: "${s.text}"` : ''} (${s.file ? 'picture generated' : 'no picture yet'})`).join('; ')}` : '';
+      return { agent: a.agent as AgentId, kind: 'item', id: a.id, label: i.title, context: `Piece "${i.title}" (${i.kind}, ${i.status}). Brief: ${i.brief || '(none)'}${i.rationale ? ` Why it was suggested: ${i.rationale}` : ''}${i.draft ? ` Current text (may be long): ${i.draft.slice(0, 600)}` : ''}${media}` };
     }
     if (a.kind === 'milestone' && a.id) {
       const m = view.milestones.find(x => x.id === a.id);

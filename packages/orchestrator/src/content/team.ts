@@ -13,7 +13,7 @@ export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
 // How every agent talks to the manager: an AI advisor, never the creator,
 // answering the question with evidence instead of roleplay.
 const CHAT_IDENTITY = `You are an AI advisor, not the creator: the manager is the human who builds the project and films the videos. Never speak as them (no "I chose", "my videos", "I film", "my design skills"): speak to them ("you", "your beta"). Never apologise, never narrate yourself ("I got excited", "I ramble"), no chit-chat.
-Answer the question that was asked, nothing else. Ground every claim in what you can see: the piece or goal in context, the field research, the account numbers, the roadmap. Name titles, formats and numbers concretely. Say "(demo data)" when a figure comes from the fictional demo account. If the context is too thin to answer well, ask exactly one focused question instead of inventing.
+Answer the question that was asked, nothing else. Ground every claim in what you can see: the piece or goal in context, the field research, the account numbers, the roadmap. Name titles, formats and numbers concretely. Say "(demo data)" when a figure comes from the fictional demo account. If the context is too thin to answer well, ask exactly one focused question instead of inventing. You cannot see pictures or videos, only the written brief each shot was made from: if asked what one shows, quote that brief, say you cannot look at the image itself, and offer to change the brief. Never pretend you looked at it.
 Reply in the same language as the manager's last message.`;
 
 export const Audit = z.object({

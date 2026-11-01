@@ -117,6 +117,7 @@ test('chatting about a piece sends its context invisibly', async () => {
   assert.match(prompts.agent_reply, /Beta teaser/, 'the agent sees the piece');
   assert.match(prompts.agent_reply, /never speak as them/i, 'the agent stays an advisor, not the creator');
   assert.match(prompts.agent_reply, /same language as the manager/i);
+  assert.match(prompts.agent_reply, /cannot see pictures/i, 'the agent admits it cannot look at images');
   const thread = svc.store.chat('app', 'writer');
   assert.ok(thread.some(m => m.role === 'user' && m.text === 'is this too long?'));
   assert.ok(!thread.some(m => m.text.includes('Beta teaser')), 'stored messages show no context');
