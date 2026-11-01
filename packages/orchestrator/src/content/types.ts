@@ -116,7 +116,7 @@ export interface SuggestedAction {
   workers?: number; // configure
   instructions?: string; // configure
 }
-export interface ChatMessage { id: number; thread: AgentId; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
+export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 
 export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string } // itemId: the studio piece this post came from, linked by the manager
 export interface Series { id: string; projectId: string; name: string; createdAt: string } // a recurring editorial line: a pillar or a series

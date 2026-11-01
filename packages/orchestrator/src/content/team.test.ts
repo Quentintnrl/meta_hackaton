@@ -123,6 +123,19 @@ test('chatting about a piece sends its context invisibly', async () => {
   assert.ok(!thread.some(m => m.text.includes('Beta teaser')), 'stored messages show no context');
 });
 
+test('each subject gets its own chat session', async () => {
+  const { svc, team, prompts } = setup();
+  await team.chatAgent('app', 'writer', 'is this too long?', 'Piece A (teaser, idea).', 'item:aaa');
+  await team.chatAgent('app', 'writer', 'and this one?', 'Piece B (teaser, idea).', 'item:bbb');
+  assert.equal(svc.store.chat('app', 'writer:item:aaa').length, 2);
+  assert.equal(svc.store.chat('app', 'writer:item:bbb').length, 2);
+  assert.equal(svc.store.chat('app', 'writer').length, 0, 'the general thread stays empty');
+  assert.match(prompts.agent_reply, /Piece B/, 'the second session sees its own piece');
+  assert.ok(!prompts.agent_reply.includes('Piece A'), '...and nothing from the other session');
+  await team.chatAgent('app', 'writer', 'hi', '', 'writer:item:aaa');
+  assert.equal(svc.store.chat('app', 'writer').length, 2, 'a forged subject falls back to the bare thread');
+});
+
 test('a refused proposal teaches the next round', async () => {
   const { svc, team, prompts } = setup();
   const [a] = await team.strategize('app');

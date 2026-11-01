@@ -13,7 +13,7 @@ export const ABOUT: Record<Exclude<AgentId, 'director'>, { does: string; workers
   writer: { does: 'Drafts what you accept: caption, hashtags, slides or storyboard.', workers: 'Extra writers draft several accepted pieces at the same time.', ideas: ['Shorter captions, max 3 hashtags', 'Always end with a question', 'More humour, fewer adjectives'], starters: ['Write shorter captions from now on', 'Always end with a question', 'What do you draft first?'] },
 };
 
-export function AgentPage({ pid, agent, team, view, reload, go, aboutCtx, onClearAbout }: { pid: string; agent: Exclude<AgentId, 'director'>; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; aboutCtx?: { label: string; context?: string } | null; onClearAbout?: () => void }) {
+export function AgentPage({ pid, agent, team, view, reload, go, aboutCtx, onClearAbout }: { pid: string; agent: Exclude<AgentId, 'director'>; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; aboutCtx?: { label: string; context?: string; about?: string } | null; onClearAbout?: () => void }) {
   const info = team.agents.find(a => a.id === agent)!;
   const about = ABOUT[agent];
   const cfg = team.config[agent];
@@ -65,7 +65,7 @@ export function AgentPage({ pid, agent, team, view, reload, go, aboutCtx, onClea
 
       <section className="card">
         <h3>Talk to the {info.name}</h3>
-        <Chat pid={pid} agent={agent} reload={reload} goAgent={a => go(`agent:${a}`)} placeholder={aboutCtx ? `Ask about “${aboutCtx.label}”…` : `Ask the ${info.name}, or tell it how to work…`} starters={about.starters} context={aboutCtx?.context} aboutLabel={aboutCtx?.label} onClearAbout={onClearAbout} />
+        <Chat pid={pid} agent={agent} reload={reload} goAgent={a => go(`agent:${a}`)} placeholder={aboutCtx ? `Ask about “${aboutCtx.label}”…` : `Ask the ${info.name}, or tell it how to work…`} starters={about.starters} context={aboutCtx?.context} about={aboutCtx?.about} aboutLabel={aboutCtx?.label} onClearAbout={onClearAbout} />
       </section>
 
       {mine.length > 0 && <section className="card"><h3>Recent work</h3><ul className="feed">{mine.slice(0, 6).map(a => <li key={a.id}><i className="dot" /><span className={a.ok ? '' : 'error'}>{a.summary}</span><time>{ago(a.at)}</time></li>)}</ul></section>}

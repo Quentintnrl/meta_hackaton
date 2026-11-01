@@ -78,11 +78,11 @@ export class ContentStore {
     return n;
   }
 
-  addChat(projectId: string, thread: AgentId, role: ChatMessage['role'], text: string, actions: SuggestedAction[], at: string) {
+  addChat(projectId: string, thread: string, role: ChatMessage['role'], text: string, actions: SuggestedAction[], at: string) {
     this.#db.prepare('INSERT INTO chat (project_id, thread, role, text, actions, made_at) VALUES (?, ?, ?, ?, ?, ?)').run(projectId, thread, role, text, JSON.stringify(actions), at);
   }
 
-  chat(projectId: string, thread: AgentId, limit = 40): ChatMessage[] {
+  chat(projectId: string, thread: string, limit = 40): ChatMessage[] {
     const rows = this.#db.prepare('SELECT * FROM chat WHERE project_id = ? AND thread = ? ORDER BY id DESC LIMIT ?').all(projectId, thread, limit) as Row[];
     return rows.reverse().map(r => ({ id: Number(r.id), thread, role: r.role as ChatMessage['role'], text: String(r.text), actions: JSON.parse(String(r.actions)) as SuggestedAction[], at: String(r.made_at) }));
   }

@@ -91,7 +91,8 @@ export function Studio({ project }: { project: Project }) {
   // On the agent's own page the chat is the page: feed it there. Anywhere
   // else the same context opens the side drawer instead.
   const onOwnPage = resolved ? page === `agent:${resolved.agent}` : false;
-  const pageCtx = onOwnPage && resolved ? { label: resolved.label, context: resolved.context || undefined } : null;
+  const aboutKey = (r: { kind: 'item' | 'milestone' | null; id: string | null }) => r.kind && r.id ? `${r.kind}:${r.id}` : undefined;
+  const pageCtx = onOwnPage && resolved ? { label: resolved.label, context: resolved.context || undefined, about: aboutKey(resolved) } : null;
   const drawerCtx = !onOwnPage ? resolved : null;
 
   return (
@@ -116,7 +117,7 @@ export function Studio({ project }: { project: Project }) {
         {agentId && agentId !== 'director' && <AgentPage key={agentId} pid={project.id} agent={agentId} team={team} view={view} reload={reload} go={setPage} aboutCtx={pageCtx} onClearAbout={clearAbout} />}
       </div>
       {open && <ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('today'); setOpenId(id); }} askAgent={askAgent} />}
-      {drawerCtx && <ChatDrawer pid={project.id} agent={drawerCtx.agent} role={team.agents.find(a => a.id === drawerCtx.agent)?.role ?? ''} team={team} starters={drawerCtx.agent === 'director' ? [] : ABOUT[drawerCtx.agent].starters} context={drawerCtx.context || undefined} aboutLabel={drawerCtx.label || undefined} onClose={clearAbout} reload={reload} goAgent={a => writeHashPath(studioToHash(project.id, `agent:${a}`, openId, { agent: a, kind: drawerCtx.kind, id: drawerCtx.id }))} />}
+      {drawerCtx && <ChatDrawer pid={project.id} agent={drawerCtx.agent} role={team.agents.find(a => a.id === drawerCtx.agent)?.role ?? ''} team={team} starters={drawerCtx.agent === 'director' ? [] : ABOUT[drawerCtx.agent].starters} context={drawerCtx.context || undefined} about={aboutKey(drawerCtx)} aboutLabel={drawerCtx.label || undefined} onClose={clearAbout} reload={reload} goAgent={a => writeHashPath(studioToHash(project.id, `agent:${a}`, openId, { agent: a, kind: drawerCtx.kind, id: drawerCtx.id }))} />}
     </div>
   );
 }

@@ -111,6 +111,12 @@ const ANGLES = [
 ];
 const LENSES = ['the dev roadmap: what is about to land and when', 'the project account: its strengths and gaps against the field', 'the trends found in the field research'];
 
+// One session per subject: the bare agent thread, or `agent:item:<id>` /
+// `agent:milestone:<id>`. Anything else falls back to the bare agent thread.
+export function chatThread(agent: AgentId, about: string): string {
+  return /^(item|milestone):[A-Za-z0-9_-]{1,60}$/.test(about) ? `${agent}:${about}` : agent;
+}
+
 // The small communication team. Each agent reads what it needs, writes a report or proposals, and logs what it did.
 export class Team {
   #svc: ContentService;
@@ -364,8 +370,11 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
   }
 
   // The manager talks to one agent to understand its work or change how it behaves. A behaviour change is proposed, not applied.
-  async chatAgent(projectId: string, agent: AgentId, message: string, context = '') {
+  // Each subject gets its own session: the general chat lives on the bare
+  // agent thread, a chat about a piece or goal on `agent:item:<id>`.
+  async chatAgent(projectId: string, agent: AgentId, message: string, context = '', about = '') {
     if (agent === 'director') return this.chatDirector(projectId, message, context);
+    const thread = chatThread(agent, about);
     // The scout's job is the live web: in a chat it looks things up instead
     // of asking the manager to do its research. A failed search just means
     // answering from memory, never an error.
@@ -378,8 +387,8 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
     }
     const at = () => this.#svc.now.toISOString();
     const info = AGENTS.find(a => a.id === agent)!;
-    const history = this.#store.chat(projectId, agent, 8);
-    this.#store.addChat(projectId, agent, 'user', message, [], at());
+    const history = this.#store.chat(projectId, thread, 8);
+    this.#store.addChat(projectId, thread, 'user', message, [], at());
     const cfg = this.#store.agentConfig(projectId, agent);
     const last = this.#store.activity(projectId, 40).filter(a => a.agent === agent).slice(0, 3);
     const r = await this.#svc.llm.json(
@@ -399,8 +408,8 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
       AgentReply, 'agent_reply');
     const actions: SuggestedAction[] = r.newInstructions.trim() && r.newInstructions.trim() !== cfg.instructions.trim()
       ? [{ kind: 'configure', label: 'Apply this new behaviour', agent, instructions: r.newInstructions.trim() }] : [];
-    this.#store.addChat(projectId, agent, 'agent', r.reply, actions, at());
-    return this.#store.chat(projectId, agent);
+    this.#store.addChat(projectId, thread, 'agent', r.reply, actions, at());
+    return this.#store.chat(projectId, thread);
   }
 
   setConfig(projectId: string, agent: AgentId, patch: Partial<AgentConfig>): AgentConfig {

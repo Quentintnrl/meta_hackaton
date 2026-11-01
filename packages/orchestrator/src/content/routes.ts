@@ -2,7 +2,7 @@ import { Hono, type Context } from 'hono';
 import { z } from 'zod';
 import type { ProjectStore } from '../projects.ts';
 import type { ContentService } from './service.ts';
-import { Team } from './team.ts';
+import { Team, chatThread } from './team.ts';
 import { ItemKind } from './types.ts';
 import { existsSync, readFileSync } from 'node:fs';
 
@@ -188,13 +188,13 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   const Agent = z.enum(['director', 'scout', 'analyst', 'strategist', 'writer']);
   app.get('/projects/:pid/team/chat/:agent', c => {
     const a = Agent.safeParse(c.req.param('agent'));
-    return known(c) && a.success ? c.json(svc.store.chat(c.req.param('pid'), a.data)) : c.json({ error: 'unknown project or agent' }, 404);
+    return known(c) && a.success ? c.json(svc.store.chat(c.req.param('pid'), chatThread(a.data, c.req.query('about') ?? ''))) : c.json({ error: 'unknown project or agent' }, 404);
   });
   app.post('/projects/:pid/team/chat/:agent', async c => {
     const a = Agent.safeParse(c.req.param('agent'));
     if (!known(c) || !a.success) return c.json({ error: 'unknown project or agent' }, 404);
-    const b = await body(c, z.object({ message: z.string().trim().min(1).max(2000), context: z.string().trim().max(4000).default('') }));
-    return isResponse(b) ? b : guard(c, () => team.chatAgent(c.req.param('pid'), a.data, b.message, b.context));
+    const b = await body(c, z.object({ message: z.string().trim().min(1).max(2000), context: z.string().trim().max(4000).default(''), about: z.string().trim().max(80).default('') }));
+    return isResponse(b) ? b : guard(c, () => team.chatAgent(c.req.param('pid'), a.data, b.message, b.context, b.about));
   });
   app.patch('/projects/:pid/team/agents/:agent', async c => {
     const a = Agent.safeParse(c.req.param('agent'));
