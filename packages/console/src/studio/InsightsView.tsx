@@ -86,7 +86,7 @@ function PlanCard({ team, go }: { team: TeamView; go: (v: View) => void }) {
         <div><h4 className="mini">The rhythm</h4><CadenceDots plan={d} /></div>
       </div>
       <h4 className="mini">Line by line, with the numbers</h4>
-      <PlanMix plan={d} simulated={p.simulated} />
+      <PlanMix plan={d} simulated={team.account?.simulated} />
       <div className="lever-legend">{(Object.keys(LEVER) as Array<keyof typeof LEVER>).map(k => <span key={k}><span className={`lever ${k}`}>{LEVER[k].label}</span><small>{LEVER[k].hint}</small></span>)}</div>
       <div className="two">
         <div className="why-big"><b>Cadence</b><p>{d.cadence}</p></div>

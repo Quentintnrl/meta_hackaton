@@ -44,7 +44,7 @@ test('the roadmap shows one goal with a corrected projection', () => {
   assert.equal(svc.store.forecasts(pilot.id).length, 2, 'the first projection and its correction');
 });
 
-test('the content covers every stage, and the account is labelled as fictional', () => {
+test('the content covers every stage, and the account is the real one', () => {
   const { svc, content } = demo();
   const items = svc.calendar(DEMO_PROJECT);
   const by = (s: string) => items.filter(i => i.status === s).length;
@@ -56,9 +56,9 @@ test('the content covers every stage, and the account is labelled as fictional',
   assert.deepEqual(new Set(items.filter(i => i.media).map(i => i.media!.format)), new Set(['carousel', 'image']));
   assert.ok(items.some(i => (i.shiftDays ?? 0) > 0), 'something is pushed back by the projection');
   assert.ok(items.filter(i => i.status === 'idea').every(i => i.rationale && i.source && i.proof?.yours && i.proof.field), 'every idea shows its numbers');
-  assert.equal(content.latestReport(DEMO_PROJECT, 'account')!.simulated, true);
+  assert.equal(content.latestReport(DEMO_PROJECT, 'account')!.simulated, false, 'the account is the real Instagram one');
   assert.equal(content.latestReport(DEMO_PROJECT, 'audit')!.simulated, true, 'the seeded audit is fictional too');
-  assert.ok(content.account(DEMO_PROJECT).every(p => p.simulated));
+  assert.ok(content.account(DEMO_PROJECT).every(p => !p.simulated));
 });
 
 test('generated pictures exist on disk and the rest of the post can be generated later', () => {
@@ -75,13 +75,13 @@ test('generated pictures exist on disk and the rest of the post can be generated
 test('the team overview works with no model at all', () => {
   const { svc } = demo();
   const o = new Team(svc).overview(DEMO_PROJECT);
-  assert.ok(o.audit && o.account && o.accountPosts === 14);
+  assert.ok(o.audit && o.account && o.accountPosts === 27);
   assert.equal(o.activity.length, 6);
   assert.equal(o.config.scout.workers, 2);
   assert.ok(o.synthesis);
   assert.ok(o.plan && o.plan.simulated, 'a plan built on the demo numbers, flagged as such');
-  assert.equal(o.plan!.data.mix[0].yours!.value, o.account!.data.stats.find(s => s.format === 'demo video')!.avgEngagement, 'the plan quotes the real averages');
+  assert.equal(o.plan!.data.mix[0].yours!.value, o.account!.data.stats.find(s => s.format === 'reel')!.avgEngagement, 'the plan quotes the real averages');
   assert.ok(o.audit!.data.whatWorks.every(w => w.figure.value > 0), 'every field format carries a measured figure');
   assert.equal(o.audit!.data.benchmarks.length, 3);
-  assert.ok(o.audit!.simulated && o.account!.simulated, 'every figure in the demo is labelled as fictional');
+  assert.ok(o.audit!.simulated && !o.account!.simulated, 'the field research is fictional and says so; the account is real');
 });

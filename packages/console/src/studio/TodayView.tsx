@@ -16,7 +16,7 @@ export function TodayView({ team, view, reload, go, open, askAgent }: { team: Te
   const funnel: Array<[string, number, string]> = [['ideas', ideas.length, 'to decide on'], ['accepted', briefed.length, 'to be written'], ['drafts', toReview.length, 'to review'], ['ready', toPublish.length, 'to post'], ['posted', done.length, 'done']];
   return (
     <div className="stack">
-      {demo && <p className="demo-note"><b>Demo studio.</b> The posts, research and ideas here were seeded and are marked as demo. Brief the team to see it work on your own words.</p>}
+      {demo && <p className="demo-note"><b>Demo studio.</b> The field research, the plan's field figures and the ideas here were seeded and are marked as demo{team.account?.simulated ? ', and so is the account' : '; the account posts are the real ones'}. Brief the team to see it work on your own words.</p>}
       <div className="today">
         <div><b>{todo === 0 ? 'All caught up' : `${todo} waiting for you`}</b>
           <span className="hint small">{[ideas.length > 0 && `${ideas.length} idea${ideas.length > 1 ? 's' : ''} to decide on`, toReview.length > 0 && `${toReview.length} draft${toReview.length > 1 ? 's' : ''} to review`, toPublish.length > 0 && `${toPublish.length} to post`].filter(Boolean).join(' · ') || 'Nothing needs you right now.'}</span></div>

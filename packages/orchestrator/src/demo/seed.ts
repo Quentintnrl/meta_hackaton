@@ -19,26 +19,41 @@ export const DEMO_PROJECT = 'mairie360-demo';
 
 // The demo studio works on Mairie360: a platform for French town halls (projects, calendar,
 // messaging, workflows, training) built by four Epitech students, with partner communes.
-// The modules, audiences and voice are the real ones. The account posts, their figures,
-// the field research and the dates are fictional, and flagged `simulated` everywhere.
-function demoPosts(now: Date): AccountPost[] {
-  const rows: Array<[string, string, number, number, number, number]> = [
-    ['behind-the-scenes', 'Une matinée à l’accueil d’une mairie de 1 200 habitants : treize outils, un seul agent', 540, 46, 61, 88],
-    ['carousel', 'Une journée en mairie, c’est souvent treize outils. On les a comptés.', 380, 20, 45, 110],
-    ['release', 'Mairie360 0.4 : le tableau de bord réunit projets, tâches et rendez-vous', 120, 7, 9, 15],
-    ['testimonial', '« Le classeur bleu, c’est fini. » Une secrétaire de mairie raconte sa première semaine', 620, 54, 118, 96],
-    ['demo video', 'Réserver la salle du conseil sans double réservation, en 30 secondes', 310, 14, 40, 150],
-    ['question', 'Combien de mots de passe votre mairie utilise-t-elle au quotidien ? Sept chez nos partenaires', 260, 73, 18, 12],
-    ['behind-the-scenes', 'On a passé l’après-midi avec le service technique : ce qu’on a retiré de l’écran Projets', 380, 41, 35, 52],
-    ['release', 'La messagerie accepte désormais les pièces jointes', 95, 5, 6, 9],
-    ['event', 'Trois jours au Salon des maires : ce que les secrétaires de mairie nous ont dit', 350, 29, 48, 40],
-    ['announcement', 'On cherche trois communes pilotes pour le printemps', 210, 31, 27, 22],
-    ['carousel', 'Du Minitel au logiciel par métier : trente ans d’outils en mairie, et leurs limites', 260, 15, 30, 80],
-    ['testimonial', 'Un adjoint à l’urbanisme suit son chantier depuis la plateforme, sans relancer personne', 480, 36, 92, 70],
-    ['release', 'Mairie360 0.5 : les workflows de validation arrivent', 140, 9, 11, 18],
-    ['behind-the-scenes', 'Quatre étudiants, une commune partenaire, un parapheur qui ne circule plus', 450, 37, 49, 60],
+// The account posts are the real ones from instagram.com/mairie360, read on 2 Nov 2026: text,
+// date and likes as published. Instagram shows no shares or saves on the public page, so those
+// are 0 here, and every post had 0 comments. The format of each post is our own reading of it.
+// The field research, the plan's field figures and the dates of the goal are fictional, and flagged `simulated`.
+function realPosts(): AccountPost[] {
+  const rows: Array<[string, string, string, number]> = [
+    ['2026-10-29', 'carousel', 'Un calendrier, 5 situations du quotidien : entre les réunions, les événements communaux et les dossiers à préparer, les dates rythment la vie d’une mairie', 5],
+    ['2026-10-22', 'quiz', 'Le programme de la fête communale a été modifié… mais où retrouver la dernière version ? A, B, C ou D', 5],
+    ['2026-10-11', 'announcement', 'Mairie360 recherche ses bêta testeurs : nous avons besoin de vos retours pour construire une plateforme adaptée au quotidien des équipes municipales', 8],
+    ['2026-10-08', 'carousel', 'Organiser un événement communal, ça commence souvent simplement : une date, quelques échanges, un premier mail… sans ouvrir 15 fils de mails', 7],
+    ['2026-10-01', 'carousel', 'Un e-mail. Un fichier partagé. Un message à l’équipe… et maintenant, où est la bonne information ?', 12],
+    ['2026-05-26', 'opinion', 'Un outil simple. Un prestataire qui écoute. Un accompagnement qui dure dans le temps. Ce n’est pas excessif, c’est ce que les agents et élus demandent depuis des années', 9],
+    ['2026-05-18', 'opinion', 'Copier-coller. Ressaisir. Attendre une validation. Refaire le même rapport. Plusieurs heures perdues chaque semaine', 5],
+    ['2026-05-13', 'announcement', 'Mairie360 recherche ses premiers bêta testeurs : une plateforme tout-en-un pensée pour les agents municipaux', 3],
+    ['2026-05-12', 'opinion', 'Vous ne les voyez pas. Pourtant, ils coûtent des heures chaque semaine : recherche de docs, double saisie, erreurs silencieuses', 6],
+    ['2026-04-04', 'opinion', '5 abonnements. 5 interfaces. 5 fois plus d’erreurs. La réalité de nombreuses mairies aujourd’hui', 4],
+    ['2026-04-02', 'myth-busting', '« C’est trop compliqué pour nous. » « Un bon logiciel suffit. » « Le numérique éloigne les citoyens. » Trois idées reçues, toutes fausses', 6],
+    ['2026-03-31', 'opinion', 'Derrière chaque projet numérique réussi, il y a des agents qu’on a écoutés', 6],
+    ['2026-02-23', 'opinion', 'On parle souvent de réussite numérique. Mais rarement des raisons d’échec : cohérence, accompagnement, progressivité', 8],
+    ['2026-02-12', 'tips', 'Moderniser une mairie, c’est aussi accompagner les équipes : former les agents facilite l’adoption et réduit les résistances', 3],
+    ['2026-02-05', 'opinion', 'On parle souvent du coût des outils. Mais rarement du coût invisible : temps perdu, complexité accumulée, risques silencieux', 6],
+    ['2026-02-03', 'behind-the-scenes', 'Construire une solution pour les mairies, ce n’est pas empiler des fonctionnalités. C’est écouter, ajuster, parfois revenir en arrière', 3],
+    ['2026-01-22', 'product preview', 'En exclusivité, la future apparence du projet : une première immersion avant son déploiement, inscriptions à la bêta ouvertes', 8],
+    ['2026-01-10', 'opinion', 'Un maire ne cherche pas une « solution numérique ». Il cherche de la lisibilité, de la maîtrise et de quoi décider utilement', 4],
+    ['2026-01-08', 'tips', 'Cybersécurité et RGPD en mairie : 3 bonnes pratiques concrètes, directement applicables', 4],
+    ['2026-01-06', 'opinion', 'Il existe de nombreuses solutions pour les mairies. Entre outils isolés, plateformes complexes et processus encore manuels, laquelle choisir ?', 5],
+    ['2025-12-13', 'before-after', 'Avant / Après : le quotidien d’un agent municipal. Outils dispersés, tâches répétitives, manque de visibilité… vous êtes plutôt avant ou déjà après ?', 4],
+    ['2025-12-06', 'opinion', 'Chaque mairie avance avec ses propres défis. Aucune modernisation ne devrait être subie : comprise, choisie, construite avec les équipes', 6],
+    ['2025-11-27', 'tips', 'Focus sur un concept clé : l’interopérabilité. Quand les outils ne communiquent pas, doublons, lenteurs et perte de visibilité', 7],
+    ['2025-11-20', 'reel', 'Les 3 freins qui ralentissent la modernisation dans les mairies', 8],
+    ['2025-11-13', 'opinion', 'Les petits obstacles du quotidien en mairie, ça vous parle ? Logiciels dispersés, documents introuvables, manque de coordination', 7],
+    ['2025-11-06', 'opinion', 'Moderniser une mairie, c’est bien plus que numériser des démarches. La vraie transformation se joue à l’intérieur', 19],
+    ['2025-10-27', 'reel', 'Nous travaillons sur une solution pour simplifier le quotidien des agents municipaux : projets, calendrier collaboratif, messagerie interne', 8],
   ];
-  return rows.map(([format, text, likes, comments, shares, saves], i) => ({ text, format, likes, comments, shares, saves, postedAt: addDays(day(now), -4 - i * 5), simulated: true }));
+  return rows.map(([postedAt, format, text, likes]) => ({ text, format, likes, comments: 0, shares: 0, saves: 0, postedAt, simulated: false }));
 }
 
 const REPORT = 'https://example.com/govtech-linkedin-report';
@@ -80,7 +95,7 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   });
 
   // --- roadmap: one goal, two projections (the second corrects the first: the pace is slower than the plan)
-  const pilot = s.addMilestone({ projectId: P, title: 'Pilot in a partner commune', intent: 'One town hall runs its projects, calendar and messaging on Mairie360 for a month, with every agent on board. The story: thirteen tools become one.', targetDate: d(18), startDate: d(-12), scope: 4, createdAt: at(-12) });
+  const pilot = s.addMilestone({ projectId: P, title: 'Beta with municipal teams', intent: 'The beta testers recruited on Instagram get their access and send their first feedback. The story: built with the agents, not for them.', targetDate: d(18), startDate: d(-12), scope: 4, createdAt: at(-12) });
   for (const f of ['notification-drawer', 'attachment-download']) s.link(pilot.id, f);
   s.addForecast({ milestoneId: pilot.id, madeAt: at(-12), predictedDate: d(18), rawRemainingDays: 30, calibration: 1, done: 0, scope: 4, confidence: 'low', note: 'First projection, taken from your own plan.' });
   s.addForecast({ milestoneId: pilot.id, madeAt: at(-5), predictedDate: d(24), rawRemainingDays: 21, calibration: 1.3, done: 1, scope: 4, confidence: 'medium', note: 'One of four delivered after 7 days. The pace is slower than the plan, so I correct for it: x1.3.' });
@@ -91,7 +106,7 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     whatWorks: [
       { format: 'behind-the-scenes', strength: 4, why: 'A morning at the front desk says more than a screen. Agents recognise themselves and reply.', example: '"Treize outils, un seul agent : une matinée à l’accueil"', exampleUrl: 'https://example.com/posts/treize-outils-un-agent', exampleFigure: '1.4k comments', figure: { what: 'average engagement rate', value: 4.9, unit: '%', source: REPORT, period: 'Q3 2026' } },
       { format: 'testimonial', strength: 5, why: 'A secrétaire de mairie quoting her own week is the most shared format: it travels from one mairie to the next.', example: '"Le classeur bleu, c’est fini", a first week told by the agent herself', exampleUrl: 'https://example.com/posts/classeur-bleu', exampleFigure: '9k shares', figure: { what: 'share rate', value: 3.6, unit: '%', source: REPORT, period: 'Q3 2026' } },
-      { format: 'demo video', strength: 4, why: 'Thirty seconds on one gesture (book a room, assign a task) gets saved to show at the next team meeting.', example: 'Booking the council room without a double booking, screen recording', exampleUrl: 'https://example.com/posts/reserver-salle-30s', exampleFigure: '6k saves', figure: { what: 'saves per 1,000 views', value: 37, unit: 'saves', source: REPORT, period: 'Q3 2026' } },
+      { format: 'reel', strength: 4, why: 'Thirty seconds on one gesture (book a room, assign a task) gets saved to show at the next team meeting.', example: 'Booking the council room without a double booking, a 30-second reel', exampleUrl: 'https://example.com/posts/reserver-salle-30s', exampleFigure: '6k saves', figure: { what: 'saves per 1,000 views', value: 37, unit: 'saves', source: REPORT, period: 'Q3 2026' } },
       { format: 'carousel', strength: 3, why: 'Explainers with one idea per slide get kept and forwarded to the DGS.', example: '"Thirty years of tools in a mairie, and what each left behind"', exampleUrl: '', exampleFigure: '', figure: { what: 'saves per 1,000 views', value: 29, unit: 'saves', source: PLAYBOOK, period: '2026' } },
     ],
     benchmarks: [
@@ -104,13 +119,13 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     avoid: ['release notes alone', 'feature lists', 'startup vocabulary (disruption, scale)'],
     sources: [REPORT, PLAYBOOK],
   }, true, at(0)); // fictional, like every figure here: the team must say so
-  const posts = demoPosts(now);
+  const posts = realPosts();
   s.setAccount(P, posts);
   s.addReport(P, 'account', {
-    summary: 'Your testimonials and field stories do 4 to 6x better than release posts, which matches the field. Demo videos are the gap: one in the last two months, and it is your most saved post.',
-    strengths: ['Scenes from real town halls that agents recognise', 'Partner communes speaking in their own words'], gaps: ['One demo video in two months', 'Three bare release posts, your weakest scores'],
-    opportunities: ['A 30-second video per module before the pilot', 'A pilot teaser told by the partner commune'], stats: formatStats(posts), postCount: posts.length,
-  }, true, at(0));
+    summary: '27 posts in a year on Instagram, 3 to 19 likes each and not a single comment, for 44 followers. Opinion posts are 12 of the 27 and score like the rest; the two reels, the product preview and the beta-tester call sit at the top. Shares and saves are not visible on the public page, so the scores here are likes only.',
+    strengths: ['A steady voice: the daily life of a mairie, told plainly', 'Reels and the product preview reach the top tier'], gaps: ['No testimonial from a town hall, ever', 'No comment on any post: nothing yet asks a question people answer', 'Two reels in a year'],
+    opportunities: ['A 30-second reel per module during the beta', 'A beta tester speaking in their own words', 'One real question per week, answered in comments'], stats: formatStats(posts), postCount: posts.length,
+  }, false, at(0)); // the real account, read from Instagram: not flagged as demo
 
   // --- content, at every stage
   const add = (i: { kind: ItemKind; title: string; brief: string } & Partial<Omit<Item, 'id' | 'projectId' | 'createdAt' | 'revisions'>>) =>
@@ -120,20 +135,20 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
 
   // one idea to decide on
   const stats = formatStats(posts);
-  const bts = stats.find(s => s.format === 'behind-the-scenes')!;
-  const rel = stats.find(s => s.format === 'release')!;
-  add({ kind: 'teaser', title: 'Le pilote commence dans trois semaines', brief: 'A mistakes-included teaser of the pilot: what the partner commune will run, told from their front desk.', rationale: `Behind-the-scenes posts earn ${Math.round(bts.avgEngagement / rel.avgEngagement)}x your release posts, and the pilot is projected in about 4 weeks.\nEvidence: behind-the-scenes averages ${bts.avgEngagement} on your account vs ${rel.avgEngagement} for releases; 4.9% engagement rate in the field.`, source: 'roadmap', origin: 'ai', status: 'idea', milestoneId: pilot.id, offsetDays: -21,
-    proof: { format: 'behind-the-scenes', yours: { value: bts.avgEngagement, posts: bts.posts, rank: stats.indexOf(bts) + 1, of: stats.length }, field: { what: 'average engagement rate', value: 4.9, unit: '%', source: REPORT, period: 'Q3 2026' }, text: `behind-the-scenes averages ${bts.avgEngagement} on your account vs ${rel.avgEngagement} for releases; 4.9% engagement rate in the field` } });
+  const reel = stats.find(s => s.format === 'reel')!;
+  const op = stats.find(s => s.format === 'opinion')!;
+  add({ kind: 'teaser', title: 'La bêta commence dans trois semaines', brief: 'A 30-second reel: what the first beta testers will see on their first login, told from a front desk.', rationale: `Your two reels average ${reel.avgEngagement} likes, your top tier, against ${op.avgEngagement} for the twelve opinion posts; the field saves demo videos most. The beta is projected in about 4 weeks.\nEvidence: reels average ${reel.avgEngagement} on your account vs ${op.avgEngagement} for opinion posts; 37 saves per 1,000 views in the field.`, source: 'roadmap', origin: 'ai', status: 'idea', milestoneId: pilot.id, offsetDays: -21,
+    proof: { format: 'reel', yours: { value: reel.avgEngagement, posts: reel.posts, rank: stats.indexOf(reel) + 1, of: stats.length }, field: { what: 'saves per 1,000 views', value: 37, unit: 'saves', source: REPORT, period: 'Q3 2026' }, text: `reels average ${reel.avgEngagement} on your account vs ${op.avgEngagement} for opinion posts; 37 saves per 1,000 views in the field` } });
 
   // a carousel, drafted, two pictures generated
-  const carousel = add({ kind: 'social-post', title: 'On cherche une commune pilote', brief: 'Call for a pilot commune, warm, with a clear way in and no price.', status: 'drafted', milestoneId: pilot.id, offsetDays: -14 });
+  const carousel = add({ kind: 'social-post', title: 'Bêta : ce que vous verrez en premier', brief: 'For the people who signed up: what the first login shows, who to write to, no price.', status: 'drafted', milestoneId: pilot.id, offsetDays: -14 });
   s.updateItem(carousel.id, {
-    draft: 'Dans trois semaines, une mairie fera tourner ses projets, son agenda et sa messagerie sur Mairie360. Pendant un mois, avec tous ses agents.\n\nIl nous reste une place.\n\nSi votre commune jongle encore entre le classeur bleu, l’agenda de l’accueil et sept mots de passe, parlons-en. Nous nous déplaçons, nous installons, nous restons.\n\nÉcrivez-nous sur mairie360.fr.',
+    draft: 'Dans trois semaines, les premiers bêta testeurs ouvrent Mairie360.\n\nPremière chose à l’écran : la journée. Les projets en cours, les tâches à faire, les rendez-vous, au même endroit, dès la connexion.\n\nPas de formation à suivre avant de commencer. Une personne de l’équipe répond à chaque message.\n\nIl reste des places : le lien est dans la bio.',
     revisions: 2,
     media: media('carousel', ['#mairie', '#collectivités', '#secrétairedemairie', '#communesrurales', '#civictech'], [
-      { kind: 'image', visual: 'Meeting room of a small town hall in the morning, a laptop open on a wooden table next to a paper agenda and a stamp, tricolour flag in the corner', text: 'Une commune pilote', seconds: 0, file: pic('hall', carousel.id, '1-demo.jpg') },
-      { kind: 'image', visual: 'Hands of a clerk at the front desk holding a phone that shows a colourful week calendar, folders and a landline behind', text: 'Un mois, tous les agents', seconds: 0, file: pic('desk', carousel.id, '2-demo.jpg') },
-      { kind: 'image', visual: 'A village square at the end of the afternoon, the stone facade of the mairie with its flag, a few people crossing', text: 'Écrivez-nous', seconds: 0 },
+      { kind: 'image', visual: 'Meeting room of a small town hall in the morning, a laptop open on a wooden table next to a paper agenda and a stamp, tricolour flag in the corner', text: 'La bêta, dans trois semaines', seconds: 0, file: pic('hall', carousel.id, '1-demo.jpg') },
+      { kind: 'image', visual: 'Hands of a clerk at the front desk holding a phone that shows a colourful week calendar, folders and a landline behind', text: 'La journée dès la connexion', seconds: 0, file: pic('desk', carousel.id, '2-demo.jpg') },
+      { kind: 'image', visual: 'A village square at the end of the afternoon, the stone facade of the mairie with its flag, a few people crossing', text: 'Le lien est dans la bio', seconds: 0 },
     ]),
   });
 
@@ -141,37 +156,37 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   const single = add({ kind: 'social-post', title: 'Le tiroir de notifications est arrivé', brief: 'Short, one scene, no feature list.', status: 'approved', fixedDate: d(1) });
   s.updateItem(single.id, { draft: 'Une tâche assignée, une réunion déplacée, un message reçu : tout arrive au même endroit, quel que soit le module ouvert.\n\nPlus de tour des onglets le matin.\n\nLe tiroir de notifications, maintenant dans Mairie360.', revisions: 1, media: media('image', ['#mairie', '#collectivités', '#civictech'], [{ kind: 'image', visual: 'A village square at the end of the afternoon, the stone facade of the mairie with its flag, soft golden light', text: 'Tout arrive au même endroit', seconds: 0, file: pic('square', single.id, '1-demo.jpg') }]) });
   add({ kind: 'devlog', title: 'Semaine 6 : ce que l’accueil nous a appris', brief: 'x', status: 'published', fixedDate: d(-6), draft: 'Une matinée derrière le comptoir de notre commune partenaire. Sept logiciels ouverts, un agenda papier, un fax qui marche encore. Voici ce que nous avons retiré de l’écran Projets en rentrant.' });
-  add({ kind: 'newsletter', title: 'Lettre aux communes partenaires : le pilote, concrètement', brief: 'Tell the partner communes what the pilot contains, who is on site, and how to join the next one.', status: 'briefed', milestoneId: pilot.id, offsetDays: -7 });
+  add({ kind: 'newsletter', title: 'Lettre aux bêta testeurs : le programme, concrètement', brief: 'Tell the people who signed up what the beta contains, when it starts, and how feedback is collected.', status: 'briefed', milestoneId: pilot.id, offsetDays: -7 });
 
   // --- what the team did
   s.log(P, 'scout', 'Found 4 formats that work and 6 topics. Field stories and testimonials lead; bare releases fall flat.', true, at(-0.02));
-  s.log(P, 'analyst', 'Compared 14 posts with the field. Testimonials win on shares, your one demo video is the most saved, releases barely move.', true, at(-0.015));
+  s.log(P, 'analyst', 'Compared your 27 Instagram posts with the field. Reels and the product preview lead, opinion posts are 12 of 27, no comment anywhere, no testimonial yet.', true, at(-0.015));
   s.log(P, 'strategist', 'Proposed one piece of content. Waiting for your decision.', true, at(-0.01));
   s.log(P, 'writer', 'Drafted one accepted piece.', true, at(-0.5));
   s.addReport(P, 'synthesis', {
-    headline: 'The pilot is running late, and the mairies share what their colleagues say.',
-    points: ['Testimonials are your most shared format; the "classeur bleu" one leads.', 'The pilot is projected after the date you want, so the teaser and the call for a pilot commune move with the new date.', 'One proposal waits for your decision in Today.'],
-    next: 'Decide on the pilot teaser, it is the next thing to land.',
+    headline: 'The beta is running late, and your account has never had a comment.',
+    points: ['Reels and the product preview are your top tier, opinion posts are half the account and score the same as the rest.', 'The beta is projected after the date you want, so the teaser and the beta post move with the new date.', 'One proposal waits for your decision in Today.'],
+    next: 'Decide on the beta teaser, it is the next thing to land.',
   }, false, at(-0.005));
-  const score = (f: string) => { const x = stats.find(s => s.format === f)!; return { value: x.avgEngagement, posts: x.posts, rank: stats.indexOf(x) + 1, of: stats.length }; };
+  const score = (f: string) => { const x = stats.find(s => s.format === f); return x && { value: x.avgEngagement, posts: x.posts, rank: stats.indexOf(x) + 1, of: stats.length }; };
   s.addReport(P, 'plan', {
-    period: 'the next 4 weeks', headline: 'Fill the demo-video gap, keep the testimonials coming, wrap every release in a scene from a mairie.',
+    period: 'the next 4 weeks', headline: 'More reels, a first testimonial, one real question a week, fewer bare opinions.',
     mix: [
-      { format: 'demo video', count: 3, lever: 'fill-gap', why: 'The field saves demo videos most (37 saves per 1,000 views) and you have posted one in two months: it is your most saved post.', yours: score('demo video'), field: { what: 'saves per 1,000 views', value: 37, unit: 'saves', source: REPORT, period: 'Q3 2026' } },
-      { format: 'testimonial', count: 2, lever: 'keep', why: 'Your top score and the most shared format in the field: a partner commune speaking is worth three of your posts.', yours: score('testimonial'), field: { what: 'share rate', value: 3.6, unit: '%', source: REPORT, period: 'Q3 2026' } },
-      { format: 'behind-the-scenes', count: 2, lever: 'double-down', why: 'Third on your account but the format with the most posts behind it, and the pilot gives you four weeks of honest scenes to tell.', yours: score('behind-the-scenes'), field: { what: 'average engagement rate', value: 4.9, unit: '%', source: REPORT, period: 'Q3 2026' } },
-      { format: 'release', count: 1, lever: 'test', why: `Only one, told from a front desk: bare release posts score ${rel.avgEngagement}, your weakest.`, yours: score('release') },
+      { format: 'reel', count: 3, lever: 'fill-gap', why: 'The field saves demo videos most (37 saves per 1,000 views). You have posted two reels in a year and both sit in your top tier.', yours: score('reel'), field: { what: 'saves per 1,000 views', value: 37, unit: 'saves', source: REPORT, period: 'Q3 2026' } },
+      { format: 'testimonial', count: 2, lever: 'fill-gap', why: 'The most shared format in the field, and you have never posted one: a beta tester speaking is the first thing to add.', yours: score('testimonial'), field: { what: 'share rate', value: 3.6, unit: '%', source: REPORT, period: 'Q3 2026' } },
+      { format: 'carousel', count: 2, lever: 'keep', why: 'Your three carousels hold their own and the October one is your best post of the year after the November opinion.', yours: score('carousel'), field: { what: 'saves per 1,000 views', value: 29, unit: 'saves', source: PLAYBOOK, period: '2026' } },
+      { format: 'opinion', count: 1, lever: 'test', why: `Twelve of your 27 posts, averaging ${op.avgEngagement} likes and no comment: keep one, and end it with a question people can answer.`, yours: score('opinion') },
     ],
-    cadence: 'Two posts a week, as your orders say: one demo video or field story, one testimonial or question.', next: 'Accept the pilot teaser, then record the first 30-second video: booking a room.',
+    cadence: 'Two posts a week, as your orders say: one reel or carousel, one testimonial or question. The account averaged one post every two weeks over the year.', next: 'Accept the beta teaser, then record the first 30-second reel: the first login.',
     basis: { posts: posts.length, audited: true },
   }, true, at(-0.006));
-  s.log(P, 'director', 'Plan for the next 4 weeks: fill the demo-video gap, keep the testimonials, wrap releases in a scene.', true, at(-0.006));
-  s.log(P, 'director', 'The pilot is running late, and the mairies share what their colleagues say.', true, at(-0.005));
+  s.log(P, 'director', 'Plan for the next 4 weeks: more reels, a first testimonial, one real question a week.', true, at(-0.006));
+  s.log(P, 'director', 'The beta is running late, and your account has never had a comment.', true, at(-0.005));
   s.setAgentConfig(P, 'scout', { workers: 2 });
   s.setAgentConfig(P, 'writer', { instructions: 'French, vouvoiement, under 600 characters. One scene from a town hall per post, never a feature list, never a price.' });
   s.addChat(P, 'director', 'user', 'What should we post this week?', [], at(-0.004));
-  s.addChat(P, 'director', 'agent', 'Record the room-booking video first: it is the clearest gap and your most saved format. I can also have the Strategist look at the pilot for teasers.', [
-    { kind: 'run', label: 'Plan the pilot teasers', agents: ['strategist'], brief: 'Teasers for the pilot in the partner commune' },
+  s.addChat(P, 'director', 'agent', 'Record the first-login reel first: your two reels are in your top tier and the field saves that format most. I can also have the Strategist look at the beta for teasers.', [
+    { kind: 'run', label: 'Plan the beta teasers', agents: ['strategist'], brief: 'Teasers for the beta with municipal teams' },
     { kind: 'talk', label: 'Talk to the Strategist', agent: 'strategist' },
   ], at(-0.003));
 }
