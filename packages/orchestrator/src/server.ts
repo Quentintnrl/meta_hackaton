@@ -1,5 +1,6 @@
 import { serve } from '@hono/node-server';
 import { createApp } from './app.ts';
+import { Team } from './content/team.ts';
 import { Runtime } from './runtime.ts';
 import { MetaLLM } from './adapters/llm.ts';
 import { MetaSam } from './adapters/vision.ts';
@@ -64,7 +65,9 @@ const content = new ContentService({
 runtime.subscribe(e => {
   if (e.type === 'STATE' && (e.payload as { state?: string }).state === 'APPLIED') void content.onFeatureApplied(e.featureId).catch(err => console.error('content:', err));
 });
-setInterval(() => void content.tick().catch(err => console.error('content tick:', err)), 15 * 60_000);
+// The team on duty: projects with the autopilot on get a daily pass (field watch, account, proposals when nothing waits).
+const team = new Team(content);
+setInterval(() => { void content.tick().catch(err => console.error('content tick:', err)); try { for (const id of team.duty(projects.list())) console.log(`team on duty: ${id}`); } catch (err) { console.error('team duty:', err); } }, 15 * 60_000);
 void content.tick().catch(() => {});
 const port = Number(process.env.PORT ?? 8787);
-serve({ fetch: createApp(runtime, projects, createSources(resolve(root, 'out/projects')), { visualDir, figma: new FigmaClient(loadFigmaToken), content }).fetch, port }, () => console.log(`orchestrator on http://localhost:${port}`));
+serve({ fetch: createApp(runtime, projects, createSources(resolve(root, 'out/projects')), { visualDir, figma: new FigmaClient(loadFigmaToken), content, team }).fetch, port }, () => console.log(`orchestrator on http://localhost:${port}`));

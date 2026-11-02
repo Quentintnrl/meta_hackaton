@@ -19,12 +19,13 @@ export interface Profile {
   audience: string; // who reads it
   language: string;
   autoDraft: boolean; // draft on its own when an item gets close; it never approves or publishes
+  autopilot?: boolean; // the team works on its own: a daily watch of the field and the account, proposals when nothing waits; it never posts
   niche: string; // what the project is about, for the scout
   directives: string; // standing orders from the manager, read by every agent
   publishMode: PublishMode; // local by default: nothing depends on Meta
 }
 
-export const defaultProfile: Profile = { voice: '', audience: '', language: 'English', autoDraft: false, niche: '', directives: '', publishMode: 'local' };
+export const defaultProfile: Profile = { voice: '', audience: '', language: 'English', autoDraft: false, autopilot: false, niche: '', directives: '', publishMode: 'local' };
 
 export interface Milestone {
   id: string;
@@ -161,9 +162,15 @@ export interface SuggestedAction {
 }
 export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 
-export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string } // itemId: the studio piece this post came from, linked by the manager
+export interface AccountPost { id?: number; platform?: string; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string } // itemId: the studio piece this post came from, linked by the manager
 export interface Series { id: string; projectId: string; name: string; createdAt: string } // a recurring editorial line: a pillar or a series
 export interface ItemLink { parentId: string; childId: string; kind: 'reuse'; createdAt: string } // a piece derived from another: recycle, decline, retry
 export interface Activity { id: number; projectId: string; agent: AgentId; summary: string; ok: boolean; at: string }
-export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | 'synthesis' | 'plan'; data: T; simulated: boolean; at: string }
+export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | 'synthesis' | 'plan' | 'watch'; data: T; simulated: boolean; at: string }
+
+// What the Scout saw at comparable players: concrete posts and pages, each with its link, and the market they draw.
+export interface Find { title: string; url: string; account: string; platform: string; whatItIs: string; number: string; whyForYou: string; format: string }
+export interface Watch { market: string; players: Array<{ name: string; url: string; what: string }>; finds: Find[]; events: Array<{ name: string; when: string; why: string }>; sources: string[] }
+// The size of the audience on one platform at one moment: a trend once there are two.
+export interface Snapshot { at: string; platform: string; followers: number; posts: number }
 export const engagement = (p: Pick<AccountPost, 'likes' | 'comments' | 'shares' | 'saves'>) => p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3;

@@ -10,10 +10,12 @@ import { existsSync, readFileSync } from 'node:fs';
 const Date_ = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 const NewMilestone = z.object({ title: z.string().trim().min(1).max(120), intent: z.string().trim().max(4000).default(''), targetDate: Date_, scope: z.number().int().min(1).max(50) });
 const PatchMilestone = NewMilestone.partial();
-const Profile = z.object({ voice: z.string().max(2000), audience: z.string().max(1000), language: z.string().trim().min(1).max(40), autoDraft: z.boolean(), niche: z.string().max(500).default(''), directives: z.string().max(3000).default(''), publishMode: PublishMode.default('local') });
+const Profile = z.object({ voice: z.string().max(2000), audience: z.string().max(1000), language: z.string().trim().min(1).max(40), autoDraft: z.boolean(), autopilot: z.boolean().default(false), niche: z.string().max(500).default(''), directives: z.string().max(3000).default(''), publishMode: PublishMode.default('local') });
 const NewItem = z.object({
   kind: ItemKind, title: z.string().trim().min(1).max(160), brief: z.string().max(4000).default(''),
   milestoneId: z.string().optional(), featureId: z.string().optional(), offsetDays: z.number().int().min(-90).max(90).optional(), fixedDate: Date_.optional(),
+  // A piece the manager takes from something seen in the field: it keeps where it came from and why.
+  rationale: z.string().max(1500).optional(), source: z.enum(['trend', 'account', 'roadmap', 'manager']).optional(), pitch: z.object({ hook: z.string().max(400), channel: z.string().max(80), measure: z.string().max(300) }).optional(),
 });
 const PatchItem = z.object({
   title: z.string().trim().min(1).max(160), brief: z.string().max(4000), draft: z.string().max(20000), kind: ItemKind,
@@ -30,9 +32,8 @@ const PatchItem = z.object({
 // next to the dev feature routes (see createApp): every path below is
 // absolute, starting with /projects/:pid/content, /projects/:pid/team,
 // /projects/:pid/account, /items or /milestones.
-export function contentRoutes(svc: ContentService, projects: ProjectStore) {
+export function contentRoutes(svc: ContentService, projects: ProjectStore, team = new Team(svc)) {
   const app = new Hono();
-  const team = new Team(svc);
 
   const body = async <T extends z.ZodType>(c: Context, schema: T): Promise<z.infer<T> | Response> => {
     const parsed = schema.safeParse(await c.req.json().catch(() => ({})));
@@ -164,12 +165,15 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   // The account the analyst compares with the field: pasted by the manager, or fictional demo data.
   app.put('/projects/:pid/account', async c => {
     if (!known(c)) return c.json({ error: 'unknown project' }, 404);
-    const b = await body(c, z.object({ paste: z.string().max(20000).optional(), demo: z.boolean().optional() }).refine(x => x.paste?.trim() || x.demo, { message: 'paste your posts, or load the demo' }));
+    const b = await body(c, z.object({ paste: z.string().max(20000).optional(), demo: z.boolean().optional(), platform: z.string().trim().min(1).max(40).default('instagram'), followers: z.number().int().min(0).optional() }).refine(x => x.paste?.trim() || x.demo || x.followers !== undefined, { message: 'paste your posts, give a follower count, or load the demo' }));
     if (isResponse(b)) return b;
     return guard(c, async () => {
-      if (b.demo) team.loadDemoAccount(c.req.param('pid'), projects.get(c.req.param('pid'))!.name);
-      else await team.importAccount(c.req.param('pid'), b.paste!);
-      return team.overview(c.req.param('pid'));
+      const pid = c.req.param('pid');
+      if (b.demo) team.loadDemoAccount(pid, projects.get(pid)!.name);
+      else if (b.paste?.trim()) await team.importAccount(pid, b.paste, b.platform);
+      // The audience size is a snapshot: two of them make a trend.
+      if (b.followers !== undefined) svc.store.snapshot(pid, { at: svc.now.toISOString(), platform: b.platform, followers: b.followers, posts: svc.store.account(pid).filter(p => p.platform === b.platform).length });
+      return team.overview(pid);
     });
   });
 

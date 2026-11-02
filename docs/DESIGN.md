@@ -165,3 +165,15 @@ Testé avec les vraies données de Mairie360 (27 posts, 3 à 19 likes, zéro com
 - **Ce qu'on comptera** une semaine après (`pitch.measure`) : inscriptions, réponses, qui réagit. Jamais « l'engagement ».
 
 Les faits sur le compte sont calculés dans l'interface, sans modèle, et quand les chiffres sont trop petits pour classer quoi que ce soit, la page le dit en une phrase. Le Strategist et l'Analyst reçoivent la même consigne. Les anciennes pages restent dans le code et par URL, pas dans la navigation.
+
+
+## 7. Une équipe qui tourne, quatre tableaux
+
+« Ça ressemble à un chatbot avec une interface de plus. » La réponse n'est pas une page de plus mais une équipe qui travaille sans qu'on lui demande, et quatre endroits où voir son travail, chacun visuel plutôt que textuel.
+
+- **Create** : propositions à juger, puis le pipeline en vignettes (image générée ou première ligne sur fond teinté). On clique une pièce, on ne lit pas une liste.
+- **Platforms** : une carte par plateforme, abonnés, rythme réel en 16 cases, ce qui y est prévu, et où la nourrir. La donnée entre ici, pas dans un onglet caché.
+- **Community** : réactions post par post dans le temps (une série, une teinte, barres fines ancrées), abonnés en gros chiffre et courbe dès deux relevés, et le silence dit tel quel avec une action.
+- **Competitors** : le marché en quatre phrases, les acteurs, les dates, et les trouvailles avec l'image de la page et le lien. Chaque trouvaille a un bouton qui la met dans le pipeline.
+
+L'équipe « on duty » (interrupteur dans Settings) fait un passage par jour : veille du terrain et des voisins, relecture du compte, propositions seulement si rien n'attend. Elle n'écrit ni ne poste sans le manager. La démo embarque le vrai passage du 2 novembre 2026 sur Mairie360 (`real.json`) : rien d'inventé côté recherche.

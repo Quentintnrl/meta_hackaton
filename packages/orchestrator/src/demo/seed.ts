@@ -5,7 +5,16 @@ import type { Journal } from '../journal.ts';
 import type { ProjectStore } from '../projects.ts';
 import type { ContentStore } from '../content/store.ts';
 import { formatStats } from '../content/team.ts';
+import { readFileSync } from 'node:fs';
 import { addDays, day, type AccountPost, type Item, type ItemKind, type Media } from '../content/types.ts';
+
+// What the team really produced on 2 Nov 2026 for Mairie360 (Scout: field audit and competitor watch; Analyst; Strategist's
+// proposals; Director's plan and note), saved once from a real pass so the demo shows true work without paying for it again.
+const REAL = JSON.parse(readFileSync(join(import.meta.dirname, 'real.json'), 'utf8')) as {
+  readAt: string; watch: unknown; audit: unknown; account: { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; winners?: unknown[]; losers?: unknown[] }; plan: unknown; synthesis: unknown;
+  ideas: Array<{ kind: ItemKind; title: string; brief: string; rationale: string; proof?: Item['proof']; pitch?: Item['pitch']; source: Item['source']; offsetDays?: number; fixedDate?: string; milestoneId?: string }>;
+  activity: Array<{ agent: 'scout' | 'analyst' | 'strategist' | 'writer' | 'director'; summary: string; ok: boolean }>;
+};
 
 // Real pictures for the demo posts, generated once with the image model and embedded,
 // so the demo shows true images without calling the model on every seed.
@@ -53,11 +62,8 @@ function realPosts(): AccountPost[] {
     ['2025-11-06', 'opinion', 'Moderniser une mairie, c’est bien plus que numériser des démarches. La vraie transformation se joue à l’intérieur', 19],
     ['2025-10-27', 'reel', 'Nous travaillons sur une solution pour simplifier le quotidien des agents municipaux : projets, calendrier collaboratif, messagerie interne', 8],
   ];
-  return rows.map(([postedAt, format, text, likes]) => ({ text, format, likes, comments: 0, shares: 0, saves: 0, postedAt, simulated: false }));
+  return rows.map(([postedAt, format, text, likes]) => ({ platform: 'instagram', text, format, likes, comments: 0, shares: 0, saves: 0, postedAt, simulated: false }));
 }
-
-const REPORT = 'https://example.com/govtech-linkedin-report';
-const PLAYBOOK = 'https://example.com/civic-tech-launch-playbook';
 
 // A project in the middle of its life, to try the studio without spending a single model call.
 export function seedDemo(o: { journal: Journal; projects: ProjectStore; content: ContentStore; mediaDir: string; repoPath: string; now?: Date }) {
@@ -85,6 +91,7 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
 
   // --- the team's profile and standing orders
   s.setProfile(P, {
+    autopilot: true, // the team keeps watching on its own, about once a day, while the demo runs
     voice: 'Plain and warm, like a colleague from the next office. Concrete scenes from a town hall, short sentences, no vendor talk. Vouvoiement.',
     audience: 'Secrétaires de mairie, directeurs généraux des services and elected officials of small French communes, mostly on LinkedIn',
     language: 'French',
@@ -101,31 +108,11 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   s.addForecast({ milestoneId: pilot.id, madeAt: at(-5), predictedDate: d(24), rawRemainingDays: 21, calibration: 1.3, done: 1, scope: 4, confidence: 'medium', note: 'One of four delivered after 7 days. The pace is slower than the plan, so I correct for it: x1.3.' });
 
   // --- what the Scout found, and the Analyst's comparison with the account
-  s.addReport(P, 'audit', {
-    summary: 'For civic-tech products sold to small town halls, a real scene from a mairie beats any feature list: field stories and a colleague’s own words earn the saves and the shares. Release posts on their own barely move.',
-    whatWorks: [
-      { format: 'behind-the-scenes', strength: 4, why: 'A morning at the front desk says more than a screen. Agents recognise themselves and reply.', example: '"Treize outils, un seul agent : une matinée à l’accueil"', exampleUrl: 'https://example.com/posts/treize-outils-un-agent', exampleFigure: '1.4k comments', figure: { what: 'average engagement rate', value: 4.9, unit: '%', source: REPORT, period: 'Q3 2026' } },
-      { format: 'testimonial', strength: 5, why: 'A secrétaire de mairie quoting her own week is the most shared format: it travels from one mairie to the next.', example: '"Le classeur bleu, c’est fini", a first week told by the agent herself', exampleUrl: 'https://example.com/posts/classeur-bleu', exampleFigure: '9k shares', figure: { what: 'share rate', value: 3.6, unit: '%', source: REPORT, period: 'Q3 2026' } },
-      { format: 'reel', strength: 4, why: 'Thirty seconds on one gesture (book a room, assign a task) gets saved to show at the next team meeting.', example: 'Booking the council room without a double booking, a 30-second reel', exampleUrl: 'https://example.com/posts/reserver-salle-30s', exampleFigure: '6k saves', figure: { what: 'saves per 1,000 views', value: 37, unit: 'saves', source: REPORT, period: 'Q3 2026' } },
-      { format: 'carousel', strength: 3, why: 'Explainers with one idea per slide get kept and forwarded to the DGS.', example: '"Thirty years of tools in a mairie, and what each left behind"', exampleUrl: '', exampleFigure: '', figure: { what: 'saves per 1,000 views', value: 29, unit: 'saves', source: PLAYBOOK, period: '2026' } },
-    ],
-    benchmarks: [
-      { name: 'posting frequency', value: 2, unit: 'posts / week', note: 'B2B pages under 2k followers that grow', source: PLAYBOOK },
-      { name: 'typical engagement rate', value: 2.1, unit: '%', note: 'civic-tech pages under 2k followers on LinkedIn', source: REPORT },
-      { name: 'ideal short-video length', value: 28, unit: 's', note: 'where completion drops', source: REPORT },
-    ],
-    hooks: ['treize outils', 'le classeur bleu', 'avant / après', 'une matinée à l’accueil', 'on a demandé à dix mairies'],
-    topics: ['secrétaire de mairie', 'réservation de salles', 'conseil municipal', 'parapheur', 'Salon des maires', 'communes rurales'],
-    avoid: ['release notes alone', 'feature lists', 'startup vocabulary (disruption, scale)'],
-    sources: [REPORT, PLAYBOOK],
-  }, true, at(0)); // fictional, like every figure here: the team must say so
+  s.addReport(P, 'audit', REAL.audit, false, at(-0.03)); // the Scout's real field audit (web search), kept as produced
   const posts = realPosts();
   s.setAccount(P, posts);
-  s.addReport(P, 'account', {
-    summary: '27 posts in a year on Instagram, 3 to 19 likes each and not a single comment, for 44 followers: on these numbers formats cannot be told apart, so I do not rank them. What can be read: the account has been talking for a year and nobody has answered; the two calls for beta testers are the only posts that asked for something; the most liked post is the first one of substance (6 Nov 2025, 19 likes); the audience you name, secrétaires de mairie and DGS, is on LinkedIn, where the bio points. Shares and saves are not visible on the public page.',
-    strengths: ['A steady voice: the daily life of a mairie, told plainly', 'Reels and the product preview reach the top tier'], gaps: ['No testimonial from a town hall, ever', 'No comment on any post: nothing yet asks a question people answer', 'Two reels in a year'],
-    opportunities: ['A 30-second reel per module during the beta', 'A beta tester speaking in their own words', 'One real question per week, answered in comments'], stats: formatStats(posts), postCount: posts.length,
-  }, false, at(0)); // the real account, read from Instagram: not flagged as demo
+  s.snapshot(P, { at: at(0), platform: 'instagram', followers: 44, posts: posts.length }); // read on the public page the same day
+  s.addReport(P, 'account', { ...REAL.account, stats: formatStats(posts), postCount: posts.length }, false, at(-0.02)); // the Analyst's real reading of the 27 posts
 
   // --- content, at every stage
   const add = (i: { kind: ItemKind; title: string; brief: string } & Partial<Omit<Item, 'id' | 'projectId' | 'createdAt' | 'revisions'>>) =>
@@ -133,13 +120,12 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   const pic = (name: string, itemId: string, file: string) => { mkdirSync(join(o.mediaDir, itemId), { recursive: true }); writeFileSync(join(o.mediaDir, itemId, file), Buffer.from(PICTURES[name], 'base64')); return file; };
   const media = (format: Media['format'], hashtags: string[], slides: Media['slides']): Media => ({ format, hashtags, slides });
 
-  // one idea to decide on
+  // the Strategist's real proposals, hung on the beta or dated
   const stats = formatStats(posts);
-  const reel = stats.find(s => s.format === 'reel')!;
-  const op = stats.find(s => s.format === 'opinion')!;
-  add({ kind: 'teaser', title: 'La bêta commence dans trois semaines', brief: 'A 30-second reel: what the first beta testers will see on their first login, told from a front desk.', rationale: `The beta is projected in about 4 weeks and your two calls for testers (13 May, 11 Oct) are the only posts that asked people to do something. A reel showing the first login gives them a reason to sign up now. With 3 to 19 likes per post, your formats cannot be told apart on numbers; the two reels sit at the top (${reel.avgEngagement}) but one more like would change that.\nEvidence: reels average ${reel.avgEngagement} on your account vs ${op.avgEngagement} for opinion posts; 37 saves per 1,000 views in the field.`, source: 'roadmap', origin: 'ai', status: 'idea', milestoneId: pilot.id, offsetDays: -21,
-    pitch: { hook: 'Lundi 24 novembre, 9 h : votre première connexion à Mairie360. Voici ce que vous verrez.', channel: 'Instagram, then the same reel on LinkedIn where the DGS are', measure: 'Beta sign-ups in the form during the week after, and who signs: agents or elected officials' },
-    proof: { format: 'reel', yours: { value: reel.avgEngagement, posts: reel.posts, rank: stats.indexOf(reel) + 1, of: stats.length }, field: { what: 'saves per 1,000 views', value: 37, unit: 'saves', source: REPORT, period: 'Q3 2026' }, text: `reels average ${reel.avgEngagement} on your account vs ${op.avgEngagement} for opinion posts; 37 saves per 1,000 views in the field` } });
+  for (const i of REAL.ideas) {
+    const { milestoneId, fixedDate, offsetDays, ...rest } = i;
+    add({ ...rest, origin: 'ai', status: 'idea', ...(milestoneId && offsetDays !== undefined ? { milestoneId: pilot.id, offsetDays } : { fixedDate: fixedDate && fixedDate >= today ? fixedDate : d(5) }) });
+  }
 
   // a carousel, drafted, two pictures generated
   const carousel = add({ kind: 'social-post', title: 'Bêta : ce que vous verrez en premier', brief: 'For the people who signed up: what the first login shows, who to write to, no price.', status: 'drafted', milestoneId: pilot.id, offsetDays: -14, pitch: { hook: 'Dans trois semaines, les premiers bêta testeurs ouvrent Mairie360.', channel: 'Instagram and LinkedIn', measure: 'Replies and sign-ups from the carousel link, compared with the 11 October call' }, rationale: 'The 11 October call for testers got 8 likes and no comment: people liked, nobody wrote. Showing what the first screen looks like gives them something to react to.', source: 'account' });
@@ -159,30 +145,11 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   add({ kind: 'devlog', title: 'Semaine 6 : ce que l’accueil nous a appris', brief: 'x', status: 'published', fixedDate: d(-6), draft: 'Une matinée derrière le comptoir de notre commune partenaire. Sept logiciels ouverts, un agenda papier, un fax qui marche encore. Voici ce que nous avons retiré de l’écran Projets en rentrant.' });
   add({ kind: 'newsletter', title: 'Lettre aux bêta testeurs : le programme, concrètement', brief: 'Tell the people who signed up what the beta contains, when it starts, and how feedback is collected.', status: 'briefed', milestoneId: pilot.id, offsetDays: -7, pitch: { hook: 'Vous vous êtes inscrit à la bêta de Mairie360. Voici ce qui se passe maintenant.', channel: 'Email to the sign-ups', measure: 'Replies to the email, and how many open their access the first week' }, rationale: 'The people who signed up through the form have heard nothing since. One email before the beta keeps them.', source: 'roadmap' });
 
-  // --- what the team did
-  s.log(P, 'scout', 'Found 4 formats that work and 6 topics. Field stories and testimonials lead; bare releases fall flat.', true, at(-0.02));
-  s.log(P, 'analyst', 'Compared your 27 Instagram posts with the field. Reels and the product preview lead, opinion posts are 12 of 27, no comment anywhere, no testimonial yet.', true, at(-0.015));
-  s.log(P, 'strategist', 'Proposed one piece of content. Waiting for your decision.', true, at(-0.01));
-  s.log(P, 'writer', 'Drafted one accepted piece.', true, at(-0.5));
-  s.addReport(P, 'synthesis', {
-    headline: 'The beta is running late, and your account has never had a comment.',
-    points: ['Reels and the product preview are your top tier, opinion posts are half the account and score the same as the rest.', 'The beta is projected after the date you want, so the teaser and the beta post move with the new date.', 'One proposal waits for your decision in Today.'],
-    next: 'Decide on the beta teaser, it is the next thing to land.',
-  }, false, at(-0.005));
-  const score = (f: string) => { const x = stats.find(s => s.format === f); return x && { value: x.avgEngagement, posts: x.posts, rank: stats.indexOf(x) + 1, of: stats.length }; };
-  s.addReport(P, 'plan', {
-    period: 'the next 4 weeks', headline: 'More reels, a first testimonial, one real question a week, fewer bare opinions.',
-    mix: [
-      { format: 'reel', count: 3, lever: 'fill-gap', why: 'The field saves demo videos most (37 saves per 1,000 views). You have posted two reels in a year and both sit in your top tier.', yours: score('reel'), field: { what: 'saves per 1,000 views', value: 37, unit: 'saves', source: REPORT, period: 'Q3 2026' } },
-      { format: 'testimonial', count: 2, lever: 'fill-gap', why: 'The most shared format in the field, and you have never posted one: a beta tester speaking is the first thing to add.', yours: score('testimonial'), field: { what: 'share rate', value: 3.6, unit: '%', source: REPORT, period: 'Q3 2026' } },
-      { format: 'carousel', count: 2, lever: 'keep', why: 'Your three carousels hold their own and the October one is your best post of the year after the November opinion.', yours: score('carousel'), field: { what: 'saves per 1,000 views', value: 29, unit: 'saves', source: PLAYBOOK, period: '2026' } },
-      { format: 'opinion', count: 1, lever: 'test', why: `Twelve of your 27 posts, averaging ${op.avgEngagement} likes and no comment: keep one, and end it with a question people can answer.`, yours: score('opinion') },
-    ],
-    cadence: 'Two posts a week, as your orders say: one reel or carousel, one testimonial or question. The account averaged one post every two weeks over the year.', next: 'Accept the beta teaser, then record the first 30-second reel: the first login.',
-    basis: { posts: posts.length, audited: true },
-  }, true, at(-0.006));
-  s.log(P, 'director', 'Plan for the next 4 weeks: more reels, a first testimonial, one real question a week.', true, at(-0.006));
-  s.log(P, 'director', 'The beta is running late, and your account has never had a comment.', true, at(-0.005));
+  // --- what the team did, as it said it: the log lines of the real pass, then its plan and its note
+  REAL.activity.forEach((l, n) => s.log(P, l.agent, l.summary, l.ok, at(-0.03 + n * 0.004)));
+  s.addReport(P, 'watch', REAL.watch, false, at(-0.028));
+  s.addReport(P, 'plan', REAL.plan, false, at(-0.008));
+  s.addReport(P, 'synthesis', REAL.synthesis, false, at(-0.006));
   s.setAgentConfig(P, 'scout', { workers: 2 });
   s.setAgentConfig(P, 'writer', { instructions: 'French, vouvoiement, under 600 characters. One scene from a town hall per post, never a feature list, never a price.' });
   s.addChat(P, 'director', 'user', 'What should we post this week?', [], at(-0.004));

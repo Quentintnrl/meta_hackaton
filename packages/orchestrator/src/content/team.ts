@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import type { ContentService } from './service.ts';
 import { parseAccountCsv } from './service.ts';
-import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction } from './types.ts';
+import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction, type Watch } from './types.ts';
 
 export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
   { id: 'director', name: 'Director', role: 'Leads the team and sums up its work' },
@@ -67,6 +67,23 @@ const Proposals = z.object({
     offsetDays: z.number().int().min(-60).max(30), // relative to the milestone landing
     date: z.string(), // YYYY-MM-DD, used when there is no milestone
   })).min(1).max(6),
+});
+
+// What the Scout saw at comparable players, condensed: every find keeps its link, nothing without one.
+const WatchSchema = z.object({
+  market: z.string(), // who the comparable players are and where the audience is, in three or four plain sentences
+  players: z.array(z.object({ name: z.string(), url: z.string(), what: z.string() })).max(8),
+  finds: z.array(z.object({
+    title: z.string(), // the post or page, in a few words
+    url: z.string(), // its link, exactly as found; drop the find when there is none
+    account: z.string(), // who published it
+    platform: z.string(), // LinkedIn, Instagram, blog, newsletter, press…
+    whatItIs: z.string(), // what the piece is and does, one sentence
+    number: z.string(), // any visible figure as written ("140 likes", "2.3k views"), '' when none
+    whyForYou: z.string(), // what this project could take from it, one concrete sentence
+    format: z.string(), // carousel, reel, testimonial, event, case study…
+  })).max(12),
+  events: z.array(z.object({ name: z.string(), when: z.string(), why: z.string() })).max(5), // dates the audience gathers around (salons, deadlines, seasons)
 });
 
 const AccountParse = z.object({
@@ -253,6 +270,44 @@ Fill misses with the formats and angles that fall flat, each with a concrete exa
     return audit;
   }
 
+  // --- the Scout, second job: what comparable players actually post, with the links, and the market they draw
+  async watch(projectId: string, projectName: string): Promise<Watch> {
+    const llm = this.#svc.llm;
+    if (!llm.search) throw new Error('this model backend cannot search the web');
+    const profile = this.#svc.profile(projectId);
+    const field = profile.niche || projectName;
+    const who = profile.audience ? ` whose audience is ${profile.audience}` : '';
+    const country = /fran|mairie|commune/i.test(`${profile.niche} ${profile.audience} ${profile.language}`) ? ' (France, in French where the sources are French)' : '';
+    const [posts, market] = await Promise.all([
+      llm.search(`Find 8 to 12 recent public posts (last 12 months) from companies, products or organisations comparable to "${field}"${who}${country}, on LinkedIn, Instagram, their blog or the press. For each: the account, the exact URL of the post or page, what it is (format: carousel, video, testimonial, event, case study, article…), its hook or subject, and any visible figure (likes, comments, views). Only real, visited pages with their URL; skip anything you cannot link.${behaviour(this.#svc, projectId, 'scout')}`),
+      llm.search(`Who are the comparable players for a project like "${field}"${who}${country}? Name 4 to 8 with their website, what they sell and where they publish (which networks, newsletter, events). Also list the upcoming events, salons or seasonal dates (next 6 months) where this audience gathers, with dates. Prefer sources you visited.`),
+    ]);
+    const w = await llm.json(`Today is ${day(this.#svc.now)}: an event or deadline before that date is past, say so in its "when" or drop it. Condense this research. Keep only what the text supports, with the URLs exactly as given; drop a find without a link. Short, concrete, no filler. "whyForYou" says what the project "${projectName}" (${field}) could take from each find, in one sentence a busy person acts on.
+
+POSTS SEEN:
+${posts.text}
+
+MARKET AND EVENTS:
+${market.text}`, WatchSchema, 'watch');
+    const watch: Watch = { ...w, sources: [...new Set([...posts.sources, ...market.sources])].slice(0, 12) };
+    this.#store.addReport(projectId, 'watch', watch, false, this.#svc.now.toISOString());
+    return watch;
+  }
+
+  // --- on duty: when the manager switched the autopilot on, the team watches on its own, about once a day,
+  // and proposes only when nothing waits for a decision. It never writes or posts without the manager.
+  duty(projects: Array<{ id: string; name: string }>, every = 24 * 3_600_000): string[] {
+    const started: string[] = [];
+    for (const p of projects) {
+      if (!this.#svc.profile(p.id).autopilot || this.#working.has(p.id)) continue;
+      const last = this.#store.activity(p.id, 50).filter(a => a.agent === 'scout' || a.agent === 'analyst').map(a => Date.parse(a.at)).sort((a, b) => b - a)[0];
+      if (last && this.#svc.now.getTime() - last < every) continue;
+      const waiting = this.#store.items(p.id).some(i => i.status === 'idea');
+      if (this.start(p.id, p.name, waiting ? ['scout', 'analyst'] : ['scout', 'analyst', 'strategist'], '')) started.push(p.id);
+    }
+    return started;
+  }
+
   // --- the Analyst: your account against the field
   async analyse(projectId: string): Promise<AccountReport> {
     const posts = this.#store.account(projectId);
@@ -280,11 +335,11 @@ ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}
 
   // The manager gives the numbers as they come: free text from the platform, or a copy of an export (CSV with a
   // text,likes header is read exactly, with no model call and no invented numbers). The model only structures free-form pastes.
-  async importAccount(projectId: string, pasted: string): Promise<AccountPost[]> {
+  async importAccount(projectId: string, pasted: string, platform = 'instagram'): Promise<AccountPost[]> {
     const exact = parseAccountCsv(pasted, day(this.#svc.now));
     if (exact) {
       if (!exact.length) throw new Error('no post found in that text');
-      this.#store.setAccount(projectId, exact);
+      this.#store.setAccount(projectId, exact.map(p => ({ ...p, platform })), platform);
       return exact;
     }
     const r = await this.#svc.llm.json(
@@ -292,9 +347,9 @@ ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}
 format is a short label for the kind of post (tutorial, behind-the-scenes, release, announcement, meme, tip, story…). postedAt is YYYY-MM-DD, or "${day(this.#svc.now)}" when unknown.
 
 ${pasted.slice(0, 12000)}`, AccountParse, 'account_import');
-    const posts = r.posts.map(p => ({ ...p, postedAt: /^\d{4}-\d{2}-\d{2}$/.test(p.postedAt) ? p.postedAt : day(this.#svc.now), simulated: false }));
+    const posts = r.posts.map(p => ({ ...p, platform, postedAt: /^\d{4}-\d{2}-\d{2}$/.test(p.postedAt) ? p.postedAt : day(this.#svc.now), simulated: false }));
     if (!posts.length) throw new Error('no post found in that text');
-    this.#store.setAccount(projectId, posts);
+    this.#store.setAccount(projectId, posts, platform);
     return posts;
   }
 
@@ -415,7 +470,14 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       catch (e) { failed++; store.log(projectId, agent, (e as Error).message, false, nowIso()); }
     };
     try {
-      await step('scout', async () => { const a = await this.scout(projectId, projectName, brief); return `Found ${a.whatWorks.length} formats that work and ${a.topics.length} topics. ${a.summary}`; });
+      await step('scout', async () => {
+        const a = await this.scout(projectId, projectName, brief);
+        // Same pass, second job: what comparable players post. Its failure does not lose the audit.
+        let watched = '';
+        try { const w = await this.watch(projectId, projectName); watched = ` Watched the field: ${w.finds.length} posts at ${w.players.length} comparable players, ${w.events.length} dates to know.`; }
+        catch (e) { watched = ` (Could not watch the field: ${(e as Error).message})`; }
+        return `Found ${a.whatWorks.length} formats that work and ${a.topics.length} topics. ${a.summary}${watched}`;
+      });
       await step('analyst', async () => { const a = await this.analyse(projectId); return `Compared ${a.postCount} posts with the field. ${a.summary}`; });
       await step('strategist', async () => { const n = await this.strategize(projectId, brief); return `Proposed ${n.length} piece(s) of content.${n.length ? ' Waiting for your decision.' : ' Nothing new beyond what is planned.'}`; });
       await step('writer', async () => { const n = await this.write(projectId); return n.length ? `Drafted ${n.length} accepted piece(s).` : 'Nothing accepted is waiting for a draft.'; });
@@ -625,6 +687,9 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
       account: this.#store.latestReport<AccountReport>(projectId, 'account'),
       synthesis: this.#store.latestReport<Synthesis>(projectId, 'synthesis'),
       plan: this.#store.latestReport<Plan>(projectId, 'plan'),
+      watch: this.#store.latestReport<Watch>(projectId, 'watch'),
+      snapshots: this.#store.snapshots(projectId),
+      duty: { autopilot: this.#svc.profile(projectId).autopilot, lastPass: this.#store.activity(projectId, 50).filter(a => a.agent === 'scout' || a.agent === 'analyst').map(a => a.at).sort().at(-1) },
       accountPosts: this.#store.account(projectId).length,
       posts: this.#store.account(projectId).map(p => ({ text: p.text, format: p.format, engagement: engagement(p), postedAt: p.postedAt })),
       activity: this.#store.activity(projectId),

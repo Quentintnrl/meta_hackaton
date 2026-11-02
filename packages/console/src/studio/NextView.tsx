@@ -30,7 +30,7 @@ export function NextView({ pid, team, view, reload, go, open, askAgent }: Props)
   );
 }
 
-function Brief({ pid, team, reload }: { pid: string; team: TeamView; reload: () => Promise<void> }) {
+export function Brief({ pid, team, reload }: { pid: string; team: TeamView; reload: () => Promise<void> }) {
   const [brief, setBrief] = useState('');
   const [research, setResearch] = useState(false);
   const { busy, error, run } = useAction(reload);
@@ -51,7 +51,7 @@ function Brief({ pid, team, reload }: { pid: string; team: TeamView; reload: () 
 }
 
 // One proposal, readable in ten seconds: the first line, why, where, what we will count, and what you can do.
-function Piece({ item, view, reload, open, askAgent }: { item: ContentItem; view: ContentView; reload: () => Promise<void>; open: (id: string) => void; askAgent: Props['askAgent'] }) {
+export function Piece({ item, view, reload, open, askAgent }: { item: ContentItem; view: ContentView; reload: () => Promise<void>; open: (id: string) => void; askAgent: Props['askAgent'] }) {
   const { busy, error, run } = useAction(reload);
   const [refusing, setRefusing] = useState(false);
   const [reason, setReason] = useState('');
@@ -106,7 +106,7 @@ function Piece({ item, view, reload, open, askAgent }: { item: ContentItem; view
 }
 
 // Facts computed here from the posts themselves: no model, no ranking, and a plain sentence when the numbers are too small to rank anything.
-function Facts({ pid, team, go }: { pid: string; team: TeamView; go: (v: View) => void }) {
+export function Facts({ pid, team, go }: { pid: string; team: TeamView; go: (v: View) => void }) {
   const [posts, setPosts] = useState<AccountPost[] | null>(null);
   useEffect(() => { contentApi.accountPosts(pid).then(setPosts).catch(() => setPosts([])); }, [pid, team.accountPosts]);
   if (!posts) return null;

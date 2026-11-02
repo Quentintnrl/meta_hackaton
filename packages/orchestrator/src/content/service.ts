@@ -158,7 +158,7 @@ export class ContentService {
   profile(projectId: string) { return this.store.profile(projectId); }
   setProfile(projectId: string, p: Profile) { return this.store.setProfile(projectId, p); }
 
-  addItem(i: { projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; offsetDays?: number; fixedDate?: string }) {
+  addItem(i: { projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; offsetDays?: number; fixedDate?: string; rationale?: string; source?: Item['source']; pitch?: Item['pitch'] }) {
     if (i.milestoneId && this.#need(i.milestoneId).projectId !== i.projectId) throw new Error('this milestone belongs to another project');
     return this.store.addItem({ ...i, origin: 'user', createdAt: this.#now().toISOString() });
   }

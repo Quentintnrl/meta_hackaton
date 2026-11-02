@@ -9,6 +9,7 @@ import { parseFigmaUrl, type Figma } from './adapters/figma.ts';
 import type { Runtime } from './runtime.ts';
 import type { ProjectStore } from './projects.ts';
 import type { ContentService } from './content/service.ts';
+import type { Team } from './content/team.ts';
 import { contentRoutes } from './content/routes.ts';
 import { REPO_URL, repoNameFromUrl, type ProjectSources } from './project-sources.ts';
 
@@ -36,12 +37,12 @@ const CreateProject = z.discriminatedUnion('source', [
 
 const Approval = z.object({ gate: Gate, push: z.boolean().optional() });
 
-export function createApp(rt: Runtime, projects: ProjectStore, sources: ProjectSources, opts: { visualDir: string; figma?: Figma; content?: ContentService }) {
+export function createApp(rt: Runtime, projects: ProjectStore, sources: ProjectSources, opts: { visualDir: string; figma?: Figma; content?: ContentService; team?: Team }) {
   const app = new Hono();
   // Content routes live under /projects/:pid/content, /projects/:pid/team, /projects/:pid/account and /items: absolute paths
   // mounted at '/', next to the dev routes (/projects, /projects/:pid/features). Keep the two namespaces disjoint:
   // a new content route must never reuse a dev path prefix, and vice versa.
-  if (opts.content) app.route('/', contentRoutes(opts.content, projects));
+  if (opts.content) app.route('/', contentRoutes(opts.content, projects, opts.team));
 
   app.get('/projects', c => c.json(projects.list()));
 

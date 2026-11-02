@@ -122,10 +122,10 @@ export interface ContentItem {
   seriesId?: string; date?: string; plannedDate?: string; shiftDays?: number; reusedFrom?: string; versionCount?: number;
 }
 export type PublishMode = 'local' | 'assisted' | 'connected';
-export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; niche: string; directives: string; publishMode: PublishMode }
+export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; autopilot?: boolean; niche: string; directives: string; publishMode: PublishMode }
 export interface ExportPack { copyText: string; caption: string; hashtags: string[]; mediaFiles: string[]; exportedPath?: string }
 export interface Series { id: string; projectId: string; name: string; createdAt: string }
-export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string }
+export interface AccountPost { id?: number; platform?: string; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string }
 export interface ContentView { profile: Profile; milestones: Milestone[]; items: ContentItem[]; series: Series[] }
 
 const send = <T>(method: string, path: string, body?: unknown) => call<T>(path, { method, body: JSON.stringify(body ?? {}) });
@@ -148,19 +148,24 @@ export interface Audit { summary: string; whatWorks: Array<{ format: string; why
 export interface VerdictPost { text: string; format: string; engagement: number; note: string }
 export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[] }
 export interface Report<T> { data: T; simulated: boolean; at: string }
+// What the Scout saw at comparable players, each find with its link.
+export interface Find { title: string; url: string; account: string; platform: string; whatItIs: string; number: string; whyForYou: string; format: string }
+export interface Watch { market: string; players: Array<{ name: string; url: string; what: string }>; finds: Find[]; events: Array<{ name: string; when: string; why: string }>; sources: string[] }
+export interface Snapshot { at: string; platform: string; followers: number; posts: number }
 export interface TeamView {
   agents: Array<{ id: AgentId; name: string; role: string }>;
   working?: { agent: AgentId; since: string };
   config: Record<AgentId, AgentConfig>; synthesis?: Report<Synthesis>; plan?: Report<Plan>;
   posts: Array<{ text: string; format: string; engagement: number; postedAt: string }>;
   audit?: Report<Audit>; audits?: Array<Report<Audit>>; account?: Report<AccountReport>; accountPosts: number;
+  watch?: Report<Watch>; snapshots: Snapshot[]; duty: { autopilot: boolean; lastPass?: string };
   activity: Array<{ id: number; agent: AgentId; summary: string; ok: boolean; at: string }>;
 }
 
 export const teamApi = {
   view: (pid: string) => call<TeamView>(`/projects/${pid}/team`),
   run: (pid: string, agents: AgentId[], brief: string) => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents, brief }),
-  setAccount: (pid: string, b: { paste?: string; demo?: boolean }) => send<TeamView>('PUT', `/projects/${pid}/account`, b),
+  setAccount: (pid: string, b: { paste?: string; demo?: boolean; platform?: string; followers?: number }) => send<TeamView>('PUT', `/projects/${pid}/account`, b),
   chat: (pid: string, agent: AgentId, about?: string) => call<ChatMessage[]>(`/projects/${pid}/team/chat/${agent}${about ? `?about=${encodeURIComponent(about)}` : ''}`),
   say: (pid: string, agent: AgentId, message: string, context?: string, about?: string) => send<ChatMessage[]>('POST', `/projects/${pid}/team/chat/${agent}`, { message, context, about }),
   configure: (pid: string, agent: AgentId, patch: Partial<AgentConfig>) => send<AgentConfig>('PATCH', `/projects/${pid}/team/agents/${agent}`, patch),
@@ -182,7 +187,7 @@ export const contentApi = {
   link: (id: string, featureId: string) => send<Milestone>('POST', `/milestones/${id}/features`, { featureId }),
   unlink: (id: string, featureId: string) => send<Milestone>('DELETE', `/milestones/${id}/features/${featureId}`),
   plan: (id: string, guidance?: string) => send<ContentItem[]>('POST', `/milestones/${id}/plan`, { guidance }),
-  addItem: (pid: string, b: { kind: ItemKind; title: string; brief: string; milestoneId?: string; offsetDays?: number; fixedDate?: string }) => send<ContentItem>('POST', `/projects/${pid}/items`, b),
+  addItem: (pid: string, b: { kind: ItemKind; title: string; brief: string; milestoneId?: string; offsetDays?: number; fixedDate?: string; rationale?: string; source?: ItemSource; pitch?: Pitch }) => send<ContentItem>('POST', `/projects/${pid}/items`, b),
   patchItem: (id: string, b: Partial<Pick<ContentItem, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean; seriesId?: string | null }) => send<ContentItem>('PATCH', `/items/${id}`, b),
   saveSeries: (pid: string, name: string) => send<Series>('POST', `/projects/${pid}/series`, { name }),
   reuseItem: (id: string) => send<ContentItem>('POST', `/items/${id}/reuse`),

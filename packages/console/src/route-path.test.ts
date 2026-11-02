@@ -19,10 +19,10 @@ test('app hashes round-trip', () => {
 test('studio hashes keep page and drawer', () => {
   assert.deepEqual(parseStudio('/projects/p/content/calendar/item/abc123', 'p'), { page: 'calendar', openId: 'abc123', about: null });
   assert.deepEqual(parseStudio('/projects/p/content/agent/writer', 'p'), { page: 'agent:writer', openId: null, about: null });
-  assert.deepEqual(parseStudio('/projects/p/content', 'p'), { page: 'next', openId: null, about: null });
-  assert.deepEqual(parseStudio('/projects/p/content/nonsense', 'p'), { page: 'next', openId: null, about: null }, 'unknown page falls back');
-  assert.deepEqual(parseStudio('/projects/p/content/agent/nobody', 'p'), { page: 'next', openId: null, about: null }, 'unknown agent is not a page');
-  assert.deepEqual(parseStudio('/projects/other/content/calendar', 'p'), { page: 'next', openId: null, about: null }, 'another project is not parsed');
+  assert.deepEqual(parseStudio('/projects/p/content', 'p'), { page: 'studio', openId: null, about: null });
+  assert.deepEqual(parseStudio('/projects/p/content/nonsense', 'p'), { page: 'studio', openId: null, about: null }, 'unknown page falls back');
+  assert.deepEqual(parseStudio('/projects/p/content/agent/nobody', 'p'), { page: 'studio', openId: null, about: null }, 'unknown agent is not a page');
+  assert.deepEqual(parseStudio('/projects/other/content/calendar', 'p'), { page: 'studio', openId: null, about: null }, 'another project is not parsed');
   assert.deepEqual(parseStudio('/projects/p/content/inbox', 'p').page, 'today', 'old inbox lands on today');
   assert.deepEqual(parseStudio('/projects/p/content/orders', 'p').page, 'team', 'old orders lands on team');
   assert.deepEqual(parseStudio('/projects/p/content/field', 'p').page, 'insights', 'old field lands on insights');

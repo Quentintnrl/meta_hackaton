@@ -15,10 +15,15 @@ import { InsightsView } from './InsightsView';
 import { TeamPulse } from './Agents';
 import { NextView } from './NextView';
 import { SettingsView } from './SettingsView';
+import { CommunityBoard, CreateBoard, DutyLine, PlatformsBoard, WatchBoard } from './boards';
 
-export type View = 'next' | 'settings' | 'today' | 'create' | 'calendar' | 'insights' | 'team' | `agent:${AgentId}`;
+export type View = 'studio' | 'platforms' | 'community' | 'watch' | 'next' | 'settings' | 'today' | 'create' | 'calendar' | 'insights' | 'team' | `agent:${AgentId}`;
 
 const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: string }> = {
+  studio: { title: 'Create', about: 'What the team proposes, what is being written, what is ready. You say yes or no; nothing is written or posted without you.' },
+  platforms: { title: 'Platforms', about: 'One card per place you publish: its audience, its rhythm, what is planned there, and where to feed it.' },
+  community: { title: 'Community', about: 'Who follows, what they reacted to, and whether anyone talks back.' },
+  watch: { title: 'Competitors', about: 'What comparable players actually post, with the links, and the dates your audience gathers around.' },
   next: { title: 'What to post next', about: 'The team proposes, with its reasons. You say yes or no. Nothing is written or posted without you.' },
   settings: { title: 'Voice, orders and publishing', about: 'Written once, read by every agent before it works.' },
   today: { title: 'Today', about: 'What the team did, and what waits for you: ideas to judge, drafts to review, pieces to post.' },
@@ -73,9 +78,12 @@ export function Studio({ project }: { project: Project }) {
   const late = view.milestones.filter(m => m.atRisk).length;
   // One page, plus the settings. The older pages stay reachable from the foot of the page and by URL.
   const nav: Array<[View, string, number?, string?]> = [
-    ['next', 'Next', waiting],
+    ['studio', 'Create', waiting],
+    ['platforms', 'Platforms'],
+    ['community', 'Community'],
+    ['watch', 'Competitors'],
     ['settings', 'Settings'],
-    ...(['today', 'create', 'calendar', 'insights', 'team'].includes(page) ? [[page, PAGES[page as keyof typeof PAGES].title, page === 'calendar' ? late : undefined, 'late'] as [View, string, number?, string?]] : []),
+    ...(['next', 'today', 'create', 'calendar', 'insights', 'team'].includes(page) ? [[page, PAGES[page as keyof typeof PAGES].title, page === 'calendar' ? late : undefined, 'late'] as [View, string, number?, string?]] : []),
   ];
   // Open a side chat with an agent, staying on the page: the agent sees the
   // piece or goal, the manager just asks. Closing the drawer drops the context.
@@ -122,7 +130,11 @@ export function Studio({ project }: { project: Project }) {
       </nav>
 
       <div className="studio-main">
-        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p></header>
+        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p><DutyLine team={team} go={setPage} /></header>
+        {page === 'studio' && <CreateBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
+        {page === 'platforms' && <PlatformsBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
+        {page === 'community' && <CommunityBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
+        {page === 'watch' && <WatchBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'next' && <NextView pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'settings' && <SettingsView pid={project.id} view={view} reload={reload} />}
         {page === 'today' && <TodayView team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
@@ -133,7 +145,7 @@ export function Studio({ project }: { project: Project }) {
         {page === 'agent:director' && <DirectorPage pid={project.id} team={team} view={view} reload={reload} go={setPage} />}
         {agentId && agentId !== 'director' && <AgentPage key={agentId} pid={project.id} agent={agentId} team={team} view={view} reload={reload} go={setPage} aboutCtx={pageCtx} onClearAbout={clearAbout} />}
       </div>
-      {open && <ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('next'); setOpenId(id); }} askAgent={askAgent} />}
+      {open && <ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('studio'); setOpenId(id); }} askAgent={askAgent} />}
       {drawerCtx && <ChatDrawer pid={project.id} agent={drawerCtx.agent} role={team.agents.find(a => a.id === drawerCtx.agent)?.role ?? ''} team={team} starters={drawerCtx.agent === 'director' ? [] : ABOUT[drawerCtx.agent].starters} context={drawerCtx.context || undefined} about={aboutKey(drawerCtx)} aboutLabel={drawerCtx.label || undefined} onClose={clearAbout} reload={reload} goAgent={a => writeHashPath(studioToHash(project.id, `agent:${a}`, openId, { agent: a, kind: drawerCtx.kind, id: drawerCtx.id }))} />}
     </div>
   );

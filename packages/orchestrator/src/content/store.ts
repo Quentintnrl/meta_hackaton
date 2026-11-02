@@ -1,4 +1,5 @@
 import { DatabaseSync } from 'node:sqlite';
+import type { Snapshot } from './types.ts';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
@@ -34,6 +35,9 @@ export class ContentStore {
     this.#addColumn('profiles', 'niche', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('profiles', 'directives', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('profiles', 'publish_mode', "TEXT NOT NULL DEFAULT 'local'");
+    this.#addColumn('profiles', 'autopilot', 'INTEGER NOT NULL DEFAULT 0');
+    this.#addColumn('account_posts', 'platform', "TEXT NOT NULL DEFAULT 'instagram'");
+    this.#db.exec('CREATE TABLE IF NOT EXISTS account_snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, platform TEXT NOT NULL, followers INTEGER NOT NULL, posts INTEGER NOT NULL, made_at TEXT NOT NULL)');
     this.#addColumn('items', 'rationale', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('items', 'source', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('items', 'rejected_reason', 'TEXT');
@@ -97,17 +101,27 @@ export class ContentStore {
     return rows.reverse().map(r => ({ id: Number(r.id), thread, role: r.role as ChatMessage['role'], text: String(r.text), actions: JSON.parse(String(r.actions)) as SuggestedAction[], at: String(r.made_at) }));
   }
 
-  setAccount(projectId: string, posts: AccountPost[]) {
+  // Replaces the posts of one platform (or all of them when no platform is given); links to studio pieces survive.
+  setAccount(projectId: string, posts: AccountPost[], platform?: string) {
     const links = new Map((this.#db.prepare('SELECT text, item_id FROM account_posts WHERE project_id = ? AND item_id IS NOT NULL').all(projectId) as Row[])
       .map(r => [String(r.text), String(r.item_id)] as const));
-    this.#db.prepare('DELETE FROM account_posts WHERE project_id = ?').run(projectId);
-    const ins = this.#db.prepare('INSERT INTO account_posts (project_id, text, format, likes, comments, shares, saves, posted_at, simulated, item_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const p of posts) ins.run(projectId, p.text, p.format, p.likes, p.comments, p.shares, p.saves, p.postedAt, p.simulated ? 1 : 0, p.itemId ?? links.get(p.text) ?? null);
+    if (platform) this.#db.prepare('DELETE FROM account_posts WHERE project_id = ? AND platform = ?').run(projectId, platform);
+    else this.#db.prepare('DELETE FROM account_posts WHERE project_id = ?').run(projectId);
+    const ins = this.#db.prepare('INSERT INTO account_posts (project_id, platform, text, format, likes, comments, shares, saves, posted_at, simulated, item_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const p of posts) ins.run(projectId, p.platform || platform || 'instagram', p.text, p.format, p.likes, p.comments, p.shares, p.saves, p.postedAt, p.simulated ? 1 : 0, p.itemId ?? links.get(p.text) ?? null);
+  }
+
+  snapshot(projectId: string, s: Snapshot) {
+    this.#db.prepare('INSERT INTO account_snapshots (project_id, platform, followers, posts, made_at) VALUES (?, ?, ?, ?, ?)').run(projectId, s.platform, s.followers, s.posts, s.at);
+  }
+
+  snapshots(projectId: string): Snapshot[] {
+    return (this.#db.prepare('SELECT * FROM account_snapshots WHERE project_id = ? ORDER BY made_at').all(projectId) as Row[]).map(r => ({ at: String(r.made_at), platform: String(r.platform), followers: Number(r.followers), posts: Number(r.posts) }));
   }
 
   account(projectId: string): AccountPost[] {
     return (this.#db.prepare('SELECT * FROM account_posts WHERE project_id = ? ORDER BY posted_at DESC').all(projectId) as Row[]).map(r => ({
-      id: Number(r.id), text: String(r.text), format: String(r.format), likes: Number(r.likes), comments: Number(r.comments), shares: Number(r.shares),
+      id: Number(r.id), platform: String(r.platform ?? 'instagram'), text: String(r.text), format: String(r.format), likes: Number(r.likes), comments: Number(r.comments), shares: Number(r.shares),
       saves: Number(r.saves), postedAt: String(r.posted_at), simulated: r.simulated === 1, itemId: r.item_id ? String(r.item_id) : undefined,
     }));
   }
@@ -122,14 +136,14 @@ export class ContentStore {
     if (!r) return { ...defaultProfile };
     const mode = String(r.publish_mode ?? 'local');
     return {
-      voice: String(r.voice), audience: String(r.audience), language: String(r.language), autoDraft: r.auto_draft === 1,
+      voice: String(r.voice), audience: String(r.audience), language: String(r.language), autoDraft: r.auto_draft === 1, autopilot: r.autopilot === 1,
       niche: String(r.niche), directives: String(r.directives),
       publishMode: mode === 'assisted' || mode === 'connected' ? mode : 'local',
     };
   }
 
   setProfile(projectId: string, p: Profile): Profile {
-    this.#db.prepare('INSERT OR REPLACE INTO profiles (project_id, voice, audience, language, auto_draft, niche, directives, publish_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(projectId, p.voice, p.audience, p.language, p.autoDraft ? 1 : 0, p.niche, p.directives, p.publishMode);
+    this.#db.prepare('INSERT OR REPLACE INTO profiles (project_id, voice, audience, language, auto_draft, niche, directives, publish_mode, autopilot) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(projectId, p.voice, p.audience, p.language, p.autoDraft ? 1 : 0, p.niche, p.directives, p.publishMode, p.autopilot ? 1 : 0);
     return p;
   }
 
