@@ -26,7 +26,7 @@ export function FigureTile({ figure, label }: { figure?: Figure; label?: string 
   return (
     <div className="figure">
       <b>{num(figure.value)}{pct ? '%' : ''}</b>
-      <span>{pct ? '' : `${figure.unit} `}{figure.what}</span>
+      <span>{pct || figure.what.toLowerCase().startsWith(figure.unit.toLowerCase()) ? '' : `${figure.unit} `}{figure.what}</span>
       {figure.source && <a className="src" href={figure.source} target="_blank" rel="noopener noreferrer" title={figure.source}>{host(figure.source) || 'source'}{figure.period ? ` · ${figure.period}` : ''}</a>}
     </div>
   );

@@ -5,6 +5,20 @@ import { Studio } from './studio/Studio';
 import { useHashPath, writeHashPath } from './route';
 import { parseAppView as parseView } from './route-path.ts';
 
+type Theme = 'light' | 'dark' | 'auto';
+const readTheme = (): Theme => { try { const t = localStorage.getItem('theme'); return t === 'dark' || t === 'auto' ? t : 'light'; } catch { return 'light'; } };
+
+// Light unless asked otherwise. The choice is kept in this browser only.
+function ThemeSwitch() {
+  const [theme, setTheme] = useState<Theme>(readTheme);
+  useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('theme', theme); } catch { /* private window: the choice lasts for this tab */ } }, [theme]);
+  return (
+    <div className="theme" role="radiogroup" aria-label="Theme">
+      {(['light', 'dark', 'auto'] as Theme[]).map(t => <button key={t} role="radio" aria-checked={theme === t} className={theme === t ? 'on' : ''} onClick={() => setTheme(t)}>{t === 'auto' ? 'System' : t === 'light' ? 'Light' : 'Dark'}</button>)}
+    </div>
+  );
+}
+
 // Content only: the dev pipeline (projects panel, features, timeline) is
 // hidden from the UI but kept on disk and in the API. One studio per project.
 export function App() {
@@ -66,6 +80,7 @@ export function App() {
           </div>
         ))}
         <button className="new" onClick={() => writeHashPath('/new')}><span>+</span> New studio</button>
+        <ThemeSwitch />
       </aside>
 
       <main className="main" id="main" tabIndex={-1}>

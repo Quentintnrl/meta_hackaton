@@ -1,21 +1,25 @@
+/* Light by default. Dark only when chosen (data-theme="dark"), or when the system asks and the person chose "auto". */
 :root {
-  --bg: #fafaf9; --panel: #ffffff; --soft: #f4f4f2; --ink: #17171a; --muted: #71717a; --line: #e7e7e4;
-  --accent: #5b5bf0; --accent-ink: #ffffff; --accent-soft: #ededff;
-  --wait: #b7791f; --wait-bg: #fdf3dc; --work: #3b6fe0; --work-bg: #e8f0ff; --done: #1d8a57; --done-bg: #e2f6ec; --bad: #c8372d;
-  --shadow: 0 1px 2px rgba(20, 20, 30, .04), 0 8px 24px -12px rgba(20, 20, 30, .12);
-  --radius: 14px;
+  --bg: #f5f6f8; --panel: #ffffff; --soft: #eef0f4; --ink: #1c2030; --muted: #667085; --line: #e3e6ec;
+  --accent: #4f5be8; --accent-ink: #ffffff; --accent-soft: #eceefc;
+  --wait: #a9661a; --wait-bg: #fcf1dd; --work: #3366d6; --work-bg: #e7efff; --done: #1f8a5a; --done-bg: #e3f5ec; --bad: #c43c32;
+  --shadow: 0 1px 2px rgba(28, 32, 48, .04), 0 6px 20px -14px rgba(28, 32, 48, .14);
+  --radius: 16px;
 }
+:root[data-theme="dark"] { --bg: #1d1c21; --panel: #27262c; --soft: #312f36; --ink: #ebe9e5; --muted: #a09da6; --line: #3b3940;
+  --accent: #9a9fff; --accent-ink: #15141a; --accent-soft: #33334d;
+  --wait: #f0bd58; --wait-bg: #3a2d14; --work: #8aacff; --work-bg: #1f2b48; --done: #5ccf95; --done-bg: #173424; --bad: #ff8577;
+  --shadow: 0 1px 2px rgba(0, 0, 0, .25), 0 8px 24px -14px rgba(0, 0, 0, .5); }
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #0e0e11; --panel: #16161a; --soft: #1d1d22; --ink: #ededf0; --muted: #8b8b96; --line: #26262c;
-    --accent: #8b8bff; --accent-ink: #0e0e11; --accent-soft: #23233f;
-    --wait: #f0b84a; --wait-bg: #2e2412; --work: #7aa2ff; --work-bg: #17233f; --done: #4cc38a; --done-bg: #12281d; --bad: #ff7b6b;
-    --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 8px 24px -12px rgba(0, 0, 0, .5);
-  }
+  :root[data-theme="auto"] { --bg: #1d1c21; --panel: #27262c; --soft: #312f36; --ink: #ebe9e5; --muted: #a09da6; --line: #3b3940;
+    --accent: #9a9fff; --accent-ink: #15141a; --accent-soft: #33334d;
+    --wait: #f0bd58; --wait-bg: #3a2d14; --work: #8aacff; --work-bg: #1f2b48; --done: #5ccf95; --done-bg: #173424; --bad: #ff8577;
+    --shadow: 0 1px 2px rgba(0, 0, 0, .25), 0 8px 24px -14px rgba(0, 0, 0, .5); }
 }
+:root[data-theme="dark"], :root[data-theme="auto"] { color-scheme: dark; } :root[data-theme="light"] { color-scheme: light; }
+@media (prefers-color-scheme: light) { :root[data-theme="auto"] { color-scheme: light; } }
 
 * { box-sizing: border-box; }
-html { color-scheme: light dark; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.55 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
 h1, h2, h3, h4, p { margin: 0; }
 h2 { font-size: 20px; font-weight: 650; letter-spacing: -.02em; }
@@ -524,3 +528,50 @@ details > summary:focus-visible { outline: 2px solid var(--accent); outline-offs
 .cmp-field { display: grid; } .cmp-field b { font-size: 15px; } .cmp-field small { color: var(--muted); font-size: 11px; }
 @media (max-width: 760px) { .cmp-head { display: none; } .cmp-row { grid-template-columns: 1fr 1fr; } }
 .plan .chips .hint { margin-left: auto; }
+
+
+/* ---- the airy pass: more room, bigger type, quieter labels, fewer boxes in boxes ---- */
+body { font-size: 15px; line-height: 1.6; }
+h2 { font-size: 26px; font-weight: 650; letter-spacing: -.02em; }
+h3 { font-size: 17px; font-weight: 620; margin-bottom: 12px; }
+.hint { line-height: 1.5; } .small { font-size: 13px; }
+.card { padding: 28px 30px; border-color: color-mix(in srgb, var(--line) 70%, transparent); }
+.stack { gap: 24px; }
+.layout.wide { grid-template-columns: 216px minmax(0, 1fr); }
+.studio { grid-template-columns: 196px minmax(0, 1fr); }
+.subnav { padding: 28px 14px; gap: 18px; } .navitem { padding: 11px 14px; font-size: 15px; }
+.studio-main { padding: 44px clamp(24px, 4vw, 64px) 96px; max-width: 1000px; gap: 28px; }
+.page-head { margin-bottom: 6px; } .page-head h2 { margin-bottom: 6px; } .page-head .hint { max-width: 62ch; }
+.today { margin-top: 14px; align-items: flex-start; } .today b { font-size: 20px; } .today > div { gap: 3px; } .today .hint { max-width: 64ch; }
+.stack > .today:first-child { margin-top: 0; }
+button { padding: 10px 16px; border-radius: 11px; } button.chip { padding: 6px 13px; font-size: 13px; } button.linkish { padding: 8px 6px; }
+input, textarea, select { padding: 11px 14px; border-radius: 11px; } label { font-size: 14px; gap: 8px; margin-top: 18px; }
+/* labels in sentence case: a small quiet line, not a shouted tag */
+.eyebrow, .navlabel, .why-big b, .proof-head, .cmp-head, h4.mini, .example b { letter-spacing: 0; text-transform: none; font-size: 13px; font-weight: 600; }
+.eyebrow { color: var(--muted); margin-bottom: 10px; } .why-big b { color: var(--muted); } .why-big p { margin-top: 6px; font-size: 15px; } .why-big { padding: 16px 18px; border-radius: 14px; }
+.cmp-head { padding-bottom: 6px; }
+.headline { font-size: 21px; line-height: 1.4; max-width: 60ch; } .hero-card { gap: 20px; }
+.bigstat { padding: 14px 16px; } .bigstat b { font-size: 26px; }
+/* numbers inside a row or a proof sit flat, separated by air, not by another box */
+.mixrow { padding: 16px 18px; gap: 18px; border-radius: 14px; background: transparent; border-color: var(--line); } .mixrow + .mixrow { margin-top: 2px; } .mix { gap: 10px; }
+.mixnums .figure, .proof-side .figure, .cmp-cadence .figure { background: transparent; padding: 6px 0 6px 12px; border-left: 2px solid var(--line); border-radius: 0; }
+.mixnums .figure.yours, .proof-side .figure.yours, .cmp-cadence .figure.yours { border-left-color: var(--accent); }
+.mixcount b { font-size: 32px; } .mixwhat p { font-size: 14px; line-height: 1.5; }
+.proof { padding: 18px 20px; border-radius: 14px; gap: 12px; } .proof-grid { gap: 20px; }
+.tile { padding: 16px; gap: 8px; border-radius: 14px; } .tiles { gap: 12px; }
+.cmp { gap: 6px; } .cmp-row { padding: 11px 12px; font-size: 14px; }
+.cmp-cadence { margin-bottom: 20px; }
+.deck h2 { font-size: 24px; } .deck .idea { gap: 14px; } .answers { margin-top: 20px; } .answers .big { padding: 13px 26px; }
+.funnel { padding: 18px 22px; }
+.note-line { padding: 14px 18px; }
+.example { padding: 20px 22px; gap: 18px; }
+/* theme switch, in the sidebar */
+.theme { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--soft); margin-top: 14px; }
+.theme button { border: 0; background: transparent; padding: 5px 11px; font-size: 12.5px; border-radius: 999px; color: var(--muted); min-height: 0; }
+.theme button.on { background: var(--panel); color: var(--ink); box-shadow: var(--shadow); }
+/* one section at a time in Insights: tabs that stay in reach while reading */
+.itabs { position: sticky; top: 0; z-index: 5; display: flex; gap: 4px; padding: 10px 0; margin: -10px 0 0; background: var(--bg); flex-wrap: wrap; }
+.itabs button { border: 0; background: transparent; color: var(--muted); padding: 10px 16px; border-radius: 999px; font-weight: 550; }
+.itabs button.on { background: var(--panel); color: var(--accent); box-shadow: var(--shadow); } .itabs button:hover:not(.on) { background: var(--soft); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+.figure .src { border: 0; background: transparent; padding: 0; width: fit-content; max-width: 100%; }

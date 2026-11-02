@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { hasFigure, teamApi, type AgentId, type ContentView, type TeamView } from '../api';
 import { AccountCard, AccountData, AuditCard } from './Insights';
 import { FigureTile, LEVER, PlanMix, hue, num, sameFormat } from './Numbers';
@@ -10,8 +11,13 @@ export function InsightsView({ pid, team, view, reload, go, askAgent }: { pid: s
   const { busy, error, run } = useAction(reload);
   const working = Boolean(team.working) || busy !== '';
   const brief = () => run('brief', () => teamApi.run(pid, ['scout', 'analyst', 'strategist'], ''));
+  const TABS: Array<[Tab, string]> = [['plan', 'The plan'], ['compare', 'You vs the field'], ['field', 'What works out there'], ['account', 'Your account']];
+  const [tab, setTab] = useState<Tab>(() => { try { return (localStorage.getItem('insights-tab') as Tab) || 'plan'; } catch { return 'plan'; } });
+  const pick = (t: Tab) => { setTab(t); try { localStorage.setItem('insights-tab', t); } catch { /* fine */ } };
   return (
     <div className="stack">
+      <div className="itabs" role="tablist">{TABS.map(([id, label]) => <button key={id} role="tab" aria-selected={tab === id} className={tab === id ? 'on' : ''} onClick={() => pick(id)}>{label}</button>)}</div>
+      {tab === 'plan' && <>
       <div className="today">
         <div><b>The plan</b><span className="hint small">What to post in the coming weeks, each line with the numbers behind it. Written by the Director from the research and your account.</span></div>
         <span className="row nomargin">
@@ -21,27 +27,35 @@ export function InsightsView({ pid, team, view, reload, go, askAgent }: { pid: s
       </div>
       <PlanCard team={team} go={go} />
       {error && <p className="error">{error}</p>}
+      </>}
 
+      {tab === 'compare' && <>
       <div className="today">
         <div><b>You vs the field</b><span className="hint small">Your average score per format next to the measure the Scout found for it. Not the same unit: yours is a score, theirs is what the field reports.</span></div>
       </div>
       <CompareCard team={team} />
+      </>}
 
+      {tab === 'field' && <>
       <div className="today">
         <div><b>What works out there</b><span className="hint small">The Scout's field research, with the figures it measured and where they come from.</span></div>
         <button className="linkish" onClick={() => askAgent('scout')}>Ask the Scout →</button>
       </div>
       <AuditCard pid={pid} audit={team.audit} log={team.audits} onBrief={working ? undefined : brief} />
+      </>}
 
+      {tab === 'account' && <>
       <div className="today">
         <div><b>Your account</b><span className="hint small">The Analyst's comparison: scores per format, your best and worst posts, strengths and gaps.</span></div>
         <button className="linkish" onClick={() => askAgent('analyst')}>Ask the Analyst →</button>
       </div>
       <AccountCard team={team} />
       <AccountData pid={pid} team={team} items={view.items} reload={reload} />
+      </>}
     </div>
   );
 }
+type Tab = 'plan' | 'compare' | 'field' | 'account';
 
 function PlanCard({ team, go }: { team: TeamView; go: (v: View) => void }) {
   const p = team.plan;
