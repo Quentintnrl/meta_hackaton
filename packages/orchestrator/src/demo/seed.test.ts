@@ -32,16 +32,16 @@ function demo() {
 test('the demo features come back from the journal in the claimed states', () => {
   const { rt } = demo();
   const states = Object.fromEntries(rt.list().map(f => [f.id, f.state]));
-  assert.deepEqual(states, { 'dark-mode': 'APPLIED', 'recipe-search': 'PR_READY' });
+  assert.deepEqual(states, { 'notification-drawer': 'APPLIED', 'attachment-download': 'PR_READY' });
 });
 
 test('the roadmap shows one goal with a corrected projection', () => {
   const { svc } = demo();
-  const [beta] = svc.milestones(DEMO_PROJECT);
-  assert.equal(beta.delivered, 1, 'only dark mode is merged');
-  assert.equal(beta.atRisk, true);
-  assert.equal(beta.forecast!.calibration, 1.3);
-  assert.equal(svc.store.forecasts(beta.id).length, 2, 'the first projection and its correction');
+  const [pilot] = svc.milestones(DEMO_PROJECT);
+  assert.equal(pilot.delivered, 1, 'only the notification drawer is merged');
+  assert.equal(pilot.atRisk, true);
+  assert.equal(pilot.forecast!.calibration, 1.3);
+  assert.equal(svc.store.forecasts(pilot.id).length, 2, 'the first projection and its correction');
 });
 
 test('the content covers every stage, and the account is labelled as fictional', () => {
@@ -80,7 +80,8 @@ test('the team overview works with no model at all', () => {
   assert.equal(o.config.scout.workers, 2);
   assert.ok(o.synthesis);
   assert.ok(o.plan && o.plan.simulated, 'a plan built on the demo numbers, flagged as such');
-  assert.equal(o.plan!.data.mix[0].yours!.value, o.account!.data.stats.find(s => s.format === 'tutorial')!.avgEngagement, 'the plan quotes the real averages');
+  assert.equal(o.plan!.data.mix[0].yours!.value, o.account!.data.stats.find(s => s.format === 'demo video')!.avgEngagement, 'the plan quotes the real averages');
   assert.ok(o.audit!.data.whatWorks.every(w => w.figure.value > 0), 'every field format carries a measured figure');
   assert.equal(o.audit!.data.benchmarks.length, 3);
+  assert.ok(o.audit!.simulated && o.account!.simulated, 'every figure in the demo is labelled as fictional');
 });
