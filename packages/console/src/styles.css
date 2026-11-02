@@ -660,3 +660,25 @@ details.more > div button { text-align: left; }
 .hero-card .bars.strength { margin-bottom: 0; }
 .plan h4.mini { margin: 4px 0 8px; }
 .today { margin-top: 0; }
+
+/* --- the one page: what to post next, and the facts it rests on */
+.brief-one textarea { width: 100%; box-sizing: border-box; margin: 10px 0 8px; font: inherit; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); color: var(--ink); resize: vertical; }
+.brief-row { align-items: center; gap: 14px; flex-wrap: wrap; } .brief-row label { display: inline-flex; align-items: center; gap: 6px; }
+.next-list { display: grid; gap: 14px; margin-top: 8px; }
+.piece { border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; background: var(--soft); display: grid; gap: 8px; }
+.piece.idea { background: var(--panel); border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+.piece-meta { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.piece-title { margin: 0; font-size: 17px; }
+.hook { margin: 0; font-size: 16px; line-height: 1.45; color: var(--ink); }
+.piece-why { margin: 0; font-size: 14px; line-height: 1.5; color: var(--muted); } .piece-why b { color: var(--ink); margin-right: 4px; }
+.piece-draft { margin: 4px 0 0; padding: 10px 14px; border-left: 3px solid var(--line); background: var(--bg); white-space: pre-wrap; font-size: 14px; line-height: 1.5; border-radius: 0 8px 8px 0; }
+.piece-actions { gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 4px; }
+.piece .refuse { display: flex; gap: 8px; align-items: center; } .piece .refuse input { flex: 1; }
+.chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); }
+.fact-list { margin: 8px 0 0; padding-left: 18px; font-size: 14px; line-height: 1.6; } .fact-list li + li { margin-top: 4px; }
+.plain-truth { margin: 12px 0 0; padding: 10px 14px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); font-size: 14px; line-height: 1.5; }
+.facts .piece-why { margin-top: 12px; }
+.more-posts { margin-top: 10px; } .more-posts summary { cursor: pointer; }
+.post-lines { list-style: none; padding: 0; margin: 8px 0 0; display: grid; gap: 4px; font-size: 13px; }
+.post-lines li { display: grid; grid-template-columns: 56px 1fr 36px; gap: 10px; align-items: baseline; } .post-lines li b { text-align: right; }
+.foot-links { display: flex; gap: 18px; flex-wrap: wrap; justify-content: center; margin: 4px 0 20px; }

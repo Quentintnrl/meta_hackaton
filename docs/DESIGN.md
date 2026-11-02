@@ -153,3 +153,15 @@ https://www.figma.com/files/team/1696616688424995318
 - **Un objectif se lit en deux dates** : « You want it on » / « The team expects », chacune avec sa raison ; la barre d'avancement et les features en puces ; les actions destructrices sous *More*.
 - **Insights, des formes avant des phrases** : barre segmentée du mix, points du rythme hebdomadaire, classement des formats du terrain en barres, cadence toi / terrain en deux barres de même unité.
 - **Team explique** : le flux d'un passage (toi → Scout → Analyst → Strategist → toi → Writer → toi), puis une fiche par agent avec son rôle, son dernier travail et ses deux réglages expliqués en clair.
+
+
+## 6. Une seule page : quoi poster ensuite, et pourquoi
+
+Testé avec les vraies données de Mairie360 (27 posts, 3 à 19 likes, zéro commentaire), le studio en cinq pages disait beaucoup et n'apprenait rien : classements de formats sur du bruit, « terrain » en unités différentes, journaux d'activité des agents, mécanique en page d'accueil. Le choix : une page, et chaque proposition doit tenir en dix secondes avec quatre choses concrètes.
+
+- **La première ligne** du post, écrite comme elle serait publiée (`pitch.hook`), pas un titre interne.
+- **Le canal** où est vraiment le public (`pitch.channel`), quitte à ne pas être celui du compte.
+- **Pourquoi**, en français courant, adossé à un fait vérifiable : un post nommé avec son chiffre et sa date, une feature fusionnée, une date, un exemple cliquable.
+- **Ce qu'on comptera** une semaine après (`pitch.measure`) : inscriptions, réponses, qui réagit. Jamais « l'engagement ».
+
+Les faits sur le compte sont calculés dans l'interface, sans modèle, et quand les chiffres sont trop petits pour classer quoi que ce soit, la page le dit en une phrase. Le Strategist et l'Analyst reçoivent la même consigne. Les anciennes pages restent dans le code et par URL, pas dans la navigation.

@@ -59,6 +59,9 @@ const Proposals = z.object({
     rationale: z.string(), // why this piece, in one or two sentences: which trend, which gap in the account, which part of the roadmap
     evidence: z.string().max(200).default(''), // the concrete proof with numbers, e.g. "tutorials average 412 here vs 180 in the field"
     format: z.string().default(''), // the content format it uses, named as in the account stats or the field research (tutorial, meme…); '' when none applies
+    hook: z.string().default(''), // the first line of the post, written as it would be published, in the project's language
+    channel: z.string().default(''), // where it goes: the network or place, one word or two (Instagram, LinkedIn, newsletter…)
+    measure: z.string().default(''), // what tells the manager it worked, one short sentence, something they can count (sign-ups, replies, a named person reacting), never "engagement"
     source: z.enum(['trend', 'account', 'roadmap']),
     milestoneId: z.string(), // '' when it hangs on no milestone
     offsetDays: z.number().int().min(-60).max(30), // relative to the milestone landing
@@ -257,7 +260,7 @@ Fill misses with the formats and angles that fall flat, each with a concrete exa
     const stats = formatStats(posts);
     const audit = this.#store.latestReport<Audit>(projectId, 'audit')?.data;
     const a = await this.#svc.llm.json(
-      `You compare a project's social account with what works in its field. Be concrete and honest; if the data is thin, say so.
+      `You compare a project's social account with what works in its field. Be concrete and honest; if the data is thin, say so. When posts get a handful of likes each and no comments, say plainly that formats cannot be told apart on these numbers, name what can still be read (the best and worst posts, the pace, the silence), and do not rank formats.
 Engagement = likes + 2*comments + 3*shares + 3*saves. Quote the post texts and engagement numbers below exactly as given: never invent or round them.
 
 Average engagement per format on this account:
@@ -314,7 +317,8 @@ ${pasted.slice(0, 12000)}`, AccountParse, 'account_import');
 
     const ask = (lens: string, count: string) => svc.llm.json(
       `You are the strategist of a small digital communication team working for a solo developer (the manager).
-Today is ${today}. Propose ${count} pieces of content for the coming weeks.${lens ? ` Look at the situation mainly through ${lens}.` : ''} Every piece must be justified by evidence you can see below: a trend from the audit, a gap or strength in the account, or something in the dev roadmap (a feature about to land, a milestone date). Say which in "rationale", concretely, and put the hard numbers behind it in "evidence" (formats with their scores, named winning or flopping posts, never invented figures). In "format", name the content format the piece uses with the same word as in the account stats or the field research (tutorial, meme, behind-the-scenes…), or leave it empty.
+Today is ${today}. Propose ${count} pieces of content for the coming weeks.${lens ? ` Look at the situation mainly through ${lens}.` : ''} Every piece must be justified by evidence you can see below: a trend from the audit, a gap or strength in the account, or something in the dev roadmap (a feature about to land, a milestone date). Say which in "rationale", in plain words a busy person reads once, naming the one fact it rests on (a named post with its number and date, a feature, a date, an example from the field). Put the hard numbers behind it in "evidence" (formats with their scores, named winning or flopping posts, never invented figures). When the account's numbers are too small to tell formats apart (a few likes each, no comments), say so in the rationale instead of ranking formats, and rest the piece on something else: what is being built, who the audience really is, where they are, one concrete example from the field.
+Write "hook" as the real first line of the post, in the project's language and voice. Name the "channel" where the audience actually is (the account's own network, or another one when the audience is elsewhere: say why in the rationale). In "measure", say what the manager will count a week later to know it worked, something concrete (sign-ups, replies, a specific kind of person reacting), not engagement in general. In "format", name the content format the piece uses with the same word as in the account stats or the field research (tutorial, meme, behind-the-scenes…), or leave it empty.
 Prefer the roadmap for timing: tie a piece to a milestone with offsetDays (negative = before it lands), or leave milestoneId empty and give a date.
 Do not repeat existing pieces. Do not propose again what the manager refused, and apply the reasons they gave.
 
@@ -363,6 +367,7 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
         projectId, kind: p.kind, title: p.title, brief: p.brief,
         rationale: `${p.rationale}${p.evidence ? `\nEvidence: ${p.evidence}` : ''}${mark}`,
         ...(proof ? { proof } : {}),
+        ...(p.hook || p.channel || p.measure ? { pitch: { hook: p.hook, channel: p.channel, measure: p.measure } } : {}),
         source: p.source, origin: 'ai', status: 'idea', createdAt: svc.now.toISOString(),
         ...(onMilestone ? { milestoneId: p.milestoneId, offsetDays: p.offsetDays } : { fixedDate: date }),
       }));

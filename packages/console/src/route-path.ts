@@ -26,7 +26,7 @@ export function appViewToHash(view: AppView): string {
   }
 }
 
-export const STUDIO_PAGES = ['today', 'create', 'calendar', 'insights', 'team'];
+export const STUDIO_PAGES = ['next', 'settings', 'today', 'create', 'calendar', 'insights', 'team'];
 export const STUDIO_AGENTS = ['director', 'scout', 'analyst', 'strategist', 'writer'];
 
 // Old pages land on their replacement: nothing bookmarked breaks.
@@ -45,7 +45,7 @@ export type About = { agent: string; kind: 'item' | 'milestone' | null; id: stri
 export function parseStudio(path: string, projectId: string): { page: string; openId: string | null; about: About | null } {
   const prefix = studioBase(projectId);
   const rest = path.startsWith(prefix) ? path.slice(prefix.length).split('/').filter(Boolean) : [];
-  let page = 'today';
+  let page = 'next';
   let tail = rest;
   if (tail[0] === 'agent' && STUDIO_AGENTS.includes(tail[1])) { page = `agent:${tail[1]}`; tail = tail.slice(2); }
   else if ((STUDIO_PAGES as string[]).includes(tail[0])) { page = tail[0]; tail = tail.slice(1); }

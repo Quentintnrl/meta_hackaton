@@ -105,6 +105,9 @@ export interface ExportPack {
   exportedPath?: string;
 }
 
+// The concrete shape of a proposal, so the manager can judge it without reading a report.
+export interface Pitch { hook: string; channel: string; measure: string }
+
 export interface Item {
   id: string;
   projectId: string;
@@ -122,6 +125,7 @@ export interface Item {
   media?: Media; // social posts only
   rationale: string; // why the team proposes it: what it saw in trends, in the account, in the roadmap
   proof?: Proof; // the numbers behind the rationale, computed from the stats
+  pitch?: Pitch; // the concrete shape of the piece: its first line, where it goes, what tells us it worked
   source: ItemSource;
   rejectedReason?: string;
   revisions: number;
