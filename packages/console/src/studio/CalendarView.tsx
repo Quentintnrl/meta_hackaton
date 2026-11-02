@@ -24,6 +24,10 @@ export function CalendarView({ view, openId, open }: { view: ContentView; openId
   }
   const undated = items.filter(i => !i.date);
   const go = (n: number) => { const d = new Date(Date.UTC(cursor.y, cursor.m + n, 1)); setCursor({ y: d.getUTCFullYear(), m: d.getUTCMonth() }); };
+  const monthKey = `${cursor.y}-${pad(cursor.m + 1)}`;
+  const inMonth = items.filter(i => i.date?.startsWith(monthKey));
+  const ready = inMonth.filter(i => i.status === 'approved').length;
+  const out = inMonth.filter(i => i.status === 'published').length;
 
   return (
     <div className="cal-wrap">
@@ -32,6 +36,7 @@ export function CalendarView({ view, openId, open }: { view: ContentView; openId
           <h3>{first.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</h3>
           <div className="row nomargin"><button onClick={() => go(-1)} aria-label="Previous month">‹</button><button onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })}>Today</button><button onClick={() => go(1)} aria-label="Next month">›</button></div>
         </div>
+        <p className="hint small" role="status">{inMonth.length === 0 ? 'Nothing planned this month yet.' : `${inMonth.length} piece${inMonth.length > 1 ? 's' : ''} this month · ${ready} ready to post · ${out} posted.`} Click a piece to work on it.</p>
         <div className="grid">
           {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => <div key={d} className="dow">{d}</div>)}
           {cells.map((d, idx) => {
@@ -52,7 +57,7 @@ export function CalendarView({ view, openId, open }: { view: ContentView; openId
         </div>
         <p className="legend small hint"><span>○ briefed</span><span>◐ drafted</span><span>● approved</span><span>✓ published</span><span>⚑ milestone lands (projected)</span><span><em className="late">+3d</em> pushed back by the projection</span></p>
         {undated.length > 0 && <><h5>No date yet</h5><div className="chips">{undated.map(i => <button key={i.id} className="pill-item" style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)}>{i.title}</button>)}</div></>}
-        {items.length === 0 && <p className="hint">The calendar fills when you accept proposals from the team.</p>}
+        {items.length === 0 && <p className="hint">The calendar fills when you accept proposals from the team. Accepted pieces land on their goal's date; locked dates never move.</p>}
       </section>
     </div>
   );

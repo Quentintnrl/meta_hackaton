@@ -33,6 +33,7 @@ export class ContentStore {
     // Databases created before the team existed.
     this.#addColumn('profiles', 'niche', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('profiles', 'directives', "TEXT NOT NULL DEFAULT ''");
+    this.#addColumn('profiles', 'publish_mode', "TEXT NOT NULL DEFAULT 'local'");
     this.#addColumn('items', 'rationale', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('items', 'source', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('items', 'rejected_reason', 'TEXT');
@@ -54,6 +55,13 @@ export class ContentStore {
   latestReport<T>(projectId: string, kind: Report['kind']): Report<T> | undefined {
     const r = this.#db.prepare('SELECT * FROM reports WHERE project_id = ? AND kind = ? ORDER BY id DESC LIMIT 1').get(projectId, kind) as Row | undefined;
     return r && { id: Number(r.id), kind, data: JSON.parse(String(r.data)) as T, simulated: r.simulated === 1, at: String(r.made_at) };
+  }
+
+  // The watch log: every past report of one kind, newest first, so the field research can be followed over time.
+  reports<T>(projectId: string, kind: Report['kind'], limit = 6): Report<T>[] {
+    return (this.#db.prepare('SELECT * FROM reports WHERE project_id = ? AND kind = ? ORDER BY id DESC LIMIT ?').all(projectId, kind, limit) as Row[]).map(r => ({
+      id: Number(r.id), kind, data: JSON.parse(String(r.data)) as T, simulated: r.simulated === 1, at: String(r.made_at),
+    }));
   }
 
   log(projectId: string, agent: AgentId, summary: string, ok: boolean, at: string) {
@@ -109,11 +117,17 @@ export class ContentStore {
   // --- profile
   profile(projectId: string): Profile {
     const r = this.#db.prepare('SELECT * FROM profiles WHERE project_id = ?').get(projectId) as Row | undefined;
-    return r ? { voice: String(r.voice), audience: String(r.audience), language: String(r.language), autoDraft: r.auto_draft === 1, niche: String(r.niche), directives: String(r.directives) } : { ...defaultProfile };
+    if (!r) return { ...defaultProfile };
+    const mode = String(r.publish_mode ?? 'local');
+    return {
+      voice: String(r.voice), audience: String(r.audience), language: String(r.language), autoDraft: r.auto_draft === 1,
+      niche: String(r.niche), directives: String(r.directives),
+      publishMode: mode === 'assisted' || mode === 'connected' ? mode : 'local',
+    };
   }
 
   setProfile(projectId: string, p: Profile): Profile {
-    this.#db.prepare('INSERT OR REPLACE INTO profiles (project_id, voice, audience, language, auto_draft, niche, directives) VALUES (?, ?, ?, ?, ?, ?, ?)').run(projectId, p.voice, p.audience, p.language, p.autoDraft ? 1 : 0, p.niche, p.directives);
+    this.#db.prepare('INSERT OR REPLACE INTO profiles (project_id, voice, audience, language, auto_draft, niche, directives, publish_mode) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(projectId, p.voice, p.audience, p.language, p.autoDraft ? 1 : 0, p.niche, p.directives, p.publishMode);
     return p;
   }
 

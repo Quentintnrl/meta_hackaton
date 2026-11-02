@@ -16,6 +16,17 @@ export function SettingsView({ pid, view, reload }: { pid: string; view: Content
         <label>What the project is about<input value={p.niche} onChange={e => setP({ ...p, niche: e.target.value })} placeholder="meal planning app for people who hate planning" /></label>
       </section>
       <section className="card">
+        <h3>Publishing</h3>
+        <p className="hint">Local posts by hand (no Meta app needed). Assisted posts by hand via a scheduler. Connected posts through a Meta app.</p>
+        <label>How pieces leave the studio
+          <select value={p.publishMode} onChange={e => setP({ ...p, publishMode: e.target.value as typeof p.publishMode })}>
+            <option value="local">By hand, here (local)</option>
+            <option value="assisted">By hand, via a scheduler (assisted)</option>
+            <option value="connected">Automatically (connected, needs a Meta app)</option>
+          </select>
+        </label>
+      </section>
+      <section className="card">
         <h3>Voice and audience</h3>
         <label>Voice<textarea rows={2} value={p.voice} onChange={e => setP({ ...p, voice: e.target.value })} placeholder="Warm, direct, a bit of humour." /></label>
         <div className="two">

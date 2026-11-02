@@ -120,7 +120,9 @@ export interface ContentItem {
   offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string; rationale: string; source: ItemSource; rejectedReason?: string;
   seriesId?: string; date?: string; plannedDate?: string; shiftDays?: number; reusedFrom?: string; versionCount?: number;
 }
-export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; niche: string; directives: string }
+export type PublishMode = 'local' | 'assisted' | 'connected';
+export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; niche: string; directives: string; publishMode: PublishMode }
+export interface ExportPack { copyText: string; caption: string; hashtags: string[]; mediaFiles: string[]; exportedPath?: string }
 export interface Series { id: string; projectId: string; name: string; createdAt: string }
 export interface AccountPost { id?: number; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string }
 export interface ContentView { profile: Profile; milestones: Milestone[]; items: ContentItem[]; series: Series[] }
@@ -132,15 +134,16 @@ export interface AgentConfig { enabled: boolean; workers: number; instructions: 
 export interface SuggestedAction { kind: 'run' | 'configure' | 'talk' | 'generate'; label: string; agents?: AgentId[]; brief?: string; agent?: AgentId; enabled?: boolean; workers?: number; instructions?: string; itemId?: string; index?: number }
 export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 export interface Synthesis { headline: string; points: string[]; next: string }
-export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number }>; hooks: string[]; topics: string[]; avoid: string[]; sources: string[] }
-export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number }
+export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number }>; hooks: string[]; topics: string[]; avoid: string[]; misses?: Array<{ format: string; why: string; example: string }>; sources: string[] }
+export interface VerdictPost { text: string; format: string; engagement: number; note: string }
+export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[] }
 export interface Report<T> { data: T; simulated: boolean; at: string }
 export interface TeamView {
   agents: Array<{ id: AgentId; name: string; role: string }>;
   working?: { agent: AgentId; since: string };
   config: Record<AgentId, AgentConfig>; synthesis?: Report<Synthesis>;
   posts: Array<{ text: string; format: string; engagement: number; postedAt: string }>;
-  audit?: Report<Audit>; account?: Report<AccountReport>; accountPosts: number;
+  audit?: Report<Audit>; audits?: Array<Report<Audit>>; account?: Report<AccountReport>; accountPosts: number;
   activity: Array<{ id: number; agent: AgentId; summary: string; ok: boolean; at: string }>;
 }
 
@@ -182,6 +185,7 @@ export const contentApi = {
   draft: (id: string, guidance?: string) => send<ContentItem>('POST', `/items/${id}/draft`, { guidance }),
   revise: (id: string, instruction: string) => send<ContentItem>('POST', `/items/${id}/revise`, { instruction }),
   approve: (id: string) => send<ContentItem>('POST', `/items/${id}/approve`),
-  publish: (id: string) => send<ContentItem>('POST', `/items/${id}/publish`),
+  publish: (id: string, mode?: PublishMode) => send<ContentItem>('POST', `/items/${id}/publish`, { mode }),
+  exportPack: (id: string) => call<ExportPack>(`/items/${id}/export-pack`),
   fromGit: (pid: string, since?: string) => send<ContentItem>('POST', `/projects/${pid}/content/from-git`, { since: since || undefined }),
 };

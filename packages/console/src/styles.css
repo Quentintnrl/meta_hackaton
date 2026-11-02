@@ -446,3 +446,44 @@ details.card > summary { cursor: pointer; }
 .steps li .primary, .steps li .linkish { margin-left: auto; }
 .videobox { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-start; padding: 14px; border-radius: 12px; background: var(--soft); } .videobox > * { min-width: 0; } .videobox video { width: 120px; border-radius: 10px; background: #000; flex: none; } .videobox > div { display: grid; gap: 6px; justify-items: start; }
 .unavail { width: 84px; flex: none; } .u-frame { fill: var(--panel); stroke: var(--line); stroke-width: 3; stroke-dasharray: 6 5; } .u-play { fill: var(--line); } .u-bar { stroke: var(--muted); stroke-width: 4; stroke-linecap: round; opacity: .7; } .u-tag { fill: var(--wait-bg); } .u-text { font-size: 9px; font-weight: 700; fill: var(--wait); }
+
+/* ---- polish: reach, focus, motion ---- */
+.skip { position: fixed; top: -48px; left: 12px; z-index: 40; background: var(--accent); color: var(--accent-ink); padding: 10px 16px; border-radius: 10px; font-weight: 600; text-decoration: none; transition: top .15s; }
+.skip:focus { top: 12px; }
+.main:focus { outline: none; }
+.navitem, .item, .tab, .preset, .tile, .el, .pill-item { min-height: 40px; }
+.navitem { padding: 10px 12px; }
+.stepper button { width: 34px; height: 34px; }
+.rows button, .proposal .row button { min-height: 40px; }
+details > summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 6px; }
+@media (max-width: 800px) {
+  .subnav { flex-wrap: nowrap; overflow-x: auto; padding: 12px; scrollbar-width: none; }
+  .subnav::-webkit-scrollbar { display: none; }
+  .navitem { flex: none; }
+  .pulse { flex: none; }
+  .main, .studio-main { padding: 20px 14px 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+@media (hover: none) { button:active:not(:disabled) { transform: none; } }
+
+/* ---- pipeline funnel and grounding strip ---- */
+.funnel { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 14px 18px; }
+.fstep { display: grid; justify-items: center; gap: 0; position: relative; }
+.fstep b { font-size: 22px; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.fstep span { font-size: 11.5px; color: var(--muted); }
+.fstep i { position: absolute; right: -6px; top: 8px; font-style: normal; color: var(--line); font-size: 14px; }
+.grounding { display: grid; gap: 4px; }
+.grounding > div { display: grid; gap: 2px; }
+
+/* ---- verdicts: best and flop posts, field misses ---- */
+.verdicts { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.verdicts li { display: grid; gap: 2px; padding: 10px 12px; border-radius: 10px; background: var(--done-bg); }
+.verdicts li b { font-size: 12.5px; color: var(--done); }
+.verdicts li span { font-size: 13.5px; font-weight: 550; overflow-wrap: break-word; }
+.verdicts li em { font-size: 12.5px; color: var(--muted); font-style: normal; }
+.verdicts.flop li { background: var(--wait-bg); }
+.verdicts.flop li b { color: var(--wait); }
+.tile.miss .badgecircle { background: var(--wait); color: #fff; }
+.evidence { display: inline-block; margin-top: 8px; font-size: 12.5px; font-weight: 550; color: var(--done); background: var(--done-bg); padding: 4px 10px; border-radius: 999px; }

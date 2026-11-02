@@ -3,13 +3,13 @@ import { z } from 'zod';
 import type { ProjectStore } from '../projects.ts';
 import type { ContentService } from './service.ts';
 import { Team, chatThread } from './team.ts';
-import { ItemKind } from './types.ts';
+import { ItemKind, PublishMode } from './types.ts';
 import { existsSync, readFileSync } from 'node:fs';
 
 const Date_ = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 const NewMilestone = z.object({ title: z.string().trim().min(1).max(120), intent: z.string().trim().max(4000).default(''), targetDate: Date_, scope: z.number().int().min(1).max(50) });
 const PatchMilestone = NewMilestone.partial();
-const Profile = z.object({ voice: z.string().max(2000), audience: z.string().max(1000), language: z.string().trim().min(1).max(40), autoDraft: z.boolean(), niche: z.string().max(500).default(''), directives: z.string().max(3000).default('') });
+const Profile = z.object({ voice: z.string().max(2000), audience: z.string().max(1000), language: z.string().trim().min(1).max(40), autoDraft: z.boolean(), niche: z.string().max(500).default(''), directives: z.string().max(3000).default(''), publishMode: PublishMode.default('local') });
 const NewItem = z.object({
   kind: ItemKind, title: z.string().trim().min(1).max(160), brief: z.string().max(4000).default(''),
   milestoneId: z.string().optional(), featureId: z.string().optional(), offsetDays: z.number().int().min(-90).max(90).optional(), fixedDate: Date_.optional(),
@@ -133,7 +133,14 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   });
 
   app.post('/items/:id/approve', c => guard(c, () => svc.approve(c.req.param('id'))));
-  app.post('/items/:id/publish', c => guard(c, () => svc.publish(c.req.param('id'))));
+  // Local and assisted mark what the manager posted by hand; connected posts
+  // through the publisher and fails loudly when no Meta app is set up.
+  app.post('/items/:id/publish', async c => {
+    const b = await body(c, z.object({ mode: PublishMode.optional() }));
+    return isResponse(b) ? b : guard(c, () => svc.publish(c.req.param('id'), b.mode));
+  });
+  // The ready-to-post pack: exact text to paste and media to attach. No Meta app involved.
+  app.get('/items/:id/export-pack', c => guard(c, () => svc.exportPack(c.req.param('id'))));
 
   // Changelog from the repository's own history. A git hook can call this after each merge (see README).
   app.post('/projects/:pid/content/from-git', async c => {

@@ -50,6 +50,7 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     autoDraft: false,
     niche: 'meal planning app for people who hate planning',
     directives: 'Never mention pricing. Prefer short videos and carousels over long text. At most two posts a week.',
+    publishMode: 'local',
   });
 
   // --- roadmap: one goal, two projections (the second corrects the first: the pace is slower than the plan)

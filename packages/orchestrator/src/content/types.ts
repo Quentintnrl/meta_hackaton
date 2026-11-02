@@ -7,6 +7,13 @@ export type ItemKind = z.infer<typeof ItemKind>;
 export const ItemStatus = z.enum(['idea', 'briefed', 'drafted', 'approved', 'published', 'rejected']);
 export type ItemStatus = z.infer<typeof ItemStatus>;
 
+export const PublishMode = z.enum(['local', 'assisted', 'connected']);
+export type PublishMode = z.infer<typeof PublishMode>;
+
+// How a piece leaves the studio. `local` = the manager posts it by hand and
+// marks it here (no Meta app needed); `assisted` = same, via a scheduler
+// (Buffer, Later, Business Suite); `connected` = the studio posts it through
+// the configured publisher, which needs a working Meta app.
 export interface Profile {
   voice: string; // how the project speaks
   audience: string; // who reads it
@@ -14,9 +21,10 @@ export interface Profile {
   autoDraft: boolean; // draft on its own when an item gets close; it never approves or publishes
   niche: string; // what the project is about, for the scout
   directives: string; // standing orders from the manager, read by every agent
+  publishMode: PublishMode; // local by default: nothing depends on Meta
 }
 
-export const defaultProfile: Profile = { voice: '', audience: '', language: 'English', autoDraft: false, niche: '', directives: '' };
+export const defaultProfile: Profile = { voice: '', audience: '', language: 'English', autoDraft: false, niche: '', directives: '', publishMode: 'local' };
 
 export interface Milestone {
   id: string;
@@ -68,6 +76,17 @@ export function normalizeHashtags(tags: string[]): string[] {
 }
 
 export type ItemSource = 'trend' | 'account' | 'roadmap' | 'manager' | '';
+
+// Everything the manager needs to post a piece by hand: the exact text to
+// paste (caption, then hashtags), the media files to attach, and where the
+// signed-off copy lives. No Meta app involved.
+export interface ExportPack {
+  copyText: string;
+  caption: string;
+  hashtags: string[];
+  mediaFiles: string[];
+  exportedPath?: string;
+}
 
 export interface Item {
   id: string;

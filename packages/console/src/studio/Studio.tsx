@@ -16,10 +16,10 @@ import { TeamPulse } from './Agents';
 export type View = 'today' | 'create' | 'calendar' | 'team' | `agent:${AgentId}`;
 
 const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: string }> = {
-  today: { title: 'Today', about: 'Decide, review, publish.' },
-  create: { title: 'Create', about: 'Ask for ideas, write what was accepted.' },
-  calendar: { title: 'Calendar', about: 'Goals and dates. Click a piece to work on it.' },
-  team: { title: 'Team', about: 'Who does what, what they found, what you told them.' },
+  today: { title: 'Today', about: 'Your to-do list: judge ideas, review drafts, post what is ready.' },
+  create: { title: 'Create', about: 'Feed the machine: brief the team, collect ideas, start writing.' },
+  calendar: { title: 'Calendar', about: 'When everything lands: goals, dates, and every piece on the line.' },
+  team: { title: 'Team', about: 'The crew, what it found in the field and in your numbers, and the rules you set.' },
 };
 
 // The communication team of a project: a sub-menu on the left, one page at a time.
@@ -46,6 +46,14 @@ export function Studio({ project }: { project: Project }) {
   }, [project.id]);
   useEffect(() => { reload().catch(e => setLoadError((e as Error).message)); }, [reload]);
 
+  // Escape closes the piece editor, like any drawer.
+  useEffect(() => {
+    if (!openId) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenId(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [openId]);
+
   // While the team works, keep watching: proposals appear as soon as the Strategist is done.
   useEffect(() => {
     if (!team?.working) return;
@@ -53,7 +61,7 @@ export function Studio({ project }: { project: Project }) {
     return () => clearInterval(timer);
   }, [team?.working, reload]);
 
-  if (!view || !team) return <section className="card">{loadError ? <><p className="error">The studio did not load: {loadError}</p><p><button className="primary" onClick={() => reload().catch(e => setLoadError((e as Error).message))}>Retry</button></p></> : <p className="hint">Loading…</p>}</section>;
+  if (!view || !team) return <section className="card" role="status">{loadError ? <><p className="error">The studio did not load: {loadError}</p><p><button className="primary" onClick={() => reload().catch(e => setLoadError((e as Error).message))}>Retry</button></p></> : <p className="hint pulse-text">Loading your studio…</p>}</section>;
 
   const waiting = view.items.filter(i => i.status === 'idea').length + view.items.filter(i => i.status === 'drafted').length + view.items.filter(i => i.status === 'approved').length;
   const late = view.milestones.filter(m => m.atRisk).length;

@@ -16,7 +16,7 @@ export function NewStudio({ onCreated, first }: { onCreated: (p: Project) => voi
     setError('');
     try {
       const p = await api.addProject({ source: 'scratch', name: name.trim() });
-      await contentApi.setProfile(p.id, { voice: '', audience: audience.trim(), language: 'English', autoDraft: false, niche: about.trim(), directives: '' });
+      await contentApi.setProfile(p.id, { voice: '', audience: audience.trim(), language: 'English', autoDraft: false, niche: about.trim(), directives: '', publishMode: 'local' });
       onCreated(p);
     } catch (e) {
       setError((e as Error).message);

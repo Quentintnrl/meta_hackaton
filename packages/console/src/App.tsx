@@ -43,7 +43,8 @@ export function App() {
 
   return (
     <div className="layout wide">
-      <aside className="side">
+      <a className="skip" href="#main">Skip to content</a>
+      <aside className="side" aria-label="Studios">
         <div className="brand">
           <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden>
             <circle cx="16" cy="16" r="4" fill="currentColor" />
@@ -67,7 +68,7 @@ export function App() {
         <button className="new" onClick={() => writeHashPath('/new')}><span>+</span> New studio</button>
       </aside>
 
-      <main className="main">
+      <main className="main" id="main" tabIndex={-1}>
         {showForm && <NewStudio first={projects.length === 0} onCreated={p => { refresh(); writeHashPath(`/projects/${p.id}/content`); }} />}
         {!showForm && project && <Studio key={project.id} project={project} />}
       </main>

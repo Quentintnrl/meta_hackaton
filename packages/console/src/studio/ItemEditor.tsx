@@ -50,6 +50,12 @@ export function ItemEditor({ item, milestones, series, reload, onClose, goItem, 
     await contentApi.approve(item.id);
   });
   const ms = milestones.find(m => m.id === item.milestoneId);
+  const copyText = [item.draft, (item.media?.hashtags ?? []).join(' ')].filter(Boolean).join('\n\n');
+  const [copied, setCopied] = useState(false);
+  const copyNow = async () => {
+    try { await navigator.clipboard.writeText(copyText); setCopied(true); setTimeout(() => setCopied(false), 2000); }
+    catch { /* clipboard unavailable: the text stays visible above */ }
+  };
   return (
     <aside className="editor card" aria-label={`Editing ${item.title}`}>
       <div className="head"><KindChip kind={item.kind} /><span className={`badge ${item.status === 'published' || item.status === 'approved' ? 'done' : item.status === 'drafted' ? 'work' : 'wait'}`}><i />{item.status}</span><button className="x" onClick={onClose} aria-label="Close">×</button></div>
@@ -75,7 +81,8 @@ export function ItemEditor({ item, milestones, series, reload, onClose, goItem, 
       {SOCIAL_KINDS.includes(item.kind) && <PostBuilder item={item} reload={reload} />}
       <div className="row">
         <button disabled={b || !canApprove} title={approveHint} onClick={approveNow}>{busy === 'approve' ? 'Approving…' : dirtyDraft || dirtyBrief ? 'Save & approve' : 'Approve'}</button>
-        <button disabled={b || item.status !== 'approved'} onClick={() => run('publish', () => contentApi.publish(item.id))}>Mark published</button>
+        {!!copyText && <button disabled={b} title="Copy the caption and hashtags to paste where your audience lives" onClick={() => void copyNow()}>{copied ? 'Copied' : 'Copy caption'}</button>}
+        <button disabled={b || item.status !== 'approved'} title="Post it where your audience lives first, then record it here" onClick={() => run('publish', () => contentApi.publish(item.id))}>Mark posted</button>
         <label className="inline lock"><span>Lock date</span><input type="date" value={item.fixedDate ?? ''} onChange={e => run('date', () => e.target.value ? contentApi.patchItem(item.id, { fixedDate: e.target.value }) : contentApi.patchItem(item.id, { clearFixedDate: true }))} /></label>
         <button className="linkish" disabled={b} title="Start a new idea from this piece" onClick={() => run('reuse', async () => { const n = await contentApi.reuseItem(item.id); goItem(n.id); })}>{busy === 'reuse' ? 'Reusing…' : 'Reuse as new idea'}</button>
         <button className="linkish" disabled={b} onClick={() => run('rm', async () => { await contentApi.removeItem(item.id); onClose(); })}>Delete</button>

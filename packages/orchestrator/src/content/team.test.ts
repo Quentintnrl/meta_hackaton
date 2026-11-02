@@ -21,14 +21,14 @@ function setup(over: Partial<LLM> = {}) {
     json: async (prompt, schema, name, opts) => {
       prompts[name] = prompt;
       shots[name] = opts?.images?.length ?? 0;
-      if (name === 'audit') return schema.parse({ summary: 'Build in public wins', whatWorks: [{ format: 'behind-the-scenes', why: 'trust', example: 'a', strength: 5 }], hooks: ['mistakes included'], topics: ['solo dev'], avoid: ['release notes alone'] });
+      if (name === 'audit') return schema.parse({ summary: 'Build in public wins', whatWorks: [{ format: 'behind-the-scenes', why: 'trust', example: 'a', strength: 5 }], hooks: ['mistakes included'], topics: ['solo dev'], avoid: ['release notes alone'], misses: [{ format: 'press release', why: 'nobody shares announcements with no story', example: 'a launch post stuck at 2 likes' }] });
       if (name === 'synthesis') return schema.parse({ headline: 'The team found what works', points: ['Build in public wins', 'Two proposals wait'], next: 'Decide on the proposals' });
       if (name === 'director_reply') return schema.parse(directorReply);
       if (name === 'agent_reply') return schema.parse(agentReply);
-      if (name === 'account_analysis') return schema.parse({ summary: 'Strong on BTS, weak on releases', strengths: ['bts'], gaps: ['no video'], opportunities: ['teasers'] });
+      if (name === 'account_analysis') return schema.parse({ summary: 'Strong on BTS, weak on releases', strengths: ['bts'], gaps: ['no video'], opportunities: ['teasers'], winners: [{ text: "POV: it's 6pm and the fridge is empty", format: 'meme', engagement: 1227, note: 'shares carry it beyond followers' }], losers: [{ text: 'New in App: small fixes, big relief', format: 'release', engagement: 109, note: 'announcement with no story to save' }] });
       if (name === 'proposals') return schema.parse({ proposals: [
-        { kind: 'teaser', title: 'Beta teaser', brief: 'tease', rationale: 'BTS wins and the beta lands soon', source: 'roadmap', milestoneId: 'beta', offsetDays: -5, date: '' },
-        { kind: 'devlog', title: 'Week notes', brief: 'notes', rationale: 'account gap', source: 'account', milestoneId: 'ghost', offsetDays: 0, date: '2026-11-10' },
+        { kind: 'teaser', title: 'Beta teaser', brief: 'tease', rationale: 'BTS wins and the beta lands soon', evidence: 'behind-the-scenes averages 742 here, top of the field', source: 'roadmap', milestoneId: 'beta', offsetDays: -5, date: '' },
+        { kind: 'devlog', title: 'Week notes', brief: 'notes', rationale: 'account gap', evidence: '', source: 'account', milestoneId: 'ghost', offsetDays: 0, date: '2026-11-10' },
       ] });
       if (name === 'post' || name === 'post_revision') return schema.parse({ caption: `caption (${name})`, hashtags: ['#Meal Prep', 'mealprep', 'cooking'], format: 'carousel', slides: [
         { kind: 'image', visual: 'a plate, flat lay', text: 'Plan', seconds: 0 }, { kind: 'image', visual: 'a calendar', text: 'Shop', seconds: 0 } ] });
@@ -70,6 +70,46 @@ test('pasted posts are structured by the model, not invented', async () => {
   assert.equal(posts[0].simulated, false);
   assert.equal(posts[0].postedAt, '2026-11-01', 'an unreadable date falls back to today');
   assert.equal(svc.store.account('app').length, 1);
+});
+
+test('a CSV export loads exact numbers without calling the model', async () => {
+  const { svc, team } = setup({ json: async () => { throw new Error('the model must not be called for a CSV table'); } });
+  const posts = await team.importAccount('app', 'text,likes,comments\nFirst post,12,3\nSecond,4,0');
+  assert.deepEqual(posts.map(p => [p.text, p.likes, p.comments, p.simulated]), [['First post', 12, 3, false], ['Second', 4, 0, false]]);
+  assert.equal(svc.store.account('app').length, 2);
+});
+
+test('the scout files flops with examples, kept as a watch log', async () => {
+  const { svc, team } = setup();
+  const audit = await team.scout('app', 'App');
+  assert.equal(audit.misses.length, 1);
+  assert.equal(audit.misses[0].format, 'press release');
+  assert.ok(audit.misses[0].example, 'a concrete example, not a guess');
+  await team.scout('app', 'App');
+  const log = team.overview('app').audits!;
+  assert.equal(log.length, 2, 'every round is kept, newest first');
+  assert.ok(log[0].id > log[1].id);
+});
+
+test('the analyst names the best and worst posts with their real scores', async () => {
+  const { svc, team, prompts } = setup();
+  team.loadDemoAccount('app', 'App');
+  const r = await team.analyse('app');
+  assert.match(prompts.account_analysis, /winners/, 'the model is asked to pick them');
+  assert.equal(r.winners[0].engagement, 1227);
+  assert.equal(r.losers[0].engagement, 109);
+  for (const w of [...r.winners, ...r.losers]) {
+    const post = svc.store.account('app').find(p => p.text === w.text)!;
+    assert.ok(post, `"${w.text}" is a real post`);
+    assert.equal(post.likes + post.comments * 2 + post.shares * 3 + post.saves * 3, w.engagement, 'the score is the real one');
+  }
+});
+
+test('a proposal carries its proof, shown apart from its reason', async () => {
+  const { team } = setup();
+  const [first, second] = await team.strategize('app');
+  assert.match(first.rationale, /Evidence: behind-the-scenes averages 742/);
+  assert.doesNotMatch(second.rationale, /Evidence:/, 'no proof, no line');
 });
 
 test('the strategist reads audit, account and roadmap, and cites them', async () => {
@@ -182,7 +222,7 @@ test('a refused proposal teaches the next round', async () => {
 
 test('standing orders reach every agent', async () => {
   const { svc, team, prompts } = setup();
-  svc.setProfile('app', { voice: '', audience: '', language: 'French', autoDraft: false, niche: 'meal planning', directives: 'never mention pricing' });
+  svc.setProfile('app', { voice: '', audience: '', language: 'French', autoDraft: false, niche: 'meal planning', directives: 'never mention pricing', publishMode: 'local' });
   team.loadDemoAccount('app', 'App');
   await team.scout('app', 'App');
   await team.analyse('app');
@@ -216,7 +256,7 @@ test('a run goes through the agents in order, logs each, and survives a failing 
 
 test('tick does not draft a proposal that is still waiting for the manager', async () => {
   const { svc, team } = setup();
-  svc.setProfile('app', { voice: '', audience: '', language: 'English', autoDraft: true, niche: '', directives: '' });
+  svc.setProfile('app', { voice: '', audience: '', language: 'English', autoDraft: true, niche: '', directives: '', publishMode: 'local' });
   const [a] = await team.strategize('app');
   const item = svc.store.updateItem(a.id, { fixedDate: '2026-11-02' });
   assert.equal((await svc.tick()).drafted, 0);

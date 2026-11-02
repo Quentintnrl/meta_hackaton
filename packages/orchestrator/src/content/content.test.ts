@@ -11,13 +11,15 @@ import { ProjectStore } from '../projects.ts';
 import { Runtime } from '../runtime.ts';
 import { createSources } from '../project-sources.ts';
 import type { LLM } from '../adapters/llm.ts';
+import type { Publisher } from '@ripple/shared';
 import type { Forecast } from './types.ts';
+import { parseAccountCsv } from './service.ts';
 
 const DAY = 86_400_000;
 const t0 = Date.parse('2026-11-01T09:00:00Z');
 
 // A clock the test moves, and features whose state the test sets.
-function setup(opts: { llm?: LLM } = {}) {
+function setup(opts: { llm?: LLM; publisher?: Publisher } = {}) {
   let now = t0;
   const states = new Map<string, string>();
   const features: FeatureLookup = id => states.has(id) ? { projectId: 'app', title: `Feature ${id}`, state: states.get(id)!, summary: `does ${id}` } : undefined;
@@ -36,7 +38,7 @@ function setup(opts: { llm?: LLM } = {}) {
     },
   };
   const exportDir = mkdtempSync(join(tmpdir(), 'ripple-content-'));
-  const svc = new ContentService({ llm, features, exportDir, repoPath: () => '/repo', now: () => new Date(now), git: async () => ['abc123 add drawer', 'def456 fix typo'] });
+  const svc = new ContentService({ llm, features, exportDir, repoPath: () => '/repo', now: () => new Date(now), git: async () => ['abc123 add drawer', 'def456 fix typo'], publisher: opts.publisher });
   return { svc, states, calls, exportDir, advance: (days: number) => { now += days * DAY; } };
 }
 const ms = (over = {}) => ({ projectId: 'app', title: 'v1', intent: 'ship the drawer', targetDate: '2026-11-21', scope: 4, ...over });
@@ -207,7 +209,7 @@ test('editing the text by hand makes it a draft that needs a new approval', asyn
 test('a merged feature starts its own changelog; autoDraft writes it', async () => {
   const { svc, states } = setup();
   states.set('a', 'APPLIED');
-  svc.setProfile('app', { voice: 'warm', audience: 'cooks', language: 'English', autoDraft: true, niche: '', directives: '' });
+  svc.setProfile('app', { voice: 'warm', audience: 'cooks', language: 'English', autoDraft: true, niche: '', directives: '', publishMode: 'local' });
   const [item] = await svc.onFeatureApplied('a');
   assert.equal(item.origin, 'dev');
   assert.equal(item.status, 'drafted');
@@ -225,7 +227,7 @@ test('tick drafts what is due soon, only where the project allows it, and never 
   const { svc, advance } = setup();
   const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'p', brief: 'b', fixedDate: '2026-11-03' });
   assert.deepEqual(await svc.tick(), { reforecast: 0, drafted: 0 });
-  svc.setProfile('app', { voice: '', audience: '', language: 'English', autoDraft: true, niche: '', directives: '' });
+  svc.setProfile('app', { voice: '', audience: '', language: 'English', autoDraft: true, niche: '', directives: '', publishMode: 'local' });
   advance(0);
   assert.equal((await svc.tick()).drafted, 1);
   assert.equal(svc.store.item(i.id)!.status, 'drafted');
@@ -305,4 +307,58 @@ test('without an image model, asking for a picture says so', async () => {
   const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'T', brief: 'b' });
   await svc.draft(i.id);
   await assert.rejects(svc.generateSlide(i.id, 0), /no image model/);
+});
+
+test('local publishing records a hand-posted piece with no Meta app involved', async () => {
+  const { svc } = setup();
+  const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Launch', brief: 'x', fixedDate: '2026-11-05' });
+  await svc.draft(i.id);
+  svc.approve(i.id);
+  assert.equal((await svc.publish(i.id)).status, 'published');
+  const j = svc.addItem({ projectId: 'app', kind: 'devlog', title: 'Week notes', brief: 'y', fixedDate: '2026-11-06' });
+  await svc.draft(j.id);
+  svc.approve(j.id);
+  assert.equal((await svc.publish(j.id, 'assisted')).status, 'published', 'assisted also records hand-posting');
+});
+
+test('connected publishing without a Meta app fails loudly instead of pretending', async () => {
+  const { svc } = setup();
+  const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Launch', brief: 'x', fixedDate: '2026-11-05' });
+  await svc.draft(i.id);
+  svc.approve(i.id);
+  await assert.rejects(svc.publish(i.id, 'connected'), /Meta app/);
+  assert.equal(svc.store.item(i.id)!.status, 'approved', 'still waiting to be posted by hand');
+});
+
+test('connected publishing with a publisher posts the caption and hashtags', async () => {
+  const sent: string[] = [];
+  const { svc } = setup({ publisher: { simulated: true, publish: async post => { sent.push(post.caption); return { id: '1', url: 'http://x/1', simulated: true }; } } });
+  const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Launch', brief: 'x', fixedDate: '2026-11-05' });
+  await svc.draft(i.id);
+  svc.approve(i.id);
+  await svc.publish(i.id, 'connected');
+  assert.equal(sent.length, 1);
+  assert.match(sent[0], /caption \(post\)/);
+  assert.match(sent[0], /#MealPrep #cooking/);
+});
+
+test('the export pack is the exact text to paste, hashtags included', async () => {
+  const { svc } = setup();
+  const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Launch', brief: 'x', fixedDate: '2026-11-05' });
+  await svc.draft(i.id);
+  const pack = svc.exportPack(i.id);
+  assert.equal(pack.caption, 'caption (post)');
+  assert.deepEqual(pack.hashtags, ['#MealPrep', '#cooking']);
+  assert.equal(pack.copyText, 'caption (post)\n\n#MealPrep #cooking');
+  await assert.rejects(async () => svc.exportPack(svc.addItem({ projectId: 'app', kind: 'devlog', title: 'Empty', brief: 'y' }).id), /draft it first/);
+});
+
+test('a pasted CSV table is read exactly, with no model call', () => {
+  const rows = parseAccountCsv('text,format,likes,comments,shares,saves,posted_at\n"Hello, world",tip,10,2,1,3,2026-10-12\nSecond,post,5,0,0,0,not-a-date', '2026-11-01');
+  assert.deepEqual(rows?.map(r => [r.text, r.format, r.likes, r.comments, r.shares, r.saves, r.postedAt, r.simulated]), [
+    ['Hello, world', 'tip', 10, 2, 1, 3, '2026-10-12', false],
+    ['Second', 'post', 5, 0, 0, 0, '2026-11-01', false],
+  ]);
+  assert.equal(parseAccountCsv('just some free text', '2026-11-01'), undefined, 'free text still goes to the model');
+  assert.equal(parseAccountCsv('text\nonly a header', '2026-11-01'), undefined);
 });

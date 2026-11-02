@@ -9,7 +9,7 @@ import { calibration, moved, project } from './forecast.ts';
 import type { ImageGen } from '../adapters/image.ts';
 import { renderVideo } from './video.ts';
 import { draftItem, draftPost, explainForecast, proposeContent, reviseItem, revisePost, type FeatureFacts } from './assistant.ts';
-import { addDays, day, daysBetween, normalizeHashtags, type Forecast, type Item, type ItemKind, type Media, type Milestone, type Profile, type Series } from './types.ts';
+import { addDays, day, daysBetween, normalizeHashtags, type AccountPost, type ExportPack, type Forecast, type Item, type ItemKind, type Media, type Milestone, type Profile, type PublishMode, type Series } from './types.ts';
 
 const run = promisify(execFile);
 
@@ -282,11 +282,35 @@ export class ContentService {
     return lines.join('\n') + '\n';
   }
 
-  async publish(itemId: string): Promise<Item> {
+  // How a piece leaves the studio. Local and assisted just record that the
+  // manager posted it by hand (in the app, or via a scheduler): nothing
+  // depends on a Meta app. Connected posts through the configured publisher
+  // and fails loudly when none is set up, instead of pretending it worked.
+  async publish(itemId: string, mode?: PublishMode): Promise<Item> {
     const item = this.#needItem(itemId);
     if (item.status !== 'approved') throw new Error('approve it first');
-    if (this.#publisher && SOCIAL.includes(item.kind)) await this.#publisher.publish({ caption: [item.draft, item.media?.hashtags.join(' ')].filter(Boolean).join('\n\n'), imagePath: (item.media?.slides[0]?.file && this.mediaPath(item.id, item.media.slides[0].file)) || '' });
+    const how = mode ?? this.store.profile(item.projectId).publishMode;
+    if (how === 'connected') {
+      if (!this.#publisher) throw new Error('connected publishing needs a Meta app, which is not set up: post it where your audience lives, then mark it posted by hand instead');
+      if (SOCIAL.includes(item.kind)) await this.#publisher.publish({ caption: this.exportPack(itemId).copyText, imagePath: (item.media?.slides[0]?.file && this.mediaPath(item.id, item.media.slides[0].file)) || '' });
+    }
     return this.store.updateItem(itemId, { status: 'published', publishedAt: this.#now().toISOString() });
+  }
+
+  // The ready-to-post pack: the exact text to paste (caption, then
+  // hashtags), the media files to attach, and where the signed-off copy
+  // lives. Works with no Meta app involved.
+  exportPack(itemId: string): ExportPack {
+    const item = this.#needItem(itemId);
+    if (!item.draft.trim()) throw new Error('there is nothing to export: draft it first');
+    const hashtags = item.media?.hashtags ?? [];
+    return {
+      caption: item.draft,
+      hashtags,
+      copyText: [item.draft, hashtags.join(' ')].filter(Boolean).join('\n\n'),
+      mediaFiles: (item.media?.slides ?? []).map(s => s.file).filter((f): f is string => Boolean(f)),
+      exportedPath: item.exportedPath,
+    };
   }
 
   // --- pictures. Only on request: each one is a paid call, so nothing is generated behind the manager's back.
@@ -410,9 +434,63 @@ export class ContentService {
     return m;
   }
 
+
   #needItem(id: string) {
     const i = this.store.item(id);
     if (!i) throw new Error(`unknown item ${id}`);
     return i;
   }
+}
+
+// A pasted analytics export, read exactly: no model call, no invented
+// numbers. Expected header (any order, extra columns ignored):
+// text,format,likes,comments,shares,saves,posted_at
+// Returns undefined when the text is not such a table, so the caller can
+// fall back to the model for free-form pastes.
+export function parseAccountCsv(pasted: string, today: string): AccountPost[] | undefined {
+  const lines = pasted.split('\n').map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) return undefined;
+  const header = splitCsv(lines[0]).map(h => h.trim().toLowerCase());
+  const idx = (name: string) => header.indexOf(name);
+  if (idx('text') < 0 || idx('likes') < 0) return undefined;
+  const num = (cells: string[], name: string) => {
+    const i = idx(name);
+    if (i < 0 || i >= cells.length) return 0;
+    const n = Number(cells[i].trim());
+    return Number.isInteger(n) && n >= 0 ? n : 0;
+  };
+  const posts: AccountPost[] = [];
+  for (const line of lines.slice(1)) {
+    const cells = splitCsv(line);
+    const text = (cells[idx('text')] ?? '').trim();
+    if (!text) continue;
+    const at = idx('posted_at') >= 0 ? (cells[idx('posted_at')] ?? '').trim() : '';
+    posts.push({
+      text,
+      format: (idx('format') >= 0 ? (cells[idx('format')] ?? '').trim() : '') || 'post',
+      likes: num(cells, 'likes'), comments: num(cells, 'comments'),
+      shares: num(cells, 'shares'), saves: num(cells, 'saves'),
+      postedAt: /^\d{4}-\d{2}-\d{2}$/.test(at) ? at : today,
+      simulated: false,
+    });
+  }
+  return posts.length ? posts : undefined;
+}
+
+// One CSV row, honouring double-quoted cells that contain commas.
+function splitCsv(line: string): string[] {
+  const out: string[] = [];
+  let cur = '', quoted = false;
+  for (let i = 0; i < line.length; i++) {
+    const c = line[i];
+    if (quoted) {
+      if (c === '"' && line[i + 1] === '"') { cur += '"'; i++; }
+      else if (c === '"') quoted = false;
+      else cur += c;
+    } else if (c === '"') quoted = true;
+    else if (c === ',') { out.push(cur); cur = ''; }
+    else cur += c;
+  }
+  out.push(cur);
+  return out;
 }

@@ -67,7 +67,7 @@ export function IdeaDeck({ ideas, milestones, reload, askAgent }: { ideas: Conte
         <div className="top"><KindChip kind={item.kind} /><span className="hint small">{WHAT[item.kind] ?? ''} · {credit(item)}</span><button className="linkish" onClick={() => askAgent('strategist', 'item', item.id)}>Ask the Strategist →</button></div>
         <h2>{item.title}</h2>
         <p className="when-line">Planned for <b>{fmt(item.fixedDate ?? item.date)}</b>{ms ? <> · around <b>{ms}</b></> : null}</p>
-        {item.rationale && <div className="why-big"><b>{credit(item)}{logicFor(item) ? ` · ${logicFor(item)}` : src ? ` · ${src.hint.toLowerCase()}` : ''}</b><p>{item.rationale}</p></div>}
+        {item.rationale && <div className="why-big"><b>{credit(item)}{logicFor(item) ? ` · ${logicFor(item)}` : src ? ` · ${src.hint.toLowerCase()}` : ''}</b><p>{item.rationale.split('\nEvidence: ')[0]}</p>{item.rationale.includes('\nEvidence: ') && <span className="evidence">Proven by: {item.rationale.split('\nEvidence: ')[1]}</span>}</div>}
         {more && <div className="why-big"><b>What it would say</b><p>{item.brief}</p></div>}
       </div>
       {refusing ? (

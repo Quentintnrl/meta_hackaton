@@ -15,10 +15,22 @@ function Meter({ value }: { value: number }) {
   return <span className="meter" role="img" aria-label={`${value} out of 5`}>{[1, 2, 3, 4, 5].map(n => <i key={n} className={n <= value ? 'on' : ''} />)}</span>;
 }
 
-export function AuditCard({ audit }: { audit?: { data: Audit; at: string } }) {
+export function AuditCard({ audit, log, onBrief }: { audit?: { data: Audit; at: string }; log?: Array<{ data: Audit; at: string }>; onBrief?: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
-  if (!audit) return <section className="card empty"><p>The Scout has not looked yet.</p><p className="hint small">Brief the team from Create, or ask it directly with the button above.</p></section>;
+  if (!audit) return (
+    <section className="card guide">
+      <h3>No field research yet</h3>
+      <ol className="steps">
+        <li><span className="tick">1</span><span>The Scout searches the web for what performs in your field right now.</span></li>
+        <li><span className="tick">2</span><span>You get formats that work with examples, hooks that land, topics people ask about — and flops with proof.</span></li>
+        <li><span className="tick">3</span><span>The Strategist grounds every proposal in it, with numbers.</span></li>
+      </ol>
+      <div className="row">{onBrief ? <button className="primary" onClick={onBrief}>Research the field now</button> : <span className="hint small">The team is already working…</span>}</div>
+    </section>
+  );
   const a = audit.data;
+  const misses = a.misses ?? [];
+  const past = (log ?? []).filter(l => l.at !== audit.at);
   const best = [...a.whatWorks].sort((x, y) => (y.strength ?? 3) - (x.strength ?? 3));
   return (
     <div className="stack">
@@ -50,9 +62,30 @@ export function AuditCard({ audit }: { audit?: { data: Audit; at: string } }) {
         <section className="card"><h3>Hooks that land</h3><div className="quotes">{a.hooks.map(h => <span key={h} className="quote">“{h}”</span>)}</div></section>
         <section className="card"><h3>What falls flat</h3><div className="chips">{a.avoid.map(h => <span key={h} className="pill neg">✕ {h}</span>)}</div></section>
       </div>
+      {misses.length > 0 && (
+        <section>
+          <div className="head"><h3>What flops, with proof</h3><span className="hint small">Seen in the field, not guessed</span></div>
+          <div className="tiles">{misses.map(m => (
+            <div key={m.format} className="tile miss" style={{ ['--h' as string]: hue(m.format) }}>
+              <span className="badgecircle">✕</span>
+              <b>{m.format}</b>
+              <span className="tile-why">{m.why}</span>
+              <em className="tile-ex">Seen: {m.example}</em>
+            </div>
+          ))}</div>
+        </section>
+      )}
       <section className="card"><h3>Topics people care about</h3>
         <div className="cloud">{a.topics.map((t, i) => <span key={t} className="topic" style={{ fontSize: `${Math.max(12, 20 - i * 1.6)}px`, ['--h' as string]: hue(t) }}>{t}</span>)}</div>
       </section>
+      {past.length > 0 && (
+        <section className="card"><h3>Watch log</h3>
+          <p className="hint small">Earlier field research, newest first. Re-brief the team to refresh it.</p>
+          <ul className="feed">{past.map(p => (
+            <li key={p.at}><span className="dot" style={{ ['--h' as string]: 250 }} /><span>{firstSentence(p.data.summary)}</span><time>{ago(p.at)}</time></li>
+          ))}</ul>
+        </section>
+      )}
     </div>
   );
 }
@@ -60,7 +93,16 @@ export function AuditCard({ audit }: { audit?: { data: Audit; at: string } }) {
 export function AccountCard({ team }: { team: TeamView }) {
   const report = team.account;
   const [full, setFull] = useState(false);
-  if (!report) return <section className="card empty"><p>No comparison yet.</p><p className="hint small">Load your posts below, then brief the team: the Analyst compares them with the field.</p></section>;
+  if (!report) return (
+    <section className="card guide">
+      <h3>No comparison yet</h3>
+      <ol className="steps">
+        <li><span className="tick">1</span><span>Load your posts below (paste or CSV): the Analyst scores each one.</span></li>
+        <li><span className="tick">2</span><span>You get scores per format, your 3 best and 3 weakest posts with why, and gaps vs the field.</span></li>
+        <li><span className="tick">3</span><span>The Strategist stops proposing what flops for you and doubles down on what wins.</span></li>
+      </ol>
+    </section>
+  );
   const r = report.data;
   const stats = r.stats;
   const max = Math.max(1, ...stats.map(s => s.avgEngagement));
@@ -100,6 +142,25 @@ export function AccountCard({ team }: { team: TeamView }) {
         </section>
       )}
 
+      {(r.winners?.length || r.losers?.length) ? (
+        <div className="two">
+          {(r.winners?.length ?? 0) > 0 && (
+            <section className="card"><h3>Your best posts</h3>
+              <ul className="verdicts">{r.winners!.map((w, i) => (
+                <li key={i}><b>#{i + 1} · {w.format} · {money(w.engagement)}</b><span>{w.text}</span><em>{w.note}</em></li>
+              ))}</ul>
+            </section>
+          )}
+          {(r.losers?.length ?? 0) > 0 && (
+            <section className="card"><h3>Your flops</h3>
+              <ul className="verdicts flop">{r.losers!.map((w, i) => (
+                <li key={i}><b>{w.format} · {money(w.engagement)}</b><span>{w.text}</span><em>{w.note}</em></li>
+              ))}</ul>
+            </section>
+          )}
+        </div>
+      ) : null}
+
       <div className="two">
         <section className="card"><h3>Going well</h3><div className="chips">{r.strengths.map(x => <span key={x} className="pill good">＋ {x}</span>)}</div></section>
         <section className="card"><h3>Missing vs the field</h3><div className="chips">{r.gaps.map(x => <span key={x} className="pill neg">－ {x}</span>)}</div></section>
@@ -119,7 +180,7 @@ export function AccountData({ pid, team, items, reload }: { pid: string; team: T
     <>
     <details className="card" open={team.accountPosts === 0}>
       <summary><b>{team.accountPosts > 0 ? 'Update your posts' : 'Add your posts'}</b> <span className="hint small">{team.accountPosts > 0 ? `${team.accountPosts} loaded${team.account?.simulated ? ' (demo)' : ''}` : 'needed for the comparison'}</span></summary>
-      <label>Paste your recent posts with their numbers<textarea rows={5} value={paste} onChange={e => setPaste(e.target.value)} placeholder={'Any format, copied from your analytics:\n“How we built the first screen” — 410 likes, 38 comments, 52 shares — 2026-10-12'} /></label>
+      <label>Paste your recent posts with their numbers<textarea rows={5} value={paste} onChange={e => setPaste(e.target.value)} placeholder={'Any format, copied from your analytics:\n“How we built the first screen” — 410 likes, 38 comments, 52 shares — 2026-10-12\n\nOr a table with a text,likes header (exact numbers, no model involved):\ntext,format,likes,comments,shares,saves,posted_at'} /></label>
       {error && <p className="error">{error}</p>}
       <div className="row">
         <button className="primary" disabled={busy !== '' || !paste.trim()} onClick={() => run('paste', async () => { await teamApi.setAccount(pid, { paste }); setPaste(''); })}>{busy === 'paste' ? 'Reading your posts…' : 'Load these posts'}</button>

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import type { ContentService } from './service.ts';
+import { parseAccountCsv } from './service.ts';
 import { ItemKind, MAX_WORKERS, WORKERS, addDays, day, engagement, type AccountPost, type AgentConfig, type AgentId, type Item, type Milestone, type SuggestedAction } from './types.ts';
 
 export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
@@ -27,6 +28,7 @@ export const Audit = z.object({
   hooks: z.array(z.string()).max(5),
   topics: z.array(z.string()).max(6),
   avoid: z.array(z.string()).max(4),
+  misses: z.array(z.object({ format: z.string(), why: z.string(), example: z.string() })).max(4).default([]), // formats and angles that fall flat, each with a concrete example seen in the field
 });
 export type Audit = z.infer<typeof Audit> & { sources: string[] };
 
@@ -35,6 +37,8 @@ export const AccountAnalysis = z.object({
   strengths: z.array(z.string()).max(4),
   gaps: z.array(z.string()).max(4), // what the field does that this account does not
   opportunities: z.array(z.string()).max(4),
+  winners: z.array(z.object({ text: z.string(), format: z.string(), engagement: z.number().int().min(0), note: z.string() })).max(3).default([]), // the strongest posts, one line each on why they won
+  losers: z.array(z.object({ text: z.string(), format: z.string(), engagement: z.number().int().min(0), note: z.string() })).max(3).default([]), // the weakest posts, one line each on why they flopped
 });
 export interface FormatStat { format: string; posts: number; avgEngagement: number }
 export type AccountReport = z.infer<typeof AccountAnalysis> & { stats: FormatStat[]; postCount: number };
@@ -44,7 +48,8 @@ const Proposals = z.object({
     kind: ItemKind,
     title: z.string(),
     brief: z.string(),
-    rationale: z.string(), // the evidence, in one or two sentences: which trend, which gap in the account, which part of the roadmap
+    rationale: z.string(), // why this piece, in one or two sentences: which trend, which gap in the account, which part of the roadmap
+    evidence: z.string().max(200).default(''), // the concrete proof with numbers, e.g. "tutorials average 412 here vs 180 in the field"
     source: z.enum(['trend', 'account', 'roadmap']),
     milestoneId: z.string(), // '' when it hangs on no milestone
     offsetDays: z.number().int().min(-60).max(30), // relative to the milestone landing
@@ -195,7 +200,7 @@ ${focus}. Be specific and recent.${brief ? `\nThe manager asks: ${brief}` : ''}$
       : await Promise.all(ANGLES.slice(0, workers).map(ask));
     const text = found.map(f => f.text).join('\n\n');
     const sources = [...new Set(found.flatMap(f => f.sources))];
-    const a = await llm.json(`Condense this research into an audit. Keep only what is supported by the text. Short phrases. For each format, strength says how strongly it works (5 = the best of the lot).\n\n${text}`, Audit, 'audit');
+    const a = await llm.json(`Condense this research into an audit. Keep only what is supported by the text. Short phrases. For each format, strength says how strongly it works (5 = the best of the lot). Fill misses with the formats and angles that fall flat, each with a concrete example seen in the field.\n\n${text}`, Audit, 'audit');
     const audit: Audit = { ...a, sources: sources.slice(0, 6) };
     this.#store.addReport(projectId, 'audit', audit, false, this.#svc.now.toISOString());
     return audit;
@@ -209,12 +214,14 @@ ${focus}. Be specific and recent.${brief ? `\nThe manager asks: ${brief}` : ''}$
     const audit = this.#store.latestReport<Audit>(projectId, 'audit')?.data;
     const a = await this.#svc.llm.json(
       `You compare a project's social account with what works in its field. Be concrete and honest; if the data is thin, say so.
-Engagement = likes + 2*comments + 3*shares + 3*saves.
+Engagement = likes + 2*comments + 3*shares + 3*saves. Quote the post texts and engagement numbers below exactly as given: never invent or round them.
 
 Average engagement per format on this account:
 ${stats.map(s => `- ${s.format}: ${s.avgEngagement} over ${s.posts} post(s)`).join('\n')}
 Recent posts:
 ${posts.slice(0, 15).map(p => `- [${p.format}] ${p.text} (${engagement(p)})${p.itemId ? ` — this one came from the studio piece "${this.#store.item(p.itemId)?.title ?? p.itemId}": weigh linked pieces as proven winners in strengths and gaps` : ''}`).join('\n')}
+
+Name the 3 strongest posts in winners and the 3 weakest in losers (by the engagement numbers above), each with a one-line note on why it won or flopped.
 
 What works in the field: ${audit ? JSON.stringify({ whatWorks: audit.whatWorks, hooks: audit.hooks, topics: audit.topics }) : '(the scout has not reported yet)'}
 ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}`,
@@ -224,8 +231,15 @@ ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}
     return report;
   }
 
-  // The manager gives the numbers as they come: free text from the platform, or a copy of an export. The model structures it.
+  // The manager gives the numbers as they come: free text from the platform, or a copy of an export (CSV with a
+  // text,likes header is read exactly, with no model call and no invented numbers). The model only structures free-form pastes.
   async importAccount(projectId: string, pasted: string): Promise<AccountPost[]> {
+    const exact = parseAccountCsv(pasted, day(this.#svc.now));
+    if (exact) {
+      if (!exact.length) throw new Error('no post found in that text');
+      this.#store.setAccount(projectId, exact);
+      return exact;
+    }
     const r = await this.#svc.llm.json(
       `Extract the posts from this text, exactly as given. Do not invent posts or numbers: use 0 for a figure that is missing.
 format is a short label for the kind of post (tutorial, behind-the-scenes, release, announcement, meme, tip, story…). postedAt is YYYY-MM-DD, or "${day(this.#svc.now)}" when unknown.
@@ -256,7 +270,7 @@ ${pasted.slice(0, 12000)}`, AccountParse, 'account_import');
 
     const ask = (lens: string, count: string) => svc.llm.json(
       `You are the strategist of a small digital communication team working for a solo developer (the manager).
-Today is ${today}. Propose ${count} pieces of content for the coming weeks.${lens ? ` Look at the situation mainly through ${lens}.` : ''} Every piece must be justified by evidence you can see below: a trend from the audit, a gap or strength in the account, or something in the dev roadmap (a feature about to land, a milestone date). Say which in "rationale", concretely.
+Today is ${today}. Propose ${count} pieces of content for the coming weeks.${lens ? ` Look at the situation mainly through ${lens}.` : ''} Every piece must be justified by evidence you can see below: a trend from the audit, a gap or strength in the account, or something in the dev roadmap (a feature about to land, a milestone date). Say which in "rationale", concretely, and put the hard numbers behind it in "evidence" (formats with their scores, named winning or flopping posts, never invented figures).
 Prefer the roadmap for timing: tie a piece to a milestone with offsetDays (negative = before it lands), or leave milestoneId empty and give a date.
 Do not repeat existing pieces. Do not propose again what the manager refused, and apply the reasons they gave.
 
@@ -264,10 +278,10 @@ ${directives(svc, projectId)}${behaviour(svc, projectId, 'strategist')}
 ${brief ? `The manager asks for this now: ${brief}` : ''}
 
 WHAT WORKS IN THE FIELD:
-${audit ? JSON.stringify({ whatWorks: audit.data.whatWorks, hooks: audit.data.hooks, topics: audit.data.topics, avoid: audit.data.avoid }) : '(no audit yet)'}
+${audit ? JSON.stringify({ whatWorks: audit.data.whatWorks, misses: audit.data.misses ?? [], hooks: audit.data.hooks, topics: audit.data.topics, avoid: audit.data.avoid }) : '(no audit yet)'}
 
 THIS PROJECT'S ACCOUNT${account?.simulated ? ' (fictional demo data)' : ''}:
-${account ? JSON.stringify({ summary: account.data.summary, strengths: account.data.strengths, gaps: account.data.gaps, bestFormats: account.data.stats.slice(0, 3) }) : '(no account analysis yet)'}
+${account ? JSON.stringify({ summary: account.data.summary, strengths: account.data.strengths, gaps: account.data.gaps, bestFormats: account.data.stats.slice(0, 3), winners: account.data.winners ?? [], losers: account.data.losers ?? [] }) : '(no account analysis yet)'}
 
 DEV ROADMAP:
 Milestones:
@@ -300,7 +314,9 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       const onMilestone = p.milestoneId && ids.has(p.milestoneId);
       const date = /^\d{4}-\d{2}-\d{2}$/.test(p.date) && p.date >= today ? p.date : addDays(today, 3);
       made.push(this.#store.addItem({
-        projectId, kind: p.kind, title: p.title, brief: p.brief, rationale: `${p.rationale}${mark}`, source: p.source, origin: 'ai', status: 'idea', createdAt: svc.now.toISOString(),
+        projectId, kind: p.kind, title: p.title, brief: p.brief,
+        rationale: `${p.rationale}${p.evidence ? `\nEvidence: ${p.evidence}` : ''}${mark}`,
+        source: p.source, origin: 'ai', status: 'idea', createdAt: svc.now.toISOString(),
         ...(onMilestone ? { milestoneId: p.milestoneId, offsetDays: p.offsetDays } : { fixedDate: date }),
       }));
     }
@@ -510,6 +526,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
       working: this.working(projectId),
       config: Object.fromEntries(AGENTS.map(a => [a.id, this.#store.agentConfig(projectId, a.id)])),
       audit: this.#store.latestReport<Audit>(projectId, 'audit'),
+      audits: this.#store.reports<Audit>(projectId, 'audit'),
       account: this.#store.latestReport<AccountReport>(projectId, 'account'),
       synthesis: this.#store.latestReport<Synthesis>(projectId, 'synthesis'),
       accountPosts: this.#store.account(projectId).length,
