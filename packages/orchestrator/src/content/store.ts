@@ -39,6 +39,7 @@ export class ContentStore {
     this.#addColumn('items', 'rejected_reason', 'TEXT');
     this.#addColumn('items', 'media', 'TEXT');
     this.#addColumn('items', 'series_id', 'TEXT');
+    this.#addColumn('items', 'proof', 'TEXT');
     this.#addColumn('account_posts', 'item_id', 'TEXT');
   }
 
@@ -206,8 +207,8 @@ export class ContentStore {
   // --- items
   addItem(i: Omit<Item, 'id' | 'revisions' | 'draft' | 'status' | 'rationale' | 'source' | 'seriesId'> & { draft?: string; status?: Item['status']; rationale?: string; source?: Item['source']; seriesId?: string }): Item {
     const id = randomUUID().slice(0, 8);
-    this.#db.prepare('INSERT INTO items (id, project_id, milestone_id, feature_id, kind, title, brief, draft, status, offset_days, fixed_date, origin, revisions, exported_path, published_at, created_at, rationale, source, series_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?, ?, ?)')
-      .run(id, i.projectId, i.milestoneId ?? null, i.featureId ?? null, i.kind, i.title, i.brief, i.draft ?? '', i.status ?? (i.brief.trim() ? 'briefed' : 'idea'), i.offsetDays ?? null, i.fixedDate ?? null, i.origin, i.createdAt, i.rationale ?? '', i.source ?? '', i.seriesId ?? null);
+    this.#db.prepare('INSERT INTO items (id, project_id, milestone_id, feature_id, kind, title, brief, draft, status, offset_days, fixed_date, origin, revisions, exported_path, published_at, created_at, rationale, source, series_id, proof) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, NULL, NULL, ?, ?, ?, ?, ?)')
+      .run(id, i.projectId, i.milestoneId ?? null, i.featureId ?? null, i.kind, i.title, i.brief, i.draft ?? '', i.status ?? (i.brief.trim() ? 'briefed' : 'idea'), i.offsetDays ?? null, i.fixedDate ?? null, i.origin, i.createdAt, i.rationale ?? '', i.source ?? '', i.seriesId ?? null, i.proof ? JSON.stringify(i.proof) : null);
     return this.item(id)!;
   }
 
@@ -226,8 +227,8 @@ export class ContentStore {
     if (!i) throw new Error(`unknown item ${id}`);
     const n = { ...i, ...patch };
     const fixed = patch.clearFixedDate ? null : n.fixedDate ?? null;
-    this.#db.prepare('UPDATE items SET milestone_id = ?, feature_id = ?, kind = ?, title = ?, brief = ?, draft = ?, status = ?, offset_days = ?, fixed_date = ?, revisions = ?, exported_path = ?, published_at = ?, rationale = ?, rejected_reason = ?, media = ?, series_id = ? WHERE id = ?')
-      .run(n.milestoneId ?? null, n.featureId ?? null, n.kind, n.title, n.brief, n.draft, n.status, n.offsetDays ?? null, fixed, n.revisions, n.exportedPath ?? null, n.publishedAt ?? null, n.rationale, n.rejectedReason ?? null, n.media ? JSON.stringify(n.media) : null, n.seriesId ?? null, id);
+    this.#db.prepare('UPDATE items SET milestone_id = ?, feature_id = ?, kind = ?, title = ?, brief = ?, draft = ?, status = ?, offset_days = ?, fixed_date = ?, revisions = ?, exported_path = ?, published_at = ?, rationale = ?, rejected_reason = ?, media = ?, series_id = ?, proof = ? WHERE id = ?')
+      .run(n.milestoneId ?? null, n.featureId ?? null, n.kind, n.title, n.brief, n.draft, n.status, n.offsetDays ?? null, fixed, n.revisions, n.exportedPath ?? null, n.publishedAt ?? null, n.rationale, n.rejectedReason ?? null, n.media ? JSON.stringify(n.media) : null, n.seriesId ?? null, n.proof ? JSON.stringify(n.proof) : null, id);
     return this.item(id)!;
   }
 
@@ -299,7 +300,7 @@ export class ContentStore {
       exportedPath: r.exported_path ? String(r.exported_path) : undefined, publishedAt: r.published_at ? String(r.published_at) : undefined,
       createdAt: String(r.created_at), rationale: String(r.rationale), source: String(r.source) as Item['source'],
       rejectedReason: r.rejected_reason ? String(r.rejected_reason) : undefined, media: r.media ? JSON.parse(String(r.media)) : undefined,
-      seriesId: r.series_id ? String(r.series_id) : undefined,
+      seriesId: r.series_id ? String(r.series_id) : undefined, proof: r.proof ? JSON.parse(String(r.proof)) : undefined,
     };
   }
 }

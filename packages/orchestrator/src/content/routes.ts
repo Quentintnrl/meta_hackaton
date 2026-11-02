@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ProjectStore } from '../projects.ts';
 import type { ContentService } from './service.ts';
 import { Team, chatThread } from './team.ts';
+import { thumbnail } from './thumb.ts';
 import { ItemKind, PublishMode } from './types.ts';
 import { existsSync, readFileSync } from 'node:fs';
 
@@ -155,7 +156,7 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
   // Briefs the team. Runs in the background; the console watches /team for the agent at work and the activity log.
   app.post('/projects/:pid/team/run', async c => {
     if (!known(c)) return c.json({ error: 'unknown project' }, 404);
-    const b = await body(c, z.object({ agents: z.array(z.enum(['scout', 'analyst', 'strategist', 'writer'])).min(1).default(['scout', 'analyst', 'strategist']), brief: z.string().max(2000).default('') }));
+    const b = await body(c, z.object({ agents: z.array(z.enum(['scout', 'analyst', 'strategist', 'writer', 'director'])).min(1).default(['scout', 'analyst', 'strategist']), brief: z.string().max(2000).default('') }));
     if (isResponse(b)) return b;
     return team.start(c.req.param('pid'), projects.get(c.req.param('pid'))!.name, b.agents, b.brief) ? c.json({ ok: true }, 202) : c.json({ error: 'the team is already working' }, 409);
   });
@@ -193,6 +194,13 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore) {
 
   // The director first, then any agent: a conversation, a configuration, and the manager's confirmation of what was suggested.
   const Agent = z.enum(['director', 'scout', 'analyst', 'strategist', 'writer']);
+  // The picture a field example's page advertises, fetched once and cached. No model call.
+  app.get('/projects/:pid/team/thumb', async c => {
+    const url = c.req.query('url') ?? '';
+    if (!known(c) || !url) return c.json({ error: 'not found' }, 404);
+    const t = await thumbnail(url, svc.thumbDir);
+    return t ? c.body(readFileSync(t.path), 200, { 'content-type': t.type, 'cache-control': 'public, max-age=86400' }) : c.json({ error: 'no picture on that page' }, 404);
+  });
   app.get('/projects/:pid/team/chat/:agent', c => {
     const a = Agent.safeParse(c.req.param('agent'));
     return known(c) && a.success ? c.json(svc.store.chat(c.req.param('pid'), chatThread(a.data, c.req.query('about') ?? ''))) : c.json({ error: 'unknown project or agent' }, 404);

@@ -55,7 +55,7 @@ test('the content covers every stage, and the account is labelled as fictional',
   assert.equal(by('published'), 1);
   assert.deepEqual(new Set(items.filter(i => i.media).map(i => i.media!.format)), new Set(['carousel', 'image']));
   assert.ok(items.some(i => (i.shiftDays ?? 0) > 0), 'something is pushed back by the projection');
-  assert.ok(items.filter(i => i.status === 'idea').every(i => i.rationale && i.source));
+  assert.ok(items.filter(i => i.status === 'idea').every(i => i.rationale && i.source && i.proof?.yours && i.proof.field), 'every idea shows its numbers');
   assert.equal(content.latestReport(DEMO_PROJECT, 'account')!.simulated, true);
   assert.equal(content.latestReport(DEMO_PROJECT, 'audit')!.simulated, true, 'the seeded audit is fictional too');
   assert.ok(content.account(DEMO_PROJECT).every(p => p.simulated));
@@ -76,7 +76,11 @@ test('the team overview works with no model at all', () => {
   const { svc } = demo();
   const o = new Team(svc).overview(DEMO_PROJECT);
   assert.ok(o.audit && o.account && o.accountPosts === 14);
-  assert.equal(o.activity.length, 5);
+  assert.equal(o.activity.length, 6);
   assert.equal(o.config.scout.workers, 2);
   assert.ok(o.synthesis);
+  assert.ok(o.plan && o.plan.simulated, 'a plan built on the demo numbers, flagged as such');
+  assert.equal(o.plan!.data.mix[0].yours!.value, o.account!.data.stats.find(s => s.format === 'tutorial')!.avgEngagement, 'the plan quotes the real averages');
+  assert.ok(o.audit!.data.whatWorks.every(w => w.figure.value > 0), 'every field format carries a measured figure');
+  assert.equal(o.audit!.data.benchmarks.length, 3);
 });

@@ -26,11 +26,11 @@ export function appViewToHash(view: AppView): string {
   }
 }
 
-export const STUDIO_PAGES = ['today', 'create', 'calendar', 'team'];
+export const STUDIO_PAGES = ['today', 'create', 'calendar', 'insights', 'team'];
 export const STUDIO_AGENTS = ['director', 'scout', 'analyst', 'strategist', 'writer'];
 
 // Old pages land on their replacement: nothing bookmarked breaks.
-const LEGACY_PAGE: Record<string, string> = { inbox: 'today', roadmap: 'calendar', field: 'team', account: 'team', orders: 'team' };
+const LEGACY_PAGE: Record<string, string> = { inbox: 'today', roadmap: 'calendar', field: 'insights', account: 'insights', orders: 'team' };
 
 export function studioBase(projectId: string): string {
   return `/projects/${projectId}/content`;

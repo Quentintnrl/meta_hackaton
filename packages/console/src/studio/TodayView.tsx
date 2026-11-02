@@ -25,7 +25,7 @@ export function TodayView({ team, view, reload, go, open, askAgent }: { team: Te
         ))}
       </section>
 
-      {ideas.length > 0 && <IdeaDeck key={ideas[0].id} ideas={ideas} milestones={view.milestones} reload={reload} askAgent={askAgent} />}
+      {ideas.length > 0 && <IdeaDeck key={ideas[0].id} ideas={ideas} milestones={view.milestones} stats={team.account?.data.stats} simulated={team.account?.simulated} reload={reload} askAgent={askAgent} />}
 
       {toReview.length > 0 && (
         <section className="card">

@@ -4,7 +4,7 @@ import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { ContentService } from './service.ts';
-import { Team, demoAccount, formatStats } from './team.ts';
+import { Team, demoAccount, formatStats, proofFor, sameFormat } from './team.ts';
 import type { LLM } from '../adapters/llm.ts';
 
 const now = new Date('2026-11-01T09:00:00Z');
@@ -21,13 +21,14 @@ function setup(over: Partial<LLM> = {}) {
     json: async (prompt, schema, name, opts) => {
       prompts[name] = prompt;
       shots[name] = opts?.images?.length ?? 0;
-      if (name === 'audit') return schema.parse({ summary: 'Build in public wins', whatWorks: [{ format: 'behind-the-scenes', why: 'trust', example: 'a', strength: 5 }], hooks: ['mistakes included'], topics: ['solo dev'], avoid: ['release notes alone'], misses: [{ format: 'press release', why: 'nobody shares announcements with no story', example: 'a launch post stuck at 2 likes' }] });
+      if (name === 'audit') return schema.parse({ summary: 'Build in public wins', whatWorks: [{ format: 'behind-the-scenes', why: 'trust', example: 'a', strength: 5, figure: { what: 'average engagement rate', value: 4.2, unit: '%', source: 'https://example.com/a', period: '2026' }, exampleUrl: 'https://example.com/post/1', exampleFigure: '12k saves' }, { format: 'tutorial', why: 'saves', example: 'b', strength: 4 }], benchmarks: [{ name: 'posting frequency', value: 3, unit: 'per week', note: 'for accounts under 10k', source: 'https://example.com/a' }], hooks: ['mistakes included'], topics: ['solo dev'], avoid: ['release notes alone'], misses: [{ format: 'press release', why: 'nobody shares announcements with no story', example: 'a launch post stuck at 2 likes' }] });
+      if (name === 'plan') return schema.parse({ period: 'the next 4 weeks', headline: 'Lean on behind-the-scenes, add tutorials', mix: [{ format: 'behind-the-scenes', count: 3, lever: 'double-down', why: 'top score here' }, { format: 'tutorial', count: 2, lever: 'fill-gap', why: 'the field saves them, you posted none' }], cadence: 'two a week', next: 'Accept the teaser' });
       if (name === 'synthesis') return schema.parse({ headline: 'The team found what works', points: ['Build in public wins', 'Two proposals wait'], next: 'Decide on the proposals' });
       if (name === 'director_reply') return schema.parse(directorReply);
       if (name === 'agent_reply') return schema.parse(agentReply);
       if (name === 'account_analysis') return schema.parse({ summary: 'Strong on BTS, weak on releases', strengths: ['bts'], gaps: ['no video'], opportunities: ['teasers'], winners: [{ text: "POV: it's 6pm and the fridge is empty", format: 'meme', engagement: 1227, note: 'shares carry it beyond followers' }], losers: [{ text: 'New in App: small fixes, big relief', format: 'release', engagement: 109, note: 'announcement with no story to save' }] });
       if (name === 'proposals') return schema.parse({ proposals: [
-        { kind: 'teaser', title: 'Beta teaser', brief: 'tease', rationale: 'BTS wins and the beta lands soon', evidence: 'behind-the-scenes averages 742 here, top of the field', source: 'roadmap', milestoneId: 'beta', offsetDays: -5, date: '' },
+        { kind: 'teaser', title: 'Beta teaser', brief: 'tease', rationale: 'BTS wins and the beta lands soon', evidence: 'behind-the-scenes averages 742 here, top of the field', format: 'Behind the scenes', source: 'roadmap', milestoneId: 'beta', offsetDays: -5, date: '' },
         { kind: 'devlog', title: 'Week notes', brief: 'notes', rationale: 'account gap', evidence: '', source: 'account', milestoneId: 'ghost', offsetDays: 0, date: '2026-11-10' },
       ] });
       if (name === 'post' || name === 'post_revision') return schema.parse({ caption: `caption (${name})`, hashtags: ['#Meal Prep', 'mealprep', 'cooking'], format: 'carousel', slides: [
@@ -247,7 +248,7 @@ test('a run goes through the agents in order, logs each, and survives a failing 
   assert.equal(team.start('app', 'App', ['scout']), false, 'one run at a time');
   await wait(team, 'app');
   const log = svc.store.activity('app').reverse();
-  assert.deepEqual(log.map(l => [l.agent, l.ok]), [['scout', false], ['analyst', true], ['strategist', true], ['director', true]], 'the director sums up when something worked');
+  assert.deepEqual(log.map(l => [l.agent, l.ok]), [['scout', false], ['analyst', true], ['strategist', true], ['director', true], ['director', true]], 'the director plans, then sums up, when something worked');
   assert.match(log[0].summary, /offline/);
   const plan = svc.store.chat('app', 'director').find(m => m.role === 'agent' && m.text.startsWith("Here's what I'm doing"));
   assert.ok(plan, 'the director announces the plan first');
@@ -340,4 +341,75 @@ test('after a run the director leaves a note', async () => {
   const o = team.overview('app');
   assert.equal(o.synthesis!.data.headline, 'The team found what works');
   assert.match(svc.store.chat('app', 'director').at(-1)!.text, /Next: Decide/);
+});
+
+test('the scout keeps measured figures with their source, and says when there is none', async () => {
+  const { team, searches } = setup();
+  const audit = await team.scout('app', 'App');
+  assert.match(searches[0], /measured figures|benchmarks/, 'the research asks for numbers');
+  const [bts, tuto] = audit.whatWorks;
+  assert.equal(bts.figure.value, 4.2);
+  assert.equal(bts.figure.source, 'https://example.com/a');
+  assert.equal(bts.exampleUrl, 'https://example.com/post/1');
+  assert.equal(tuto.figure.value, 0, 'no number in the text: none, not a guess');
+  assert.equal(tuto.figure.unit, '');
+  assert.equal(audit.benchmarks[0].name, 'posting frequency');
+});
+
+test('a proposal carries a numeric proof computed from the stats, never written by the model', async () => {
+  const { svc, team } = setup();
+  team.loadDemoAccount('app', 'App');
+  await team.scout('app', 'App');
+  await team.analyse('app');
+  const [first, second] = await team.strategize('app');
+  const stats = formatStats(svc.store.account('app'));
+  const bts = stats.find(s => s.format === 'behind-the-scenes')!;
+  assert.ok(first.proof, 'the format is named, so the numbers follow');
+  assert.equal(first.proof!.yours!.value, bts.avgEngagement, 'the account score is the real average');
+  assert.equal(first.proof!.yours!.rank, stats.indexOf(bts) + 1);
+  assert.equal(first.proof!.field!.value, 4.2, 'the field figure comes from the audit');
+  assert.equal(first.proof!.text, 'behind-the-scenes averages 742 here, top of the field');
+  assert.equal(second.proof, undefined, 'no format, no evidence: nothing to show');
+  assert.equal(svc.store.item(first.id)!.proof!.yours!.value, bts.avgEngagement, 'kept with the item');
+});
+
+test('the director writes a plan whose numbers come from the stats', async () => {
+  const { svc, team, prompts } = setup();
+  team.loadDemoAccount('app', 'App');
+  team.start('app', 'App', ['scout', 'analyst', 'strategist']);
+  await wait(team, 'app');
+  const plan = team.overview('app').plan!;
+  assert.ok(plan, 'a run with new research or numbers ends with a plan');
+  assert.match(prompts.plan, /behind-the-scenes: \d+ over \d+ post/, 'the director reads the real scores');
+  assert.match(prompts.plan, /4\.2% average engagement rate/, 'and the field figures');
+  const stats = formatStats(svc.store.account('app'));
+  assert.equal(plan.data.mix[0].yours!.value, stats.find(s => s.format === 'behind-the-scenes')!.avgEngagement);
+  assert.equal(plan.data.mix[0].field!.value, 4.2);
+  assert.equal(plan.data.mix[1].yours!.value, stats.find(s => s.format === 'tutorial')!.avgEngagement);
+  assert.equal(plan.data.mix[1].field, undefined, 'no field figure for tutorials in this research');
+  assert.equal(plan.data.basis.posts, 14);
+  assert.equal(plan.simulated, true, 'built on demo numbers, flagged as such');
+});
+
+test('asked alone, the director only plans', async () => {
+  const { team } = setup();
+  team.loadDemoAccount('app', 'App');
+  await team.analyse('app');
+  team.start('app', 'App', ['director']);
+  await wait(team, 'app');
+  const o = team.overview('app');
+  assert.ok(o.plan);
+  assert.equal(o.synthesis, undefined, 'nothing ran, nothing to sum up');
+  assert.deepEqual(o.activity.map(a => [a.agent, a.summary.startsWith('Plan for')]), [['director', true]]);
+});
+
+test('format names match loosely, so "quick tutorial" finds "tutorial"', () => {
+  assert.ok(sameFormat('quick tutorial', 'tutorial'));
+  assert.ok(sameFormat('Behind the scenes', 'behind-the-scenes'));
+  assert.ok(!sameFormat('meme', 'release'));
+  assert.ok(!sameFormat('', 'release'));
+  const stats = [{ format: 'tutorial', posts: 3, avgEngagement: 830 }, { format: 'meme', posts: 2, avgEngagement: 1129 }];
+  assert.equal(proofFor('Quick tutorials', '', stats)!.yours!.rank, 1, 'rank follows the given order');
+  assert.equal(proofFor('podcast', '', stats), undefined);
+  assert.deepEqual(proofFor('', 'some proof', stats), { format: '', text: 'some proof' });
 });

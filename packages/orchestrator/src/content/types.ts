@@ -77,6 +77,23 @@ export function normalizeHashtags(tags: string[]): string[] {
 
 export type ItemSource = 'trend' | 'account' | 'roadmap' | 'manager' | '';
 
+// A measured figure the Scout found in the field, with where it comes from.
+// value 0 and unit '' mean no figure was found: the UI says so instead of guessing.
+export interface Figure { what: string; value: number; unit: string; source: string; period: string }
+export const NO_FIGURE: Figure = { what: '', value: 0, unit: '', source: '', period: '' };
+export const hasFigure = (f?: Figure): f is Figure => Boolean(f && (f.value > 0 || f.unit));
+// A reference number for the field as a whole: posting frequency, ideal length, typical engagement rate.
+export interface Benchmark { name: string; value: number; unit: string; note: string; source: string }
+// How a format scores on this account: average engagement, how many posts, and its rank among the formats.
+export interface YourScore { value: number; posts: number; rank: number; of: number }
+// Why a piece is worth doing, in numbers: the format it uses, how that format scores here, and the field
+// figure it leans on. Computed on the server from the stats, never written by the model.
+export interface Proof { format: string; yours?: YourScore; field?: Figure; text: string }
+// The Director's plan for the coming weeks: a format mix, each line with the numbers behind it.
+export type PlanLever = 'double-down' | 'fill-gap' | 'test' | 'keep';
+export interface PlanLine { format: string; count: number; lever: PlanLever; why: string; yours?: YourScore; field?: Figure }
+export interface Plan { period: string; headline: string; mix: PlanLine[]; cadence: string; next: string; basis: { posts: number; audited: boolean } }
+
 // Everything the manager needs to post a piece by hand: the exact text to
 // paste (caption, then hashtags), the media files to attach, and where the
 // signed-off copy lives. No Meta app involved.
@@ -104,6 +121,7 @@ export interface Item {
   seriesId?: string; // the editorial line it belongs to, if any
   media?: Media; // social posts only
   rationale: string; // why the team proposes it: what it saw in trends, in the account, in the roadmap
+  proof?: Proof; // the numbers behind the rationale, computed from the stats
   source: ItemSource;
   rejectedReason?: string;
   revisions: number;
@@ -143,5 +161,5 @@ export interface AccountPost { id?: number; text: string; format: string; likes:
 export interface Series { id: string; projectId: string; name: string; createdAt: string } // a recurring editorial line: a pillar or a series
 export interface ItemLink { parentId: string; childId: string; kind: 'reuse'; createdAt: string } // a piece derived from another: recycle, decline, retry
 export interface Activity { id: number; projectId: string; agent: AgentId; summary: string; ok: boolean; at: string }
-export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | 'synthesis'; data: T; simulated: boolean; at: string }
+export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | 'synthesis' | 'plan'; data: T; simulated: boolean; at: string }
 export const engagement = (p: Pick<AccountPost, 'likes' | 'comments' | 'shares' | 'saves'>) => p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3;

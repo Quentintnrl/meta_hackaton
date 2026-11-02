@@ -11,15 +11,17 @@ import { ItemEditor } from './ItemEditor';
 import { TodayView } from './TodayView';
 import { CreateView } from './CreateView';
 import { TeamView as TeamPage } from './TeamView';
+import { InsightsView } from './InsightsView';
 import { TeamPulse } from './Agents';
 
-export type View = 'today' | 'create' | 'calendar' | 'team' | `agent:${AgentId}`;
+export type View = 'today' | 'create' | 'calendar' | 'insights' | 'team' | `agent:${AgentId}`;
 
 const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: string }> = {
   today: { title: 'Today', about: 'Your to-do list: judge ideas, review drafts, post what is ready.' },
   create: { title: 'Create', about: 'Feed the machine: brief the team, collect ideas, start writing.' },
   calendar: { title: 'Calendar', about: 'When everything lands: goals, dates, and every piece on the line.' },
-  team: { title: 'Team', about: 'The crew, what it found in the field and in your numbers, and the rules you set.' },
+  insights: { title: 'Insights', about: 'The numbers: the plan, how your account compares with the field, and what the research measured.' },
+  team: { title: 'Team', about: 'The crew, how much of it works, and the rules you set.' },
 };
 
 // The communication team of a project: a sub-menu on the left, one page at a time.
@@ -69,6 +71,7 @@ export function Studio({ project }: { project: Project }) {
     ['today', 'Today', waiting],
     ['create', 'Create'],
     ['calendar', 'Calendar', late, 'late'],
+    ['insights', 'Insights'],
     ['team', 'Team'],
   ];
   // Open a side chat with an agent, staying on the page: the agent sees the
@@ -120,6 +123,7 @@ export function Studio({ project }: { project: Project }) {
         {page === 'today' && <TodayView team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'create' && <CreateView pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'calendar' && <div className="stack"><RoadmapView view={view} project={project} features={[]} reload={reload} go={setPage} askAgent={askAgent} /><CalendarView view={view} openId={openId} open={setOpenId} /></div>}
+        {page === 'insights' && <InsightsView pid={project.id} team={team} view={view} reload={reload} go={setPage} askAgent={askAgent} />}
         {page === 'team' && <TeamPage pid={project.id} team={team} view={view} reload={reload} go={setPage} askAgent={askAgent} />}
         {page === 'agent:director' && <DirectorPage pid={project.id} team={team} view={view} reload={reload} go={setPage} />}
         {agentId && agentId !== 'director' && <AgentPage key={agentId} pid={project.id} agent={agentId} team={team} view={view} reload={reload} go={setPage} aboutCtx={pageCtx} onClearAbout={clearAbout} />}

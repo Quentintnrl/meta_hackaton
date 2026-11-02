@@ -63,9 +63,14 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   s.addReport(P, 'audit', {
     summary: 'For food-tech indie apps, build-in-public stories and 30-second how-tos earn the saves and shares. Release announcements on their own barely move.',
     whatWorks: [
-      { format: 'behind-the-scenes', strength: 4, why: 'Builds trust and invites replies', example: '"We deleted 40% of our recipe screen. Here is why."' },
-      { format: 'quick tutorial', strength: 5, why: 'The most saves of any format', example: '30-second "plan a week in one tap" screen recording' },
-      { format: 'relatable meme', strength: 3, why: 'Gets shared outside the follower base', example: 'The "what is for dinner?" loop' },
+      { format: 'behind-the-scenes', strength: 4, why: 'Builds trust and invites replies', example: '"We deleted 40% of our recipe screen. Here is why."', exampleUrl: 'https://example.com/posts/deleted-40-percent', exampleFigure: '2.1k comments', figure: { what: 'average engagement rate', value: 5.8, unit: '%', source: 'https://example.com/food-tech-content-report', period: 'Q3 2026' } },
+      { format: 'quick tutorial', strength: 5, why: 'The most saves of any format', example: '30-second "plan a week in one tap" screen recording', exampleUrl: 'https://example.com/posts/plan-a-week-one-tap', exampleFigure: '12k saves', figure: { what: 'saves per 1,000 views', value: 41, unit: 'saves', source: 'https://example.com/food-tech-content-report', period: 'Q3 2026' } },
+      { format: 'relatable meme', strength: 3, why: 'Gets shared outside the follower base', example: 'The "what is for dinner?" loop', exampleUrl: '', exampleFigure: '', figure: { what: 'share rate', value: 3.2, unit: '%', source: 'https://example.com/indie-launch-playbook', period: '2026' } },
+    ],
+    benchmarks: [
+      { name: 'posting frequency', value: 3, unit: 'posts / week', note: 'accounts under 10k followers that grow', source: 'https://example.com/indie-launch-playbook' },
+      { name: 'typical engagement rate', value: 2.4, unit: '%', note: 'food-tech accounts under 10k', source: 'https://example.com/food-tech-content-report' },
+      { name: 'ideal short-video length', value: 22, unit: 's', note: 'where completion drops', source: 'https://example.com/food-tech-content-report' },
     ],
     hooks: ['mistakes included', 'before / after', 'one tap', 'we asked 10 people'],
     topics: ['meal prep', 'food waste', 'solo developer', 'weeknight dinners'],
@@ -87,7 +92,10 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   const media = (format: Media['format'], hashtags: string[], slides: Media['slides']): Media => ({ format, hashtags, slides });
 
   // one idea to decide on
-  add({ kind: 'teaser', title: 'The beta is 3 weeks away', brief: 'A mistakes-included teaser of the week planner.', rationale: 'Behind-the-scenes posts earn 5x your release posts, and the beta is projected in about 4 weeks.', source: 'roadmap', origin: 'ai', status: 'idea', milestoneId: beta.id, offsetDays: -21 });
+  const stats = formatStats(posts);
+  const bts = stats.find(s => s.format === 'behind-the-scenes')!;
+  add({ kind: 'teaser', title: 'The beta is 3 weeks away', brief: 'A mistakes-included teaser of the week planner.', rationale: 'Behind-the-scenes posts earn 5x your release posts, and the beta is projected in about 4 weeks.\nEvidence: behind-the-scenes averages 693 on your account vs 173 for releases; 5.8% engagement rate in the field.', source: 'roadmap', origin: 'ai', status: 'idea', milestoneId: beta.id, offsetDays: -21,
+    proof: { format: 'behind-the-scenes', yours: { value: bts.avgEngagement, posts: bts.posts, rank: stats.indexOf(bts) + 1, of: stats.length }, field: { what: 'average engagement rate', value: 5.8, unit: '%', source: 'https://example.com/food-tech-content-report', period: 'Q3 2026' }, text: 'behind-the-scenes averages 693 on your account vs 173 for releases; 5.8% engagement rate in the field' } });
 
   // a carousel, drafted, two pictures generated
   const carousel = add({ kind: 'social-post', title: 'We are looking for ten testers', brief: 'Call for testers, friendly, with a clear way in.', status: 'drafted', milestoneId: beta.id, offsetDays: -14 });
@@ -117,6 +125,19 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     points: ['Tutorials earn the most saves on your account; the Sunday-reset one leads.', 'The beta is projected after the date you want, so teasers are scheduled against the new date.', 'One proposal waits for your decision in Today.'],
     next: 'Decide on the beta teaser, it is the next thing to land.',
   }, false, at(-0.005));
+  const score = (f: string) => { const x = stats.find(s => s.format === f)!; return { value: x.avgEngagement, posts: x.posts, rank: stats.indexOf(x) + 1, of: stats.length }; };
+  s.addReport(P, 'plan', {
+    period: 'the next 4 weeks', headline: 'Double down on memes and behind-the-scenes, fill the tutorial gap, stop bare release posts.',
+    mix: [
+      { format: 'tutorial', count: 3, lever: 'fill-gap', why: 'The field saves tutorials most (41 saves per 1,000 views) and you have posted none this month.', yours: score('tutorial'), field: { what: 'saves per 1,000 views', value: 41, unit: 'saves', source: 'https://example.com/food-tech-content-report', period: 'Q3 2026' } },
+      { format: 'behind-the-scenes', count: 2, lever: 'double-down', why: 'Your second-best score, and the beta gives you three honest stories to tell.', yours: score('behind-the-scenes'), field: { what: 'average engagement rate', value: 5.8, unit: '%', source: 'https://example.com/food-tech-content-report', period: 'Q3 2026' } },
+      { format: 'meme', count: 2, lever: 'keep', why: 'Your top score; shares bring people from outside your followers.', yours: score('meme'), field: { what: 'share rate', value: 3.2, unit: '%', source: 'https://example.com/indie-launch-playbook', period: '2026' } },
+      { format: 'release', count: 1, lever: 'test', why: 'Only one, wrapped in a story: bare release posts score 173, your weakest.', yours: score('release') },
+    ],
+    cadence: 'Two posts a week, as your orders say: one tutorial or behind-the-scenes, one meme or question.', next: 'Accept the beta teaser, then record the first 30-second tutorial.',
+    basis: { posts: posts.length, audited: true },
+  }, true, at(-0.006));
+  s.log(P, 'director', 'Plan for the next 4 weeks: double down on memes and behind-the-scenes, fill the tutorial gap.', true, at(-0.006));
   s.log(P, 'director', 'The beta is running late, and your tutorials save best.', true, at(-0.005));
   s.setAgentConfig(P, 'scout', { workers: 2 });
   s.setAgentConfig(P, 'writer', { instructions: 'Keep captions under 400 characters, warm and a little self-mocking.' });

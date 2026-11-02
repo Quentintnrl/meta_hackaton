@@ -25,6 +25,8 @@ test('studio hashes keep page and drawer', () => {
   assert.deepEqual(parseStudio('/projects/other/content/calendar', 'p'), { page: 'today', openId: null, about: null }, 'another project is not parsed');
   assert.deepEqual(parseStudio('/projects/p/content/inbox', 'p').page, 'today', 'old inbox lands on today');
   assert.deepEqual(parseStudio('/projects/p/content/orders', 'p').page, 'team', 'old orders lands on team');
+  assert.deepEqual(parseStudio('/projects/p/content/field', 'p').page, 'insights', 'old field lands on insights');
+  assert.deepEqual(parseStudio('/projects/p/content/insights/item/x1', 'p'), { page: 'insights', openId: 'x1', about: null });
   assert.equal(studioToHash('p', 'agent:scout', 'abc123'), '/projects/p/content/agent/scout/item/abc123');
   assert.equal(studioToHash('p', 'today', null), '/projects/p/content/today');
 });

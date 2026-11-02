@@ -1,9 +1,8 @@
 import { useEffect, useState } from 'react';
-import { contentApi, teamApi, type AccountPost, type Audit, type ContentItem, type TeamView } from '../api';
+import { contentApi, hasFigure, teamApi, type AccountPost, type Audit, type ContentItem, type TeamView } from '../api';
+import { FigureTile, Thumb, hue } from './Numbers';
 import { ago, useAction } from './shared';
 
-// One colour per format name, stable, so a format has the same colour in every chart.
-const hue = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
 const firstSentence = (t: string) => (t.match(/^.*?[.!?](\s|$)/)?.[0] ?? t).trim();
 const money = (n: number) => n.toLocaleString();
 
@@ -15,47 +14,57 @@ function Meter({ value }: { value: number }) {
   return <span className="meter" role="img" aria-label={`${value} out of 5`}>{[1, 2, 3, 4, 5].map(n => <i key={n} className={n <= value ? 'on' : ''} />)}</span>;
 }
 
-export function AuditCard({ audit, log, onBrief }: { audit?: { data: Audit; at: string }; log?: Array<{ data: Audit; at: string }>; onBrief?: () => void }) {
+export function AuditCard({ pid, audit, log, onBrief }: { pid: string; audit?: { data: Audit; at: string }; log?: Array<{ data: Audit; at: string }>; onBrief?: () => void }) {
   const [open, setOpen] = useState<string | null>(null);
   if (!audit) return (
     <section className="card guide">
       <h3>No field research yet</h3>
       <ol className="steps">
-        <li><span className="tick">1</span><span>The Scout searches the web for what performs in your field right now.</span></li>
-        <li><span className="tick">2</span><span>You get formats that work with examples, hooks that land, topics people ask about — and flops with proof.</span></li>
-        <li><span className="tick">3</span><span>The Strategist grounds every proposal in it, with numbers.</span></li>
+        <li><span className="tick">1</span><span>The Scout searches the web for what performs in your field right now, and keeps the figures it finds with their source.</span></li>
+        <li><span className="tick">2</span><span>You get formats that work with a measured figure and an example each, the field's benchmarks, hooks that land, and flops with proof.</span></li>
+        <li><span className="tick">3</span><span>The Strategist and the Director ground every idea and the plan in it.</span></li>
       </ol>
       <div className="row">{onBrief ? <button className="primary" onClick={onBrief}>Research the field now</button> : <span className="hint small">The team is already working…</span>}</div>
     </section>
   );
   const a = audit.data;
   const misses = a.misses ?? [];
+  const benches = a.benchmarks ?? [];
   const past = (log ?? []).filter(l => l.at !== audit.at);
   const best = [...a.whatWorks].sort((x, y) => (y.strength ?? 3) - (x.strength ?? 3));
+  const measured = a.whatWorks.filter(w => hasFigure(w.figure)).length;
   return (
     <div className="stack">
       <section className="card hero-card">
         <p className="headline">{firstSentence(a.summary)}</p>
-        <div className="stats">
-          <Stat value={a.whatWorks.length} label="formats that work" />
-          <Stat value={a.hooks.length} label="hooks that land" />
-          <Stat value={a.topics.length} label="topics" />
-          <Stat value={a.sources.length} label="sources" />
-        </div>
-        <p className="hint small">Researched {ago(audit.at)}.{a.sources.slice(0, 4).map((u, i) => <a key={u} href={u} target="_blank" rel="noopener noreferrer"> [{i + 1}]</a>)}</p>
+        {benches.length > 0 ? (
+          <div className="bench">{benches.map(b => <FigureTile key={b.name} figure={{ what: b.name, value: b.value, unit: b.unit, source: b.source, period: b.note }} />)}</div>
+        ) : <p className="hint small">No benchmark figure found in this research. Ask the Scout to look again, or with more researchers.</p>}
+        <p className="hint small">Researched {ago(audit.at)} · {measured} of {a.whatWorks.length} formats with a measured figure · {a.sources.length} source{a.sources.length === 1 ? '' : 's'}{a.sources.slice(0, 4).map((u, i) => <a key={u} href={u} target="_blank" rel="noopener noreferrer"> [{i + 1}]</a>)}</p>
       </section>
 
       <section>
-        <div className="head"><h3>Formats that work</h3><span className="hint small">Click one for an example</span></div>
+        <div className="head"><h3>Formats that work</h3><span className="hint small">Click one for its example</span></div>
         <div className="tiles">{best.map(w => (
           <button key={w.format} className={`tile ${open === w.format ? 'open' : ''}`} style={{ ['--h' as string]: hue(w.format) }} onClick={() => setOpen(open === w.format ? null : w.format)} aria-expanded={open === w.format}>
             <span className="badgecircle">{w.format[0]?.toUpperCase()}</span>
             <b>{w.format}</b>
             <Meter value={w.strength ?? 3} />
+            <FigureTile figure={w.figure} />
             <span className="tile-why">{w.why}</span>
-            {open === w.format && <em className="tile-ex">{w.example}</em>}
           </button>
         ))}</div>
+        {open && (() => { const w = a.whatWorks.find(x => x.format === open)!; return (
+          <div className="example card" style={{ ['--h' as string]: hue(w.format) }}>
+            <Thumb pid={pid} url={w.exampleUrl ?? ''} alt={`Example of ${w.format}`} />
+            <div>
+              <b>Seen in the field · {w.format}</b>
+              <em>{w.example}</em>
+              {w.exampleFigure && <span className="evidence">{w.exampleFigure}</span>}
+              {w.exampleUrl ? <a className="small" href={w.exampleUrl} target="_blank" rel="noopener noreferrer">Open the example ↗</a> : <span className="hint small">No link in the research for this one.</span>}
+            </div>
+          </div>
+        ); })()}
       </section>
 
       <div className="two">

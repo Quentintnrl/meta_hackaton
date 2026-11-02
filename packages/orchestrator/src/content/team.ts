@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import type { ContentService } from './service.ts';
 import { parseAccountCsv } from './service.ts';
-import { ItemKind, MAX_WORKERS, WORKERS, addDays, day, engagement, type AccountPost, type AgentConfig, type AgentId, type Item, type Milestone, type SuggestedAction } from './types.ts';
+import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction } from './types.ts';
 
 export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
   { id: 'director', name: 'Director', role: 'Leads the team and sums up its work' },
@@ -22,13 +22,21 @@ const BLIND = `You cannot see pictures or videos, only the written brief each sh
 // Attached pictures change that: describe what is really on them.
 const SIGHTED = `Pictures of the piece are attached to this chat: you can really see them. When asked what a post shows, describe what is actually on the pictures and quote on-image text exactly, instead of the brief. Offer to change the brief when what you see is off.`;
 
+// A number the research text actually gives, with its source. value 0 and unit '' = none found, never a guess.
+const FigureSchema = z.object({ what: z.string(), value: z.number().min(0), unit: z.string(), source: z.string(), period: z.string() });
 export const Audit = z.object({
   summary: z.string(),
-  whatWorks: z.array(z.object({ format: z.string(), why: z.string(), example: z.string(), strength: z.number().int().min(1).max(5) })).max(5), // strength: how strongly it works, 5 = the best
+  whatWorks: z.array(z.object({
+    format: z.string(), why: z.string(), example: z.string(), strength: z.number().int().min(1).max(5), // strength: how strongly it works, 5 = the best
+    figure: FigureSchema.default(NO_FIGURE), // the measured figure behind it (engagement rate, saves, views…)
+    exampleUrl: z.string().default(''), // where the example can be seen, '' when the text gives no link
+    exampleFigure: z.string().default(''), // the example's own number as written ("12k saves"), '' when none
+  })).max(5),
   hooks: z.array(z.string()).max(5),
   topics: z.array(z.string()).max(6),
   avoid: z.array(z.string()).max(4),
   misses: z.array(z.object({ format: z.string(), why: z.string(), example: z.string() })).max(4).default([]), // formats and angles that fall flat, each with a concrete example seen in the field
+  benchmarks: z.array(z.object({ name: z.string(), value: z.number().min(0), unit: z.string(), note: z.string(), source: z.string() })).max(6).default([]), // reference figures for the field: posting frequency, ideal length, typical engagement rate
 });
 export type Audit = z.infer<typeof Audit> & { sources: string[] };
 
@@ -50,6 +58,7 @@ const Proposals = z.object({
     brief: z.string(),
     rationale: z.string(), // why this piece, in one or two sentences: which trend, which gap in the account, which part of the roadmap
     evidence: z.string().max(200).default(''), // the concrete proof with numbers, e.g. "tutorials average 412 here vs 180 in the field"
+    format: z.string().default(''), // the content format it uses, named as in the account stats or the field research (tutorial, meme…); '' when none applies
     source: z.enum(['trend', 'account', 'roadmap']),
     milestoneId: z.string(), // '' when it hangs on no milestone
     offsetDays: z.number().int().min(-60).max(30), // relative to the milestone landing
@@ -62,6 +71,37 @@ const AccountParse = z.object({
     text: z.string(), format: z.string(), likes: z.number().int().min(0), comments: z.number().int().min(0), shares: z.number().int().min(0), saves: z.number().int().min(0), postedAt: z.string(),
   })).max(60),
 });
+
+// The Director's plan: a format mix for the coming weeks. The numbers next to each line are added by the server.
+const PlanSchema = z.object({
+  period: z.string(), // "the next 4 weeks"
+  headline: z.string(),
+  mix: z.array(z.object({ format: z.string(), count: z.number().int().min(0).max(30), lever: z.enum(['double-down', 'fill-gap', 'test', 'keep']), why: z.string() })).min(1).max(6),
+  cadence: z.string(), // "two posts a week, Tuesday and Saturday"
+  next: z.string(),
+});
+
+// "Behind-the-scenes" and "behind the scenes" are one format; "quick tutorial" matches "tutorial".
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+export function sameFormat(a: string, b: string): boolean {
+  const x = norm(a), y = norm(b);
+  if (!x || !y) return false;
+  if (x === y || x.includes(y) || y.includes(x)) return true;
+  const ys = y.split(' ');
+  return x.split(' ').some(t => t.length > 3 && ys.includes(t));
+}
+
+// The numbers behind a piece or a plan line: how the format scores on this account, and the field figure for
+// it. Computed from the stats, so the model can name a format but never write its score.
+export function proofFor(format: string, text: string, stats: FormatStat[], audit?: Audit): Proof | undefined {
+  if (!format.trim()) return text ? { format: '', text } : undefined;
+  const i = stats.findIndex(s => sameFormat(s.format, format));
+  const yours = i >= 0 ? { value: stats[i].avgEngagement, posts: stats[i].posts, rank: i + 1, of: stats.length } : undefined;
+  const w = audit?.whatWorks.find(x => sameFormat(x.format, format));
+  const field: Figure | undefined = w && hasFigure(w.figure) ? w.figure : undefined;
+  if (!yours && !field && !text) return undefined;
+  return { format, ...(yours ? { yours } : {}), ...(field ? { field } : {}), text };
+}
 
 export function formatStats(posts: AccountPost[]): FormatStat[] {
   const by = new Map<string, number[]>();
@@ -126,10 +166,11 @@ const AgentReply = z.object({
   generate: z.string(),
 });
 
+// Every angle asks for measured figures with their source: the field page shows numbers, or says none were found.
 const ANGLES = [
-  'which formats and post types get the most engagement, with one concrete example each',
-  'recurring hooks, topics and questions people respond to',
-  'what falls flat or backfires, and what the leading accounts in this field do differently',
+  'which formats and post types get the most engagement, with one concrete example each (its link if possible) and the measured figures behind them: average engagement rate, saves, views or reach, each with its source and date',
+  'recurring hooks, topics and questions people respond to, and the benchmarks for this field: posting frequency, ideal length, typical engagement rate for accounts of this size, each with its source',
+  'what falls flat or backfires (with a measured example), and what the leading accounts in this field do differently, with their numbers',
 ];
 const LENSES = ['the dev roadmap: what is about to land and when', 'the project account: its strengths and gaps against the field', 'the trends found in the field research'];
 
@@ -196,11 +237,14 @@ export class Team {
 ${focus}. Be specific and recent.${brief ? `\nThe manager asks: ${brief}` : ''}${behaviour(this.#svc, projectId, 'scout')}`);
     // One researcher covers everything; more researchers each take an angle, in parallel, and their findings are merged.
     const found = workers === 1
-      ? [await ask('Find: the formats that get the most engagement (with a concrete example each), recurring hooks, topics people ask about, and what falls flat')]
+      ? [await ask('Find: the formats that get the most engagement (with a concrete example each, its link if possible, and the measured figures behind them: engagement rate, saves, views, with source and date), the benchmarks for this field (posting frequency, ideal length, typical engagement rate, with sources), recurring hooks, topics people ask about, and what falls flat (with a measured example)')]
       : await Promise.all(ANGLES.slice(0, workers).map(ask));
     const text = found.map(f => f.text).join('\n\n');
     const sources = [...new Set(found.flatMap(f => f.sources))];
-    const a = await llm.json(`Condense this research into an audit. Keep only what is supported by the text. Short phrases. For each format, strength says how strongly it works (5 = the best of the lot). Fill misses with the formats and angles that fall flat, each with a concrete example seen in the field.\n\n${text}`, Audit, 'audit');
+    const a = await llm.json(`Condense this research into an audit. Keep only what is supported by the text. Short phrases. For each format, strength says how strongly it works (5 = the best of the lot).
+figure is a number that appears in the text for that format: value, unit ("%", "saves", "views", "x", "per post"…), what it measures, the source URL and the period. If the text gives no number for a format, put value 0 and unit "": never invent one. exampleUrl is the link of the example when the text gives one, else "". exampleFigure is the example's own number as written ("12k saves"), else "".
+benchmarks: up to 6 reference figures found in the text (posting frequency, ideal length, typical engagement rate…), each with its source URL; leave the list empty rather than guess.
+Fill misses with the formats and angles that fall flat, each with a concrete example seen in the field.\n\n${text}`, Audit, 'audit');
     const audit: Audit = { ...a, sources: sources.slice(0, 6) };
     this.#store.addReport(projectId, 'audit', audit, false, this.#svc.now.toISOString());
     return audit;
@@ -270,7 +314,7 @@ ${pasted.slice(0, 12000)}`, AccountParse, 'account_import');
 
     const ask = (lens: string, count: string) => svc.llm.json(
       `You are the strategist of a small digital communication team working for a solo developer (the manager).
-Today is ${today}. Propose ${count} pieces of content for the coming weeks.${lens ? ` Look at the situation mainly through ${lens}.` : ''} Every piece must be justified by evidence you can see below: a trend from the audit, a gap or strength in the account, or something in the dev roadmap (a feature about to land, a milestone date). Say which in "rationale", concretely, and put the hard numbers behind it in "evidence" (formats with their scores, named winning or flopping posts, never invented figures).
+Today is ${today}. Propose ${count} pieces of content for the coming weeks.${lens ? ` Look at the situation mainly through ${lens}.` : ''} Every piece must be justified by evidence you can see below: a trend from the audit, a gap or strength in the account, or something in the dev roadmap (a feature about to land, a milestone date). Say which in "rationale", concretely, and put the hard numbers behind it in "evidence" (formats with their scores, named winning or flopping posts, never invented figures). In "format", name the content format the piece uses with the same word as in the account stats or the field research (tutorial, meme, behind-the-scenes…), or leave it empty.
 Prefer the roadmap for timing: tie a piece to a milestone with offsetDays (negative = before it lands), or leave milestoneId empty and give a date.
 Do not repeat existing pieces. Do not propose again what the manager refused, and apply the reasons they gave.
 
@@ -278,7 +322,7 @@ ${directives(svc, projectId)}${behaviour(svc, projectId, 'strategist')}
 ${brief ? `The manager asks for this now: ${brief}` : ''}
 
 WHAT WORKS IN THE FIELD:
-${audit ? JSON.stringify({ whatWorks: audit.data.whatWorks, misses: audit.data.misses ?? [], hooks: audit.data.hooks, topics: audit.data.topics, avoid: audit.data.avoid }) : '(no audit yet)'}
+${audit ? JSON.stringify({ whatWorks: audit.data.whatWorks, benchmarks: audit.data.benchmarks ?? [], misses: audit.data.misses ?? [], hooks: audit.data.hooks, topics: audit.data.topics, avoid: audit.data.avoid }) : '(no audit yet)'}
 
 THIS PROJECT'S ACCOUNT${account?.simulated ? ' (fictional demo data)' : ''}:
 ${account ? JSON.stringify({ summary: account.data.summary, strengths: account.data.strengths, gaps: account.data.gaps, bestFormats: account.data.stats.slice(0, 3), winners: account.data.winners ?? [], losers: account.data.losers ?? [] }) : '(no account analysis yet)'}
@@ -308,14 +352,17 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
     const missing = [!audit && 'field research', !account && 'account data'].filter(Boolean);
     const mark = missing.length ? ` (Early sketch: no ${missing.join(' or ')} yet — check it against what you know.)` : '';
     const made: Item[] = [];
+    const stats = account?.data.stats ?? [];
     for (const p of proposals) {
       if (taken.has(p.title.toLowerCase())) continue;
       taken.add(p.title.toLowerCase());
       const onMilestone = p.milestoneId && ids.has(p.milestoneId);
       const date = /^\d{4}-\d{2}-\d{2}$/.test(p.date) && p.date >= today ? p.date : addDays(today, 3);
+      const proof = proofFor(p.format, p.evidence, stats, audit?.data);
       made.push(this.#store.addItem({
         projectId, kind: p.kind, title: p.title, brief: p.brief,
         rationale: `${p.rationale}${p.evidence ? `\nEvidence: ${p.evidence}` : ''}${mark}`,
+        ...(proof ? { proof } : {}),
         source: p.source, origin: 'ai', status: 'idea', createdAt: svc.now.toISOString(),
         ...(onMilestone ? { milestoneId: p.milestoneId, offsetDays: p.offsetDays } : { fixedDate: date }),
       }));
@@ -367,14 +414,57 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       await step('analyst', async () => { const a = await this.analyse(projectId); return `Compared ${a.postCount} posts with the field. ${a.summary}`; });
       await step('strategist', async () => { const n = await this.strategize(projectId, brief); return `Proposed ${n.length} piece(s) of content.${n.length ? ' Waiting for your decision.' : ' Nothing new beyond what is planned.'}`; });
       await step('writer', async () => { const n = await this.write(projectId); return n.length ? `Drafted ${n.length} accepted piece(s).` : 'Nothing accepted is waiting for a draft.'; });
+      const director = store.agentConfig(projectId, 'director').enabled;
+      // New research, numbers or proposals change the plan: the director rewrites it. Asked alone, it only plans.
+      const replan = agents.includes('director') || (['scout', 'analyst', 'strategist'] as AgentId[]).some(a => agents.includes(a) && store.agentConfig(projectId, a).enabled);
+      if (director && replan && (ran > failed || agents.includes('director'))) {
+        this.#working.set(projectId, { agent: 'director', since: nowIso() });
+        try { await this.plan(projectId, brief); } catch (e) { store.log(projectId, 'director', `Could not plan: ${(e as Error).message}`, false, nowIso()); }
+      }
       // The director sums the run up, once, for the manager. It is skipped when it is off or nothing worked.
-      if (ran > failed && store.agentConfig(projectId, 'director').enabled) {
+      if (ran > failed && director) {
         this.#working.set(projectId, { agent: 'director', since: nowIso() });
         try { await this.synthesize(projectId, brief); } catch (e) { store.log(projectId, 'director', `Could not sum up: ${(e as Error).message}`, false, nowIso()); }
       }
     } finally {
       this.#working.delete(projectId);
     }
+  }
+
+  // --- the Director's plan: the format mix for the coming weeks, every line with the numbers behind it
+  async plan(projectId: string, brief = ''): Promise<Plan> {
+    const svc = this.#svc;
+    const audit = this.#store.latestReport<Audit>(projectId, 'audit');
+    const account = this.#store.latestReport<AccountReport>(projectId, 'account');
+    const stats = account?.data.stats ?? [];
+    const ms = svc.milestones(projectId).filter(m => m.status === 'open') as Array<Milestone & { forecast?: { predictedDate: string } }>;
+    const fig = (f: Figure) => hasFigure(f) ? `${f.value}${f.unit.startsWith('%') ? '' : ' '}${f.unit} ${f.what} (${f.source || 'no source'})` : 'no figure found';
+    const p = await svc.llm.json(
+      `You are the director of a small digital communication team working for a solo developer (the manager). Write the communication plan for the coming weeks: a format mix, each line with how many pieces and why, in plain words.
+Ground every line in the numbers below: this account's average score per format, and the measured field figures. Use the format names exactly as they appear below. Levers: double-down = it scores high here, do more; fill-gap = the field shows it works and this account has little or none; test = try it with one or two pieces; keep = steady baseline. Respect the standing orders (cadence, forbidden topics). No jargon, no filler.
+${directives(svc, projectId)}${behaviour(svc, projectId, 'director')}
+${brief ? `The manager asks: ${brief}` : ''}
+
+THIS ACCOUNT, average score per format (score = likes + 2*comments + 3*shares + 3*saves)${account?.simulated ? ' (fictional demo data)' : ''}:
+${stats.map(s => `- ${s.format}: ${s.avgEngagement} over ${s.posts} post(s)`).join('\n') || '(no account data yet: say so in the headline and keep the plan light)'}
+${account ? `Strengths: ${account.data.strengths.join('; ')}. Gaps: ${account.data.gaps.join('; ')}.` : ''}
+
+THE FIELD, measured:
+${audit ? audit.data.whatWorks.map(w => `- ${w.format}: ${fig(w.figure ?? NO_FIGURE)}; ${w.why}`).join('\n') : '(no field research yet)'}
+${audit?.data.benchmarks?.length ? `Benchmarks: ${audit.data.benchmarks.map(b => `${b.name} ${b.value} ${b.unit}`).join('; ')}.` : ''}
+
+ROADMAP:
+${ms.map(m => `- ${m.title}: wanted ${m.targetDate}${m.forecast ? `, projected ${m.forecast.predictedDate}` : ''}`).join('\n') || '(no open goal)'}`,
+      PlanSchema, 'plan');
+    const plan: Plan = {
+      ...p,
+      mix: p.mix.map(l => { const pr = proofFor(l.format, '', stats, audit?.data); return { ...l, ...(pr?.yours ? { yours: pr.yours } : {}), ...(pr?.field ? { field: pr.field } : {}) }; }),
+      basis: { posts: account?.data.postCount ?? 0, audited: Boolean(audit) },
+    };
+    const at = svc.now.toISOString();
+    this.#store.addReport(projectId, 'plan', plan, account?.simulated ?? false, at);
+    this.#store.log(projectId, 'director', `Plan for ${plan.period}: ${plan.headline}`, true, at);
+    return plan;
   }
 
   // --- the Director: sums up what the team did, and is the manager's first point of contact
@@ -502,7 +592,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
   // The manager confirmed a suggestion.
   async apply(projectId: string, projectName: string, a: SuggestedAction): Promise<{ started?: boolean }> {
     if (a.kind === 'run') {
-      const agents = (a.agents ?? []).filter(x => (WORKERS as readonly string[]).includes(x));
+      const agents = (a.agents ?? []).filter(x => (WORKERS as readonly string[]).includes(x) || x === 'director');
       if (!agents.length) throw new Error('no agent to run');
       return { started: this.start(projectId, projectName, agents, a.brief ?? '') };
     }
@@ -529,6 +619,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
       audits: this.#store.reports<Audit>(projectId, 'audit'),
       account: this.#store.latestReport<AccountReport>(projectId, 'account'),
       synthesis: this.#store.latestReport<Synthesis>(projectId, 'synthesis'),
+      plan: this.#store.latestReport<Plan>(projectId, 'plan'),
       accountPosts: this.#store.account(projectId).length,
       posts: this.#store.account(projectId).map(p => ({ text: p.text, format: p.format, engagement: engagement(p), postedAt: p.postedAt })),
       activity: this.#store.activity(projectId),

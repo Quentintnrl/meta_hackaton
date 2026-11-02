@@ -349,6 +349,9 @@ export class ContentService {
 
   videoPath(itemId: string): string { return join(this.#mediaDir, itemId, 'video.mp4'); }
 
+  // Thumbnails of field examples, fetched once from their page. Not an item folder: mediaPath never serves it.
+  get thumbDir(): string { return join(this.#mediaDir, '_thumbs'); }
+
   mediaPath(itemId: string, file: string): string | undefined {
     if (!/^[\w.-]+$/.test(file)) return undefined;
     const path = join(this.#mediaDir, itemId, file);

@@ -117,7 +117,7 @@ export const SOCIAL_KINDS: ItemKind[] = ['social-post', 'teaser'];
 export interface ContentItem {
   media?: Media;
   id: string; projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; draft: string; status: ItemStatus;
-  offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string; rationale: string; source: ItemSource; rejectedReason?: string;
+  offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string; rationale: string; proof?: Proof; source: ItemSource; rejectedReason?: string;
   seriesId?: string; date?: string; plannedDate?: string; shiftDays?: number; reusedFrom?: string; versionCount?: number;
 }
 export type PublishMode = 'local' | 'assisted' | 'connected';
@@ -134,14 +134,23 @@ export interface AgentConfig { enabled: boolean; workers: number; instructions: 
 export interface SuggestedAction { kind: 'run' | 'configure' | 'talk' | 'generate'; label: string; agents?: AgentId[]; brief?: string; agent?: AgentId; enabled?: boolean; workers?: number; instructions?: string; itemId?: string; index?: number }
 export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 export interface Synthesis { headline: string; points: string[]; next: string }
-export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number }>; hooks: string[]; topics: string[]; avoid: string[]; misses?: Array<{ format: string; why: string; example: string }>; sources: string[] }
+// A measured figure from the field. value 0 and unit '' mean none was found: the page says so.
+export interface Figure { what: string; value: number; unit: string; source: string; period: string }
+export const hasFigure = (f?: Figure): f is Figure => Boolean(f && (f.value > 0 || f.unit));
+export interface Benchmark { name: string; value: number; unit: string; note: string; source: string }
+export interface YourScore { value: number; posts: number; rank: number; of: number }
+export interface Proof { format: string; yours?: YourScore; field?: Figure; text: string }
+export type PlanLever = 'double-down' | 'fill-gap' | 'test' | 'keep';
+export interface PlanLine { format: string; count: number; lever: PlanLever; why: string; yours?: YourScore; field?: Figure }
+export interface Plan { period: string; headline: string; mix: PlanLine[]; cadence: string; next: string; basis: { posts: number; audited: boolean } }
+export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number; figure?: Figure; exampleUrl?: string; exampleFigure?: string }>; hooks: string[]; topics: string[]; avoid: string[]; misses?: Array<{ format: string; why: string; example: string }>; benchmarks?: Benchmark[]; sources: string[] }
 export interface VerdictPost { text: string; format: string; engagement: number; note: string }
 export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[] }
 export interface Report<T> { data: T; simulated: boolean; at: string }
 export interface TeamView {
   agents: Array<{ id: AgentId; name: string; role: string }>;
   working?: { agent: AgentId; since: string };
-  config: Record<AgentId, AgentConfig>; synthesis?: Report<Synthesis>;
+  config: Record<AgentId, AgentConfig>; synthesis?: Report<Synthesis>; plan?: Report<Plan>;
   posts: Array<{ text: string; format: string; engagement: number; postedAt: string }>;
   audit?: Report<Audit>; audits?: Array<Report<Audit>>; account?: Report<AccountReport>; accountPosts: number;
   activity: Array<{ id: number; agent: AgentId; summary: string; ok: boolean; at: string }>;
@@ -154,6 +163,8 @@ export const teamApi = {
   chat: (pid: string, agent: AgentId, about?: string) => call<ChatMessage[]>(`/projects/${pid}/team/chat/${agent}${about ? `?about=${encodeURIComponent(about)}` : ''}`),
   say: (pid: string, agent: AgentId, message: string, context?: string, about?: string) => send<ChatMessage[]>('POST', `/projects/${pid}/team/chat/${agent}`, { message, context, about }),
   configure: (pid: string, agent: AgentId, patch: Partial<AgentConfig>) => send<AgentConfig>('PATCH', `/projects/${pid}/team/agents/${agent}`, patch),
+  plan: (pid: string, brief = '') => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents: ['director'], brief }),
+  thumbUrl: (pid: string, url: string) => `/api/projects/${pid}/team/thumb?url=${encodeURIComponent(url)}`,
   apply: (pid: string, a: SuggestedAction) => send<{ started?: boolean }>('POST', `/projects/${pid}/team/actions`, a),
   accept: (id: string) => send<ContentItem>('POST', `/items/${id}/accept`),
   reject: (id: string, reason: string) => send<ContentItem>('POST', `/items/${id}/reject`, { reason }),

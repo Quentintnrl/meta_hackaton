@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { contentApi, teamApi, type AgentId, type ContentItem, type ContentView, type TeamView } from '../api';
 import { KindChip, SOURCE, credit, fmt, logicFor, useAction } from './shared';
+import { ProofCard } from './Numbers';
 import type { View } from './Studio';
 
 // What each kind of piece is, in words a non-specialist understands.
@@ -50,7 +51,7 @@ export function BriefedList({ briefed, autoDraft, reload, go, open, askAgent }: 
 }
 
 // One idea at a time, large, with three clear answers.
-export function IdeaDeck({ ideas, milestones, reload, askAgent }: { ideas: ContentItem[]; milestones: ContentView['milestones']; reload: () => Promise<void>; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void }) {
+export function IdeaDeck({ ideas, milestones, stats, simulated, reload, askAgent }: { ideas: ContentItem[]; milestones: ContentView['milestones']; stats?: Array<{ format: string; posts: number; avgEngagement: number }>; simulated?: boolean; reload: () => Promise<void>; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void }) {
   const [skipped, setSkipped] = useState<string[]>([]);
   const queue = [...ideas.filter(i => !skipped.includes(i.id)), ...ideas.filter(i => skipped.includes(i.id))];
   const item = queue[0];
@@ -67,7 +68,8 @@ export function IdeaDeck({ ideas, milestones, reload, askAgent }: { ideas: Conte
         <div className="top"><KindChip kind={item.kind} /><span className="hint small">{WHAT[item.kind] ?? ''} · {credit(item)}</span><button className="linkish" onClick={() => askAgent('strategist', 'item', item.id)}>Ask the Strategist →</button></div>
         <h2>{item.title}</h2>
         <p className="when-line">Planned for <b>{fmt(item.fixedDate ?? item.date)}</b>{ms ? <> · around <b>{ms}</b></> : null}</p>
-        {item.rationale && <div className="why-big"><b>{credit(item)}{logicFor(item) ? ` · ${logicFor(item)}` : src ? ` · ${src.hint.toLowerCase()}` : ''}</b><p>{item.rationale.split('\nEvidence: ')[0]}</p>{item.rationale.includes('\nEvidence: ') && <span className="evidence">Proven by: {item.rationale.split('\nEvidence: ')[1]}</span>}</div>}
+        {item.rationale && <div className="why-big"><b>{credit(item)}{logicFor(item) ? ` · ${logicFor(item)}` : src ? ` · ${src.hint.toLowerCase()}` : ''}</b><p>{item.rationale.split('\nEvidence: ')[0]}</p>{!item.proof && item.rationale.includes('\nEvidence: ') && <span className="evidence">Proven by: {item.rationale.split('\nEvidence: ')[1]}</span>}</div>}
+        {item.proof && <ProofCard proof={item.proof} stats={stats ?? []} simulated={simulated} />}
         {more && <div className="why-big"><b>What it would say</b><p>{item.brief}</p></div>}
       </div>
       {refusing ? (
