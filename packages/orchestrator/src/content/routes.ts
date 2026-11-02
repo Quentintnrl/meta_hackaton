@@ -177,6 +177,11 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore, team 
     });
   });
 
+  // The connected account, read now rather than at the next pass.
+  app.post('/projects/:pid/account/sync', c => known(c)
+    ? guard(c, async () => { await team.syncInstagram(c.req.param('pid')); return team.overview(c.req.param('pid')); })
+    : c.json({ error: 'unknown project' }, 404));
+
   // Editorial memory: series, reuse, and which posted piece came from which studio item.
   app.post('/projects/:pid/series', async c => {
     if (!known(c)) return c.json({ error: 'unknown project' }, 404);

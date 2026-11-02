@@ -161,7 +161,7 @@ export interface TeamView {
   config: Record<AgentId, AgentConfig>; synthesis?: Report<Synthesis>; plan?: Report<Plan>;
   posts: Array<{ text: string; format: string; engagement: number; postedAt: string }>;
   audit?: Report<Audit>; audits?: Array<Report<Audit>>; account?: Report<AccountReport>; accountPosts: number;
-  watch?: Report<Watch>; snapshots: Snapshot[]; duty: { autopilot: boolean; lastPass?: string };
+  watch?: Report<Watch>; snapshots: Snapshot[]; duty: { autopilot: boolean; lastPass?: string }; connected: { instagram: boolean };
   activity: Array<{ id: number; agent: AgentId; summary: string; ok: boolean; at: string }>;
 }
 
@@ -169,6 +169,7 @@ export const teamApi = {
   view: (pid: string) => call<TeamView>(`/projects/${pid}/team`),
   run: (pid: string, agents: AgentId[], brief: string) => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents, brief }),
   setAccount: (pid: string, b: { paste?: string; demo?: boolean; platform?: string; followers?: number }) => send<TeamView>('PUT', `/projects/${pid}/account`, b),
+  sync: (pid: string) => send<TeamView>('POST', `/projects/${pid}/account/sync`, {}),
   chat: (pid: string, agent: AgentId, about?: string) => call<ChatMessage[]>(`/projects/${pid}/team/chat/${agent}${about ? `?about=${encodeURIComponent(about)}` : ''}`),
   say: (pid: string, agent: AgentId, message: string, context?: string, about?: string) => send<ChatMessage[]>('POST', `/projects/${pid}/team/chat/${agent}`, { message, context, about }),
   configure: (pid: string, agent: AgentId, patch: Partial<AgentConfig>) => send<AgentConfig>('PATCH', `/projects/${pid}/team/agents/${agent}`, patch),

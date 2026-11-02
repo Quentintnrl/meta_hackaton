@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { z } from 'zod';
 import type { ContentService } from './service.ts';
 import { parseAccountCsv } from './service.ts';
+import { loadInstagram, readInstagram, type InstagramConfig } from './instagram.ts';
 import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction, type Watch } from './types.ts';
 
 export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
@@ -260,7 +261,24 @@ export class Team {
   #svc: ContentService;
   #working = new Map<string, { agent: AgentId; since: string }>();
 
-  constructor(svc: ContentService) { this.#svc = svc; }
+  #instagram: () => InstagramConfig | null;
+  #fetch?: Parameters<typeof readInstagram>[1];
+  // instagram: where the API credentials come from (.env by default); fetch: replaced in tests.
+  constructor(svc: ContentService, o: { instagram?: () => InstagramConfig | null; fetch?: Parameters<typeof readInstagram>[1] } = {}) { this.#svc = svc; this.#instagram = o.instagram ?? loadInstagram; this.#fetch = o.fetch; }
+
+  // --- the connected account: when .env names an Instagram account, the app reads it itself
+  // (posts, likes, comments, saves, shares, reach, followers) instead of waiting for a paste.
+  connected() { return { instagram: Boolean(this.#instagram()) }; }
+
+  async syncInstagram(projectId: string): Promise<{ username: string; followers: number; posts: number }> {
+    const cfg = this.#instagram();
+    if (!cfg) throw new Error('no Instagram account connected: put INSTAGRAM_USER_ID and INSTAGRAM_ACCESS_TOKEN in .env (see the README), or paste the posts');
+    const r = await readInstagram(cfg, this.#fetch);
+    this.#store.setAccount(projectId, r.posts, 'instagram');
+    this.#store.snapshot(projectId, { at: this.#svc.now.toISOString(), platform: 'instagram', followers: r.followers, posts: r.posts.length });
+    this.#store.log(projectId, 'scout', `Read Instagram @${r.username}: ${r.posts.length} posts, ${r.followers} followers.`, true, this.#svc.now.toISOString());
+    return { username: r.username, followers: r.followers, posts: r.posts.length };
+  }
 
   working(projectId: string) { return this.#working.get(projectId); }
 
@@ -494,6 +512,11 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       catch (e) { failed++; store.log(projectId, agent, (e as Error).message, false, nowIso()); }
     };
     try {
+      // A connected Instagram account is read first, so the Analyst works on today's numbers. Its failure is logged, not fatal.
+      if (agents.includes('analyst') && this.#instagram()) {
+        this.#working.set(projectId, { agent: 'scout', since: nowIso() });
+        try { await this.syncInstagram(projectId); } catch (e) { store.log(projectId, 'scout', (e as Error).message, false, nowIso()); }
+      }
       await step('scout', async () => {
         const a = await this.scout(projectId, projectName, brief);
         // Same pass, second job: what comparable players post. Its failure does not lose the audit.
@@ -713,6 +736,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
       plan: this.#store.latestReport<Plan>(projectId, 'plan'),
       watch: this.#store.latestReport<Watch>(projectId, 'watch'),
       snapshots: this.#store.snapshots(projectId),
+      connected: this.connected(),
       duty: { autopilot: this.#svc.profile(projectId).autopilot, lastPass: this.#store.activity(projectId, 50).filter(a => a.agent === 'scout' || a.agent === 'analyst').map(a => a.at).sort().at(-1) },
       accountPosts: this.#store.account(projectId).length,
       posts: this.#store.account(projectId).map(p => ({ text: p.text, format: p.format, engagement: engagement(p), postedAt: p.postedAt })),

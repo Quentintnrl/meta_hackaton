@@ -413,3 +413,21 @@ test('format names match loosely, so "quick tutorial" finds "tutorial"', () => {
   assert.equal(proofFor('podcast', '', stats), undefined);
   assert.deepEqual(proofFor('', 'some proof', stats), { format: '', text: 'some proof' });
 });
+
+test('a connected Instagram account is read by the app before the Analyst works, and the console knows it', async () => {
+  const { svc } = setup();
+  const ok = (body: unknown) => ({ ok: true, status: 200, json: async () => body });
+  const fetchFn = async (url: string) => url.includes('/media?') ? ok({ data: [{ id: 'm1', caption: 'Lundi en mairie', media_type: 'IMAGE', timestamp: '2026-10-29T08:00:00+0000', like_count: 5, comments_count: 0 }] })
+    : url.includes('/insights') ? ok({ data: [{ name: 'reach', values: [{ value: 120 }] }] })
+    : ok({ username: 'mairie360', followers_count: 44 });
+  const team = new Team(svc, { instagram: () => ({ userId: '1', token: 't' }), fetch: fetchFn });
+  assert.equal(team.connected().instagram, true);
+  assert.equal(new Team(svc).connected().instagram, Boolean(process.env.INSTAGRAM_ACCESS_TOKEN), 'without credentials nothing is connected');
+  team.start('app', 'App', ['analyst'], '');
+  while (team.working('app')) await new Promise(r => setTimeout(r, 10));
+  const posts = svc.store.account('app');
+  assert.deepEqual(posts.map(p => [p.platform, p.text, p.likes, p.views, p.simulated]), [['instagram', 'Lundi en mairie', 5, 120, false]]);
+  assert.deepEqual(svc.store.snapshots('app').map(s => [s.platform, s.followers]), [['instagram', 44]]);
+  assert.ok(svc.store.activity('app').some(a => a.agent === 'scout' && /Read Instagram @mairie360: 1 posts, 44 followers/.test(a.summary)));
+  assert.ok(svc.store.latestReport('app', 'account'), 'the Analyst then read the fresh posts');
+});

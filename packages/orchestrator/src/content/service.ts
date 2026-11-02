@@ -445,43 +445,70 @@ export class ContentService {
   }
 }
 
-// A pasted analytics export, read exactly: no model call, no invented
-// numbers. Expected header (any order, extra columns ignored):
-// text,format,likes,comments,shares,saves,posted_at
-// Returns undefined when the text is not such a table, so the caller can
-// fall back to the model for free-form pastes.
+// A pasted analytics export, read exactly: no model call, no invented numbers. Two shapes are known:
+// our own CSV (text,format,likes,comments,shares,saves,views,posted_at, any order, extra columns ignored)
+// and the sheet of a LinkedIn Page export ("Mises à jour" / "Updates": title, date, impressions, reactions,
+// comments, reposts…), pasted from the spreadsheet with tabs or commas, in French or English.
+// Returns undefined when the text is not such a table, so the caller can fall back to the model for free-form pastes.
+const COLUMNS: Record<string, string[]> = {
+  text: ['text', 'texte', 'titre de la mise à jour', 'update title', 'post title', 'titre', 'title', 'caption', 'légende'],
+  format: ['format', 'type', 'type de contenu', 'content type'],
+  likes: ['likes', 'réactions', 'reactions', "j'aime", 'j’aime', 'likes count'],
+  comments: ['comments', 'commentaires'],
+  shares: ['shares', 'republications', 'reposts', 'partages'],
+  saves: ['saves', 'enregistrements', 'saved'],
+  views: ['views', 'impressions', 'vues', 'reach', 'portée', 'impressions (total)'],
+  posted_at: ['posted_at', 'date', 'date de création', 'created date', 'date de publication', 'published date', 'posted'],
+};
 export function parseAccountCsv(pasted: string, today: string): AccountPost[] | undefined {
-  const lines = pasted.split('\n').map(l => l.trim()).filter(Boolean);
+  const lines = pasted.split('\n').map(l => l.replace(/\r$/, '')).filter(l => l.trim());
   if (lines.length < 2) return undefined;
-  const header = splitCsv(lines[0]).map(h => h.trim().toLowerCase());
-  const idx = (name: string) => header.indexOf(name);
-  if (idx('text') < 0 || idx('likes') < 0) return undefined;
-  const num = (cells: string[], name: string) => {
-    const i = idx(name);
-    if (i < 0 || i >= cells.length) return 0;
-    const n = Number(cells[i].trim());
-    return Number.isInteger(n) && n >= 0 ? n : 0;
-  };
+  // The header is the first line that names a text column and a likes column; a LinkedIn export puts a note above it.
+  const norm = (h: string) => h.trim().toLowerCase().replace(/^"|"$/g, '').replace(/\s+/g, ' ');
+  let headerAt = -1, sep = ',', header: string[] = [];
+  for (let i = 0; i < Math.min(lines.length - 1, 6) && headerAt < 0; i++) {
+    for (const d of [lines[i].includes('\t') ? '\t' : ',']) {
+      const cells = split(lines[i], d).map(norm);
+      if (COLUMNS.text.some(a => cells.includes(a)) && COLUMNS.likes.some(a => cells.includes(a))) { headerAt = i; sep = d; header = cells; }
+    }
+  }
+  if (headerAt < 0) return undefined;
+  const idx = (col: string) => header.findIndex(h => COLUMNS[col].includes(h));
+  const cell = (cells: string[], col: string) => { const i = idx(col); return i < 0 || i >= cells.length ? '' : cells[i].trim().replace(/^"|"$/g, ''); };
+  const num = (cells: string[], col: string) => { const n = Number(cell(cells, col).replace(/[^\d]/g, '')); return Number.isInteger(n) && n >= 0 ? n : 0; };
   const posts: AccountPost[] = [];
-  for (const line of lines.slice(1)) {
-    const cells = splitCsv(line);
-    const text = (cells[idx('text')] ?? '').trim();
+  for (const line of lines.slice(headerAt + 1)) {
+    const cells = split(line, sep);
+    const text = cell(cells, 'text');
     if (!text) continue;
-    const at = idx('posted_at') >= 0 ? (cells[idx('posted_at')] ?? '').trim() : '';
+    const views = idx('views') >= 0 ? num(cells, 'views') : undefined;
     posts.push({
-      text,
-      format: (idx('format') >= 0 ? (cells[idx('format')] ?? '').trim() : '') || 'post',
-      likes: num(cells, 'likes'), comments: num(cells, 'comments'),
-      shares: num(cells, 'shares'), saves: num(cells, 'saves'),
-      postedAt: /^\d{4}-\d{2}-\d{2}$/.test(at) ? at : today,
+      text, format: cell(cells, 'format').toLowerCase() || 'post',
+      likes: num(cells, 'likes'), comments: num(cells, 'comments'), shares: num(cells, 'shares'), saves: num(cells, 'saves'),
+      ...(views !== undefined ? { views } : {}),
+      postedAt: parseDay(cell(cells, 'posted_at')) ?? today,
       simulated: false,
     });
   }
   return posts.length ? posts : undefined;
 }
 
-// One CSV row, honouring double-quoted cells that contain commas.
-function splitCsv(line: string): string[] {
+// A date as the exports write it: 2026-10-30, 30/10/2026 (French), 10/30/2026 (US, when the first number cannot be a day), or anything Date.parse reads.
+export function parseDay(s: string): string | undefined {
+  if (!s) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})/);
+  if (m) {
+    const [a, b] = [Number(m[1]), Number(m[2])];
+    const [d, mo] = a > 12 || b <= 12 ? [a, b] : [b, a];
+    return `${m[3]}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+  }
+  const t = Date.parse(s);
+  return Number.isNaN(t) ? undefined : new Date(t).toISOString().slice(0, 10);
+}
+
+// One row, honouring double-quoted cells that contain the separator.
+function split(line: string, sep = ','): string[] {
   const out: string[] = [];
   let cur = '', quoted = false;
   for (let i = 0; i < line.length; i++) {
@@ -491,7 +518,7 @@ function splitCsv(line: string): string[] {
       else if (c === '"') quoted = false;
       else cur += c;
     } else if (c === '"') quoted = true;
-    else if (c === ',') { out.push(cur); cur = ''; }
+    else if (c === sep) { out.push(cur); cur = ''; }
     else cur += c;
   }
   out.push(cur);

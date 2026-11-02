@@ -96,13 +96,13 @@ export function PlatformsBoard({ pid, team, view, reload }: Common) {
   const names = [...new Set(['instagram', 'linkedin', ...posts.map(p => platformKey(p.platform ?? 'instagram')), ...team.snapshots.map(s => platformKey(s.platform))])];
   return (
     <div className="stack">
-      <div className="platforms">{names.map(n => <PlatformCard key={n} pid={pid} name={n} posts={posts.filter(p => platformKey(p.platform ?? 'instagram') === n)} snaps={team.snapshots.filter(s => platformKey(s.platform) === n)} planned={view.items.filter(i => i.status !== 'published' && i.status !== 'rejected' && i.pitch?.channel && platformKey(i.pitch.channel) === n || (i.pitch?.channel ?? '').toLowerCase().includes(n))} reload={reload} />)}</div>
+      <div className="platforms">{names.map(n => <PlatformCard key={n} pid={pid} name={n} connected={n === 'instagram' && team.connected?.instagram} lastRead={team.snapshots.filter(s => platformKey(s.platform) === n).at(-1)?.at} posts={posts.filter(p => platformKey(p.platform ?? 'instagram') === n)} snaps={team.snapshots.filter(s => platformKey(s.platform) === n)} planned={view.items.filter(i => i.status !== 'published' && i.status !== 'rejected' && i.pitch?.channel && platformKey(i.pitch.channel) === n || (i.pitch?.channel ?? '').toLowerCase().includes(n))} reload={reload} />)}</div>
       <p className="hint small">Pieces leave the studio {view.profile.publishMode === 'connected' ? 'through your Meta app' : view.profile.publishMode === 'assisted' ? 'by hand, via your scheduler' : 'by hand: copy the approved post, publish it, mark it posted'}.</p>
     </div>
   );
 }
 
-function PlatformCard({ pid, name, posts, snaps, planned, reload }: { pid: string; name: string; posts: AccountPost[]; snaps: TeamView['snapshots']; planned: ContentItem[]; reload: () => Promise<void> }) {
+function PlatformCard({ pid, name, posts, snaps, planned, reload, connected, lastRead }: { pid: string; name: string; posts: AccountPost[]; snaps: TeamView['snapshots']; planned: ContentItem[]; reload: () => Promise<void>; connected?: boolean; lastRead?: string }) {
   const { busy, error, run } = useAction(reload);
   const [paste, setPaste] = useState('');
   const [followers, setFollowers] = useState('');
@@ -129,12 +129,19 @@ function PlatformCard({ pid, name, posts, snaps, planned, reload }: { pid: strin
       <div className="weeks" title="One box per week, the last 16 weeks: filled when something was posted">{perWeek.map((n, k) => <span key={k} className={n ? 'wk on' : 'wk'} title={n ? `${n} post${n > 1 ? 's' : ''}` : 'nothing'} />)}<span className="hint small">last 16 weeks</span></div>
       {viewsKnown && newest && <p className="hint small">Best seen: {(() => { const b = [...posts].sort((a, c) => (c.views ?? 0) - (a.views ?? 0))[0]; return <>“{cap(b.text, 70)}” ({(b.views ?? 0).toLocaleString()} views, {b.likes} {w.like}, {b.shares} {w.share}, {fmt(b.postedAt)})</>; })()}</p>}
       <div className="pnext"><b>Planned here</b>{planned.length === 0 ? <span className="hint small"> nothing yet</span> : <ul>{planned.slice(0, 4).map(i => <li key={i.id}>{fmt(i.fixedDate ?? i.date)} · {cap(i.title, 48)} <span className="hint small">{i.status}</span></li>)}</ul>}</div>
-      <details className="feed"><summary className="hint small">Update {title(name)}: paste posts, or just the follower count</summary>
-        <textarea rows={3} value={paste} onChange={e => setPaste(e.target.value)} placeholder={`Paste the posts from ${title(name)} with their numbers (free text, or a CSV with a text,likes header). Leave empty to only record followers.`} />
+      {connected ? <div className="feed connected">
+        <span className="hint small">Read by the app through the Instagram API{lastRead ? `, last ${ago(lastRead)}` : ''}, and again at every pass of the team.</span>
+        <button disabled={busy !== ''} onClick={() => run('sync', () => teamApi.sync(pid))}>{busy === 'sync' ? 'Reading…' : 'Read it now'}</button>
+        {error && <p className="error">{error}</p>}
+      </div> : <details className="feed"><summary className="hint small">Update {title(name)}: paste posts, or just the follower count</summary>
+        <p className="hint small">{name === 'linkedin' ? 'From the page admin: Analytics, Content, Export. Open the file, copy the “Updates” sheet (any columns, French or English) and paste it here: read exactly, no model.'
+          : name === 'instagram' ? 'Paste the posts with their numbers (free text, or a CSV with a text,likes header). To let the app read the account itself, put INSTAGRAM_USER_ID and INSTAGRAM_ACCESS_TOKEN in .env (see the README).'
+          : `Paste the posts from ${title(name)} with their numbers: free text (the model structures it), or a table with a text and a likes column (read exactly).`}</p>
+        <textarea rows={3} value={paste} onChange={e => setPaste(e.target.value)} placeholder="Posts, or the export sheet. Leave empty to only record followers." />
         <div className="row"><input type="number" min={0} value={followers} onChange={e => setFollowers(e.target.value)} placeholder="followers today" style={{ width: 150 }} />
           <button className="primary" disabled={busy !== '' || (!paste.trim() && !followers)} onClick={() => run('save', async () => { await teamApi.setAccount(pid, { platform: name, paste: paste.trim() || undefined, followers: followers ? Number(followers) : undefined }); setPaste(''); setFollowers(''); })}>{busy ? 'Saving…' : 'Save'}</button></div>
         {error && <p className="error">{error}</p>}
-      </details>
+      </details>}
     </section>
   );
 }

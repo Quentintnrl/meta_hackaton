@@ -753,3 +753,4 @@ details.more > div button { text-align: left; }
 .event .event-name { font-weight: 600; } .event-post { margin: 4px 0 0; font-size: 13.5px; color: var(--ink); padding-top: 6px; border-top: 1px dashed var(--line); } .event .row { margin-top: 4px; }
 .field { display: grid; gap: 4px; margin-bottom: 14px; } .field-label { font-weight: 600; font-size: 14px; } .field .hint { line-height: 1.4; } .field input, .field textarea, .field select { margin-top: 4px; }
 .inline + .inline { margin-top: 10px; }
+.feed.connected { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }

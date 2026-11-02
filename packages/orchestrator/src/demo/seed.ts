@@ -28,55 +28,17 @@ export const DEMO_PROJECT = 'mairie360-demo';
 
 // The demo studio works on Mairie360: a platform for French town halls (projects, calendar,
 // messaging, workflows, training) built by four Epitech students, with partner communes.
-// The account posts are the real ones from instagram.com/mairie360, read on 2 Nov 2026: text,
-// date and likes as published. Instagram shows no shares or saves on the public page, so those
-// are 0 here, and every post had 0 comments. The format of each post is our own reading of it.
-// The field research, the plan's field figures and the dates of the goal are fictional, and flagged `simulated`.
-function realPosts(): AccountPost[] {
-  const rows: Array<[string, string, string, number]> = [
-    ['2026-10-29', 'carousel', 'Un calendrier, 5 situations du quotidien : entre les réunions, les événements communaux et les dossiers à préparer, les dates rythment la vie d’une mairie', 5],
-    ['2026-10-22', 'quiz', 'Le programme de la fête communale a été modifié… mais où retrouver la dernière version ? A, B, C ou D', 5],
-    ['2026-10-11', 'announcement', 'Mairie360 recherche ses bêta testeurs : nous avons besoin de vos retours pour construire une plateforme adaptée au quotidien des équipes municipales', 8],
-    ['2026-10-08', 'carousel', 'Organiser un événement communal, ça commence souvent simplement : une date, quelques échanges, un premier mail… sans ouvrir 15 fils de mails', 7],
-    ['2026-10-01', 'carousel', 'Un e-mail. Un fichier partagé. Un message à l’équipe… et maintenant, où est la bonne information ?', 12],
-    ['2026-05-26', 'opinion', 'Un outil simple. Un prestataire qui écoute. Un accompagnement qui dure dans le temps. Ce n’est pas excessif, c’est ce que les agents et élus demandent depuis des années', 9],
-    ['2026-05-18', 'opinion', 'Copier-coller. Ressaisir. Attendre une validation. Refaire le même rapport. Plusieurs heures perdues chaque semaine', 5],
-    ['2026-05-13', 'announcement', 'Mairie360 recherche ses premiers bêta testeurs : une plateforme tout-en-un pensée pour les agents municipaux', 3],
-    ['2026-05-12', 'opinion', 'Vous ne les voyez pas. Pourtant, ils coûtent des heures chaque semaine : recherche de docs, double saisie, erreurs silencieuses', 6],
-    ['2026-04-04', 'opinion', '5 abonnements. 5 interfaces. 5 fois plus d’erreurs. La réalité de nombreuses mairies aujourd’hui', 4],
-    ['2026-04-02', 'myth-busting', '« C’est trop compliqué pour nous. » « Un bon logiciel suffit. » « Le numérique éloigne les citoyens. » Trois idées reçues, toutes fausses', 6],
-    ['2026-03-31', 'opinion', 'Derrière chaque projet numérique réussi, il y a des agents qu’on a écoutés', 6],
-    ['2026-02-23', 'opinion', 'On parle souvent de réussite numérique. Mais rarement des raisons d’échec : cohérence, accompagnement, progressivité', 8],
-    ['2026-02-12', 'tips', 'Moderniser une mairie, c’est aussi accompagner les équipes : former les agents facilite l’adoption et réduit les résistances', 3],
-    ['2026-02-05', 'opinion', 'On parle souvent du coût des outils. Mais rarement du coût invisible : temps perdu, complexité accumulée, risques silencieux', 6],
-    ['2026-02-03', 'behind-the-scenes', 'Construire une solution pour les mairies, ce n’est pas empiler des fonctionnalités. C’est écouter, ajuster, parfois revenir en arrière', 3],
-    ['2026-01-22', 'product preview', 'En exclusivité, la future apparence du projet : une première immersion avant son déploiement, inscriptions à la bêta ouvertes', 8],
-    ['2026-01-10', 'opinion', 'Un maire ne cherche pas une « solution numérique ». Il cherche de la lisibilité, de la maîtrise et de quoi décider utilement', 4],
-    ['2026-01-08', 'tips', 'Cybersécurité et RGPD en mairie : 3 bonnes pratiques concrètes, directement applicables', 4],
-    ['2026-01-06', 'opinion', 'Il existe de nombreuses solutions pour les mairies. Entre outils isolés, plateformes complexes et processus encore manuels, laquelle choisir ?', 5],
-    ['2025-12-13', 'before-after', 'Avant / Après : le quotidien d’un agent municipal. Outils dispersés, tâches répétitives, manque de visibilité… vous êtes plutôt avant ou déjà après ?', 4],
-    ['2025-12-06', 'opinion', 'Chaque mairie avance avec ses propres défis. Aucune modernisation ne devrait être subie : comprise, choisie, construite avec les équipes', 6],
-    ['2025-11-27', 'tips', 'Focus sur un concept clé : l’interopérabilité. Quand les outils ne communiquent pas, doublons, lenteurs et perte de visibilité', 7],
-    ['2025-11-20', 'reel', 'Les 3 freins qui ralentissent la modernisation dans les mairies', 8],
-    ['2025-11-13', 'opinion', 'Les petits obstacles du quotidien en mairie, ça vous parle ? Logiciels dispersés, documents introuvables, manque de coordination', 7],
-    ['2025-11-06', 'opinion', 'Moderniser une mairie, c’est bien plus que numériser des démarches. La vraie transformation se joue à l’intérieur', 19],
-    ['2025-10-27', 'reel', 'Nous travaillons sur une solution pour simplifier le quotidien des agents municipaux : projets, calendrier collaboratif, messagerie interne', 8],
-  ];
-  return rows.map(([postedAt, format, text, likes]) => ({ platform: 'instagram', text, format, likes, comments: 0, shares: 0, saves: 0, postedAt, simulated: false }));
-}
-
-// The five posts of the LinkedIn company page (linkedin.com/company/mairie360), read in the admin
-// view on 2 Nov 2026: text, date, reactions, reposts and impressions as shown there. No comments on any.
-function realLinkedIn(): AccountPost[] {
-  const rows: Array<[string, string, string, number, number, number]> = [ // date, format, text, reactions, reposts, impressions
-    ['2026-10-30', 'carousel', 'Une réunion de coordination, une échéance administrative, la préparation d’un événement communal : chaque date s’inscrit dans une organisation collective. Avec ce carrousel, nous présentons le calendrier partagé Mairie360 à travers cinq situations du quotidien municipal : organiser une réunion, coordonner plusieurs services, préparer un événement communal, suivre les échéances, visualiser la semaine. Dans votre collectivité, quel est le principal défi pour partager les plannings entre services ?', 2, 1, 19],
-    ['2026-10-23', 'quiz', 'Un document existe. Pourtant, le retrouver dans sa dernière version demande parfois plusieurs recherches. Vous préparez une fête communale et cherchez le programme à jour. Où regardez-vous en premier ? A — Dans vos e-mails. B — Dans un dossier partagé. C — Dans une conversation d’équipe. D — Dans un dossier papier. Les quatre réponses peuvent correspondre à la réalité d’une collectivité. Dans votre collectivité, quel serait votre premier réflexe ?', 3, 1, 35],
-    ['2026-10-12', 'announcement', 'Mairie360 recherche ses premiers bêta testeurs issus des collectivités. Nous recherchons en priorité des agents administratifs, agents techniques et responsables de service en mairie pour participer à un test utilisateur à distance d’environ 30 minutes. Les participants auront un accès gratuit à la version bêta, la possibilité de faire remonter leurs besoins et un retour sur les améliorations retenues. Envoyez-nous votre profil et vos disponibilités.', 3, 1, 62],
-    ['2026-10-09', 'opinion', 'Et si l’organisation d’un événement communal ne nécessitait pas une multitude de fils de mails ? Entre les élus, les services techniques, la communication, les associations et les prestataires, une organisation simple au départ se transforme vite en une succession d’e-mails, de pièces jointes et de versions différentes. Mairie360 : un espace commun pour suivre les informations, les documents, les tâches et les échéances d’un même projet. Moins de fils de mails. Plus de coordination.', 3, 2, 68],
-    ['2026-10-02', 'carousel', 'Une information est créée dans un service municipal. Quelques échanges plus tard, elle existe dans plusieurs outils, sous plusieurs versions, auprès de plusieurs personnes. Qui dispose de la dernière version ? Quels services ont été informés ? Ce carrousel raconte ce parcours, de la création de l’information à sa dispersion, puis à son regroupement dans un espace partagé. Dans votre collectivité, à quel moment l’information devient-elle la plus difficile à suivre ?', 5, 4, 301],
-  ];
-  return rows.map(([postedAt, format, text, likes, shares, views]) => ({ platform: 'linkedin', text, format, likes, comments: 0, shares, saves: 0, views, postedAt, simulated: false }));
-}
+// The dates of the goal and the four pieces in progress are hand-written; the research is the real pass (real.json).
+// The account posts are the real ones of Mairie360, read on 2 Nov 2026 and kept in account.json next to this
+// file (Instagram: public page, text, date and likes; LinkedIn: page admin, reactions, reposts, impressions).
+// Nothing is scraped at run time: a real project either pastes its export on the Platforms page, or connects
+// the Instagram API in .env and lets the Scout read it at each pass.
+const ACCOUNT = JSON.parse(readFileSync(join(import.meta.dirname, 'account.json'), 'utf8')) as {
+  instagram: { readAt: string; followers: number; posts: Array<[string, string, string, number]> };
+  linkedin: { readAt: string; followers: number; posts: Array<[string, string, string, number, number, number]> };
+};
+const realPosts = (): AccountPost[] => ACCOUNT.instagram.posts.map(([postedAt, format, text, likes]) => ({ platform: 'instagram', text, format, likes, comments: 0, shares: 0, saves: 0, postedAt, simulated: false }));
+const realLinkedIn = (): AccountPost[] => ACCOUNT.linkedin.posts.map(([postedAt, format, text, likes, shares, views]) => ({ platform: 'linkedin', text, format, likes, comments: 0, shares, saves: 0, views, postedAt, simulated: false }));
 
 // A project in the middle of its life, to try the studio without spending a single model call.
 export function seedDemo(o: { journal: Journal; projects: ProjectStore; content: ContentStore; mediaDir: string; repoPath: string; now?: Date }) {
@@ -126,8 +88,8 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   const linkedin = realLinkedIn();
   const all = [...posts, ...linkedin];
   s.setAccount(P, all);
-  s.snapshot(P, { at: at(0), platform: 'instagram', followers: 44, posts: posts.length }); // read on the public page the same day
-  s.snapshot(P, { at: at(0), platform: 'linkedin', followers: 8, posts: linkedin.length }); // read in the page admin the same day
+  s.snapshot(P, { at: at(0), platform: 'instagram', followers: ACCOUNT.instagram.followers, posts: posts.length }); // read on the public page the same day
+  s.snapshot(P, { at: at(0), platform: 'linkedin', followers: ACCOUNT.linkedin.followers, posts: linkedin.length }); // read in the page admin the same day
   s.addReport(P, 'account', { ...REAL.account, stats: formatStats(all), postCount: all.length }, false, at(-0.02)); // the Analyst's real reading of the 32 posts
 
   // --- content, at every stage

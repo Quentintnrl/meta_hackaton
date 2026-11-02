@@ -177,4 +177,6 @@ Les faits sur le compte sont calculés dans l'interface, sans modèle, et quand 
 - **Competitors** : le marché en quatre phrases, une fiche par acteur (place, taille, public, canaux, ce qu'il publie, sa force, l'ouverture qu'il laisse), le calendrier du public avec quoi poster autour de chaque date, et les posts d'où s'inspirer avec l'image de la page et le lien. Chaque fiche, date ou trouvaille a un bouton qui met un brief dans le pipeline.
 - **Create** : chaque proposition porte la situation qu'elle répond et pour qui exactement, en plus de la première ligne, du canal et de la mesure ; les pièces acceptées suivent quatre étapes visibles (acceptée, écrite, approuvée, postée) avec le seul bouton attendu.
 
+Le compte vient de trois sources, jamais du scraping : l'API Instagram Graph quand `.env` la nomme (lue avant chaque passage de l'Analyst, et sur demande), l'export LinkedIn collé depuis le tableur (lu à l'exact, colonnes en français ou en anglais), ou un collage libre structuré par le modèle. La démo lit `account.json` au seed.
+
 L'équipe « on duty » (interrupteur dans Settings) fait un passage par jour : veille du terrain et des voisins, relecture du compte, propositions seulement si rien n'attend. Elle n'écrit ni ne poste sans le manager. La démo embarque le vrai passage du 2 novembre 2026 sur Mairie360 (`real.json`) : rien d'inventé côté recherche.
