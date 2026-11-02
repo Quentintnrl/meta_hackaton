@@ -65,6 +65,19 @@ function realPosts(): AccountPost[] {
   return rows.map(([postedAt, format, text, likes]) => ({ platform: 'instagram', text, format, likes, comments: 0, shares: 0, saves: 0, postedAt, simulated: false }));
 }
 
+// The five posts of the LinkedIn company page (linkedin.com/company/mairie360), read in the admin
+// view on 2 Nov 2026: text, date, reactions, reposts and impressions as shown there. No comments on any.
+function realLinkedIn(): AccountPost[] {
+  const rows: Array<[string, string, string, number, number, number]> = [ // date, format, text, reactions, reposts, impressions
+    ['2026-10-30', 'carousel', 'Une réunion de coordination, une échéance administrative, la préparation d’un événement communal : chaque date s’inscrit dans une organisation collective. Avec ce carrousel, nous présentons le calendrier partagé Mairie360 à travers cinq situations du quotidien municipal : organiser une réunion, coordonner plusieurs services, préparer un événement communal, suivre les échéances, visualiser la semaine. Dans votre collectivité, quel est le principal défi pour partager les plannings entre services ?', 2, 1, 19],
+    ['2026-10-23', 'quiz', 'Un document existe. Pourtant, le retrouver dans sa dernière version demande parfois plusieurs recherches. Vous préparez une fête communale et cherchez le programme à jour. Où regardez-vous en premier ? A — Dans vos e-mails. B — Dans un dossier partagé. C — Dans une conversation d’équipe. D — Dans un dossier papier. Les quatre réponses peuvent correspondre à la réalité d’une collectivité. Dans votre collectivité, quel serait votre premier réflexe ?', 3, 1, 35],
+    ['2026-10-12', 'announcement', 'Mairie360 recherche ses premiers bêta testeurs issus des collectivités. Nous recherchons en priorité des agents administratifs, agents techniques et responsables de service en mairie pour participer à un test utilisateur à distance d’environ 30 minutes. Les participants auront un accès gratuit à la version bêta, la possibilité de faire remonter leurs besoins et un retour sur les améliorations retenues. Envoyez-nous votre profil et vos disponibilités.', 3, 1, 62],
+    ['2026-10-09', 'opinion', 'Et si l’organisation d’un événement communal ne nécessitait pas une multitude de fils de mails ? Entre les élus, les services techniques, la communication, les associations et les prestataires, une organisation simple au départ se transforme vite en une succession d’e-mails, de pièces jointes et de versions différentes. Mairie360 : un espace commun pour suivre les informations, les documents, les tâches et les échéances d’un même projet. Moins de fils de mails. Plus de coordination.', 3, 2, 68],
+    ['2026-10-02', 'carousel', 'Une information est créée dans un service municipal. Quelques échanges plus tard, elle existe dans plusieurs outils, sous plusieurs versions, auprès de plusieurs personnes. Qui dispose de la dernière version ? Quels services ont été informés ? Ce carrousel raconte ce parcours, de la création de l’information à sa dispersion, puis à son regroupement dans un espace partagé. Dans votre collectivité, à quel moment l’information devient-elle la plus difficile à suivre ?', 5, 4, 301],
+  ];
+  return rows.map(([postedAt, format, text, likes, shares, views]) => ({ platform: 'linkedin', text, format, likes, comments: 0, shares, saves: 0, views, postedAt, simulated: false }));
+}
+
 // A project in the middle of its life, to try the studio without spending a single model call.
 export function seedDemo(o: { journal: Journal; projects: ProjectStore; content: ContentStore; mediaDir: string; repoPath: string; now?: Date }) {
   const now = o.now ?? new Date();
@@ -110,9 +123,12 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   // --- what the Scout found, and the Analyst's comparison with the account
   s.addReport(P, 'audit', REAL.audit, false, at(-0.03)); // the Scout's real field audit (web search), kept as produced
   const posts = realPosts();
-  s.setAccount(P, posts);
+  const linkedin = realLinkedIn();
+  const all = [...posts, ...linkedin];
+  s.setAccount(P, all);
   s.snapshot(P, { at: at(0), platform: 'instagram', followers: 44, posts: posts.length }); // read on the public page the same day
-  s.addReport(P, 'account', { ...REAL.account, stats: formatStats(posts), postCount: posts.length }, false, at(-0.02)); // the Analyst's real reading of the 27 posts
+  s.snapshot(P, { at: at(0), platform: 'linkedin', followers: 8, posts: linkedin.length }); // read in the page admin the same day
+  s.addReport(P, 'account', { ...REAL.account, stats: formatStats(all), postCount: all.length }, false, at(-0.02)); // the Analyst's real reading of the 32 posts
 
   // --- content, at every stage
   const add = (i: { kind: ItemKind; title: string; brief: string } & Partial<Omit<Item, 'id' | 'projectId' | 'createdAt' | 'revisions'>>) =>
@@ -121,7 +137,7 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   const media = (format: Media['format'], hashtags: string[], slides: Media['slides']): Media => ({ format, hashtags, slides });
 
   // the Strategist's real proposals, hung on the beta or dated
-  const stats = formatStats(posts);
+  const stats = formatStats(all);
   for (const i of REAL.ideas) {
     const { milestoneId, fixedDate, offsetDays, ...rest } = i;
     add({ ...rest, origin: 'ai', status: 'idea', ...(milestoneId && offsetDays !== undefined ? { milestoneId: pilot.id, offsetDays } : { fixedDate: fixedDate && fixedDate >= today ? fixedDate : d(5) }) });

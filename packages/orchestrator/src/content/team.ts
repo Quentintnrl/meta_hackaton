@@ -47,6 +47,11 @@ export const AccountAnalysis = z.object({
   opportunities: z.array(z.string()).max(4),
   winners: z.array(z.object({ text: z.string(), format: z.string(), engagement: z.number().int().min(0), note: z.string() })).max(3).default([]), // the strongest posts, one line each on why they won
   losers: z.array(z.object({ text: z.string(), format: z.string(), engagement: z.number().int().min(0), note: z.string() })).max(3).default([]), // the weakest posts, one line each on why they flopped
+  fixes: z.array(z.object({
+    problem: z.string(), // what is wrong, in one plain sentence with the number that shows it
+    fix: z.string(), // what to do about it, concrete: a kind of post, a change of channel, a rhythm, a question to ask
+    firstStep: z.string(), // the very first post or action, described so the Writer could start from it
+  })).max(3).default([]), // the diagnosis turned into solutions: never a question back to the manager
 });
 export interface FormatStat { format: string; posts: number; avgEngagement: number }
 export type AccountReport = z.infer<typeof AccountAnalysis> & { stats: FormatStat[]; postCount: number };
@@ -62,6 +67,8 @@ const Proposals = z.object({
     hook: z.string().default(''), // the first line of the post, written as it would be published, in the project's language
     channel: z.string().default(''), // where it goes: the network or place, one word or two (Instagram, LinkedIn, newsletter…)
     measure: z.string().default(''), // what tells the manager it worked, one short sentence, something they can count (sign-ups, replies, a named person reacting), never "engagement"
+    context: z.string().default(''), // the situation this piece answers, two or three sentences: what the audience is living right now, what the account did or did not do about it, what is being built
+    audience: z.string().default(''), // who exactly reads this one, a few words (not the whole audience of the project)
     source: z.enum(['trend', 'account', 'roadmap']),
     milestoneId: z.string(), // '' when it hangs on no milestone
     offsetDays: z.number().int().min(-60).max(30), // relative to the milestone landing
@@ -72,7 +79,17 @@ const Proposals = z.object({
 // What the Scout saw at comparable players, condensed: every find keeps its link, nothing without one.
 const WatchSchema = z.object({
   market: z.string(), // who the comparable players are and where the audience is, in three or four plain sentences
-  players: z.array(z.object({ name: z.string(), url: z.string(), what: z.string() })).max(8),
+  players: z.array(z.object({
+    name: z.string(), url: z.string(),
+    what: z.string(), // what they sell or do, one line
+    place: z.string().default(''), // where they stand in the market: leader, historic publisher, challenger, media, association, public body… with the one fact that shows it
+    size: z.string().default(''), // the figures found: customers, communes, followers, years, staff; '' when none
+    audience: z.string().default(''), // who they talk to
+    channels: z.string().default(''), // where they publish, with the rhythm when seen ("LinkedIn 3 posts a week, a newsletter, salons")
+    publishes: z.string().default(''), // what they actually publish, concretely: the kinds of posts and subjects seen, with an example
+    strength: z.string().default(''), // what they do well that this project cannot match today
+    opening: z.string().default(''), // what they leave uncovered, that this project could take: subject, tone, audience, format
+  })).max(8),
   finds: z.array(z.object({
     title: z.string(), // the post or page, in a few words
     url: z.string(), // its link, exactly as found; drop the find when there is none
@@ -83,7 +100,11 @@ const WatchSchema = z.object({
     whyForYou: z.string(), // what this project could take from it, one concrete sentence
     format: z.string(), // carousel, reel, testimonial, event, case study…
   })).max(12),
-  events: z.array(z.object({ name: z.string(), when: z.string(), why: z.string() })).max(5), // dates the audience gathers around (salons, deadlines, seasons)
+  events: z.array(z.object({
+    name: z.string(), when: z.string(),
+    why: z.string(), // what the audience is doing at that moment, and why it matters to them
+    post: z.string().default(''), // what this project should post about it and when (a week before, the day, after), one concrete sentence
+  })).max(5), // dates the audience gathers around (salons, deadlines, seasons)
 });
 
 const AccountParse = z.object({
@@ -280,9 +301,10 @@ Fill misses with the formats and angles that fall flat, each with a concrete exa
     const country = /fran|mairie|commune/i.test(`${profile.niche} ${profile.audience} ${profile.language}`) ? ' (France, in French where the sources are French)' : '';
     const [posts, market] = await Promise.all([
       llm.search(`Find 8 to 12 recent public posts (last 12 months) from companies, products or organisations comparable to "${field}"${who}${country}, on LinkedIn, Instagram, their blog or the press. For each: the account, the exact URL of the post or page, what it is (format: carousel, video, testimonial, event, case study, article…), its hook or subject, and any visible figure (likes, comments, views). Only real, visited pages with their URL; skip anything you cannot link.${behaviour(this.#svc, projectId, 'scout')}`),
-      llm.search(`Who are the comparable players for a project like "${field}"${who}${country}? Name 4 to 8 with their website, what they sell and where they publish (which networks, newsletter, events). Also list the upcoming events, salons or seasonal dates (next 6 months) where this audience gathers, with dates. Prefer sources you visited.`),
+      llm.search(`Who are the comparable players for a project like "${field}"${who}${country}? Name 4 to 8 and, for each: its website, what it sells, its place in the market (leader, historic publisher, challenger, media, association…) with a fact that shows it, its size in figures (customers, communes, followers, years, staff), who it talks to, where it publishes and how often, what it actually publishes (kinds of posts and subjects, with an example), what it does well, and what it leaves uncovered. Also list the upcoming events, salons or seasonal dates (next 6 months) where this audience gathers, with dates and what the audience is doing then. Prefer sources you visited.`),
     ]);
-    const w = await llm.json(`Today is ${day(this.#svc.now)}: an event or deadline before that date is past, say so in its "when" or drop it. Condense this research. Keep only what the text supports, with the URLs exactly as given; drop a find without a link. Short, concrete, no filler. "whyForYou" says what the project "${projectName}" (${field}) could take from each find, in one sentence a busy person acts on.
+    const w = await llm.json(`Today is ${day(this.#svc.now)}: an event or deadline before that date is past, say so in its "when" or drop it. Condense this research. Keep only what the text supports, with the URLs exactly as given; drop a find without a link. Short, concrete, no filler. Write everything in ${profile.language || 'English'} (names and figures as they are). "whyForYou" says what the project "${projectName}" (${field}) could take from each find, in one sentence a busy person acts on.
+For each player fill place, size, audience, channels, publishes, strength and opening from the text (short, concrete, with the figures as written; '' when the text says nothing). For each event, "post" says what "${projectName}" should post about it and when.
 
 POSTS SEEN:
 ${posts.text}
@@ -315,7 +337,7 @@ ${market.text}`, WatchSchema, 'watch');
     const stats = formatStats(posts);
     const audit = this.#store.latestReport<Audit>(projectId, 'audit')?.data;
     const a = await this.#svc.llm.json(
-      `You compare a project's social account with what works in its field. Be concrete and honest; if the data is thin, say so. When posts get a handful of likes each and no comments, say plainly that formats cannot be told apart on these numbers, name what can still be read (the best and worst posts, the pace, the silence), and do not rank formats.
+      `Today is ${day(this.#svc.now)}: a date before it is past, never propose to prepare for it. You compare a project's social account with what works in its field. Be concrete and honest; if the data is thin, say so. When posts get a handful of likes each and no comments, say plainly that formats cannot be told apart on these numbers, name what can still be read (the best and worst posts, the pace, the silence), and do not rank formats.
 Engagement = likes + 2*comments + 3*shares + 3*saves. Quote the post texts and engagement numbers below exactly as given: never invent or round them.
 
 Average engagement per format on this account:
@@ -324,6 +346,7 @@ Recent posts:
 ${posts.slice(0, 15).map(p => `- [${p.format}] ${p.text} (${engagement(p)})${p.itemId ? ` — this one came from the studio piece "${this.#store.item(p.itemId)?.title ?? p.itemId}": weigh linked pieces as proven winners in strengths and gaps` : ''}`).join('\n')}
 
 Name the 3 strongest posts in winners and the 3 weakest in losers (by the engagement numbers above), each with a one-line note on why it won or flopped.
+Then turn the diagnosis into up to 3 fixes. Each names the problem with the number that shows it, the fix (a kind of post, a channel, a rhythm, a question to ask the audience, a thing to show), and the first step: the first post or action, described so the Writer could start from it. Never ask the manager what they want: decide, and say it.
 
 What works in the field: ${audit ? JSON.stringify({ whatWorks: audit.whatWorks, hooks: audit.hooks, topics: audit.topics }) : '(the scout has not reported yet)'}
 ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}`,
@@ -374,6 +397,7 @@ ${pasted.slice(0, 12000)}`, AccountParse, 'account_import');
       `You are the strategist of a small digital communication team working for a solo developer (the manager).
 Today is ${today}. Propose ${count} pieces of content for the coming weeks.${lens ? ` Look at the situation mainly through ${lens}.` : ''} Every piece must be justified by evidence you can see below: a trend from the audit, a gap or strength in the account, or something in the dev roadmap (a feature about to land, a milestone date). Say which in "rationale", in plain words a busy person reads once, naming the one fact it rests on (a named post with its number and date, a feature, a date, an example from the field). Put the hard numbers behind it in "evidence" (formats with their scores, named winning or flopping posts, never invented figures). When the account's numbers are too small to tell formats apart (a few likes each, no comments), say so in the rationale instead of ranking formats, and rest the piece on something else: what is being built, who the audience really is, where they are, one concrete example from the field.
 Write "hook" as the real first line of the post, in the project's language and voice. Name the "channel" where the audience actually is (the account's own network, or another one when the audience is elsewhere: say why in the rationale). In "measure", say what the manager will count a week later to know it worked, something concrete (sign-ups, replies, a specific kind of person reacting), not engagement in general. In "format", name the content format the piece uses with the same word as in the account stats or the field research (tutorial, meme, behind-the-scenes…), or leave it empty.
+In "context", give the situation in two or three sentences, so that someone who has not read the research understands why now: what the audience is living at this moment (a season, a deadline, a habit), what the account has already said or not said about it, and what the project is building that relates. In "audience", name who exactly this one piece is for (a role, a size of commune, a moment in their week), not the whole audience.
 Prefer the roadmap for timing: tie a piece to a milestone with offsetDays (negative = before it lands), or leave milestoneId empty and give a date.
 Do not repeat existing pieces. Do not propose again what the manager refused, and apply the reasons they gave.
 
@@ -422,7 +446,7 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
         projectId, kind: p.kind, title: p.title, brief: p.brief,
         rationale: `${p.rationale}${p.evidence ? `\nEvidence: ${p.evidence}` : ''}${mark}`,
         ...(proof ? { proof } : {}),
-        ...(p.hook || p.channel || p.measure ? { pitch: { hook: p.hook, channel: p.channel, measure: p.measure } } : {}),
+        ...(p.hook || p.channel || p.measure ? { pitch: { hook: p.hook, channel: p.channel, measure: p.measure, context: p.context, audience: p.audience } } : {}),
         source: p.source, origin: 'ai', status: 'idea', createdAt: svc.now.toISOString(),
         ...(onMilestone ? { milestoneId: p.milestoneId, offsetDays: p.offsetDays } : { fixedDate: date }),
       }));

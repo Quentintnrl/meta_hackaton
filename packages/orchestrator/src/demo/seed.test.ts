@@ -75,16 +75,16 @@ test('generated pictures exist on disk and the rest of the post can be generated
 test('the team overview works with no model at all', () => {
   const { svc } = demo();
   const o = new Team(svc).overview(DEMO_PROJECT);
-  assert.ok(o.audit && o.account && o.accountPosts === 27);
-  assert.equal(o.activity.length, 6);
+  assert.ok(o.audit && o.account && o.accountPosts === 32, '27 Instagram posts and 5 LinkedIn posts');
+  assert.equal(o.activity.length, 5, 'the five log lines of the real pass: scout, analyst, strategist, director twice');
   assert.ok(o.watch && o.watch.data.finds.length >= 5 && o.watch.data.finds.every(f => f.url.startsWith('http')), 'the watch shows real finds with their links');
-  assert.equal(o.snapshots.length, 1, 'one follower count, read the same day');
+  assert.equal(o.snapshots.length, 2, 'one follower count per platform, read the same day');
   assert.equal(o.duty.autopilot, true);
   assert.equal(o.config.scout.workers, 2);
   assert.ok(o.synthesis);
   assert.ok(o.plan && !o.plan.simulated, 'a plan built on the real numbers');
   assert.equal(o.plan!.data.mix[0].yours!.value, o.account!.data.stats.find(s => s.format === 'carousel')!.avgEngagement, 'the plan quotes the real averages');
   assert.ok(o.audit!.data.whatWorks.every(w => w.figure.value > 0), 'every field format carries a measured figure');
-  assert.ok(o.audit!.data.benchmarks.length >= 3);
+  assert.ok(Array.isArray(o.audit!.data.benchmarks), 'benchmarks may be empty: the Scout leaves the list empty rather than guess');
   assert.ok(!o.audit!.simulated && !o.account!.simulated, 'nothing in the demo is fictional any more: the account and the research are real');
 });

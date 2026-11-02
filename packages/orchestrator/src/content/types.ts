@@ -107,7 +107,7 @@ export interface ExportPack {
 }
 
 // The concrete shape of a proposal, so the manager can judge it without reading a report.
-export interface Pitch { hook: string; channel: string; measure: string }
+export interface Pitch { hook: string; channel: string; measure: string; context?: string; audience?: string } // context: the situation this piece answers; audience: who exactly reads it
 
 export interface Item {
   id: string;
@@ -162,7 +162,7 @@ export interface SuggestedAction {
 }
 export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
 
-export interface AccountPost { id?: number; platform?: string; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string } // itemId: the studio piece this post came from, linked by the manager
+export interface AccountPost { id?: number; platform?: string; text: string; format: string; likes: number; comments: number; shares: number; saves: number; views?: number; postedAt: string; simulated: boolean; itemId?: string } // views: impressions when the platform shows them (LinkedIn does, Instagram's public page does not) // itemId: the studio piece this post came from, linked by the manager
 export interface Series { id: string; projectId: string; name: string; createdAt: string } // a recurring editorial line: a pillar or a series
 export interface ItemLink { parentId: string; childId: string; kind: 'reuse'; createdAt: string } // a piece derived from another: recycle, decline, retry
 export interface Activity { id: number; projectId: string; agent: AgentId; summary: string; ok: boolean; at: string }
@@ -170,7 +170,11 @@ export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | '
 
 // What the Scout saw at comparable players: concrete posts and pages, each with its link, and the market they draw.
 export interface Find { title: string; url: string; account: string; platform: string; whatItIs: string; number: string; whyForYou: string; format: string }
-export interface Watch { market: string; players: Array<{ name: string; url: string; what: string }>; finds: Find[]; events: Array<{ name: string; when: string; why: string }>; sources: string[] }
+// One comparable player, as a short profile: where it stands, how big, who it talks to, what it publishes, and the room it leaves.
+export interface Player { name: string; url: string; what: string; place?: string; size?: string; audience?: string; channels?: string; publishes?: string; strength?: string; opening?: string }
+// A date the audience gathers around, and what to post about it, when.
+export interface Event { name: string; when: string; why: string; post?: string }
+export interface Watch { market: string; players: Player[]; finds: Find[]; events: Event[]; sources: string[] }
 // The size of the audience on one platform at one moment: a trend once there are two.
 export interface Snapshot { at: string; platform: string; followers: number; posts: number }
 export const engagement = (p: Pick<AccountPost, 'likes' | 'comments' | 'shares' | 'saves'>) => p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3;

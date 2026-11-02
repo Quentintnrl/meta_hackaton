@@ -66,7 +66,9 @@ export function Piece({ item, view, reload, open, askAgent }: { item: ContentIte
       <div className="piece-meta"><KindChip kind={item.kind} />{item.pitch?.channel && <span className="chip">{item.pitch.channel}</span>}<span className="hint small">{fmt(date)}{ms ? ` · for ${ms.title}` : ''} · {STATE[item.status]}</span></div>
       <h3 className="piece-title">{item.title}</h3>
       {hook && <p className="hook">“{hook}”</p>}
-      {why && <p className="piece-why"><b>Why</b> {why}</p>}
+      {item.pitch?.context && <p className="piece-why"><b>The situation</b> {item.pitch.context}</p>}
+      {item.pitch?.audience && <p className="piece-why"><b>For</b> {item.pitch.audience}</p>}
+      {why && <p className="piece-why"><b>Why this piece</b> {why}</p>}
       {evidence && <p className="hint small">Behind it: {evidence}</p>}
       {item.pitch?.measure && <p className="piece-why"><b>We will know it worked by</b> {item.pitch.measure}</p>}
       {item.draft && item.status !== 'idea' && <blockquote className="piece-draft">{item.draft.length > 320 ? item.draft.slice(0, 320) + '…' : item.draft}{item.media?.slides.some(s => s.file) && <span className="hint small"> · {item.media.slides.filter(s => s.file).length} picture(s) ready</span>}</blockquote>}

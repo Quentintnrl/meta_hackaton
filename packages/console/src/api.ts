@@ -114,7 +114,7 @@ export interface Slide { kind: 'image' | 'video'; visual: string; text: string; 
 export interface Media { format: MediaFormat; hashtags: string[]; slides: Slide[] }
 export const SOCIAL_KINDS: ItemKind[] = ['social-post', 'teaser'];
 
-export interface Pitch { hook: string; channel: string; measure: string }
+export interface Pitch { hook: string; channel: string; measure: string; context?: string; audience?: string }
 export interface ContentItem {
   media?: Media; pitch?: Pitch;
   id: string; projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; draft: string; status: ItemStatus;
@@ -125,7 +125,7 @@ export type PublishMode = 'local' | 'assisted' | 'connected';
 export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; autopilot?: boolean; niche: string; directives: string; publishMode: PublishMode }
 export interface ExportPack { copyText: string; caption: string; hashtags: string[]; mediaFiles: string[]; exportedPath?: string }
 export interface Series { id: string; projectId: string; name: string; createdAt: string }
-export interface AccountPost { id?: number; platform?: string; text: string; format: string; likes: number; comments: number; shares: number; saves: number; postedAt: string; simulated: boolean; itemId?: string }
+export interface AccountPost { id?: number; platform?: string; text: string; format: string; likes: number; comments: number; shares: number; saves: number; views?: number; postedAt: string; simulated: boolean; itemId?: string }
 export interface ContentView { profile: Profile; milestones: Milestone[]; items: ContentItem[]; series: Series[] }
 
 const send = <T>(method: string, path: string, body?: unknown) => call<T>(path, { method, body: JSON.stringify(body ?? {}) });
@@ -146,11 +146,14 @@ export interface PlanLine { format: string; count: number; lever: PlanLever; why
 export interface Plan { period: string; headline: string; mix: PlanLine[]; cadence: string; next: string; basis: { posts: number; audited: boolean } }
 export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number; figure?: Figure; exampleUrl?: string; exampleFigure?: string }>; hooks: string[]; topics: string[]; avoid: string[]; misses?: Array<{ format: string; why: string; example: string }>; benchmarks?: Benchmark[]; sources: string[] }
 export interface VerdictPost { text: string; format: string; engagement: number; note: string }
-export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[] }
+export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[]; fixes?: Fix[] }
+export interface Fix { problem: string; fix: string; firstStep: string }
 export interface Report<T> { data: T; simulated: boolean; at: string }
 // What the Scout saw at comparable players, each find with its link.
 export interface Find { title: string; url: string; account: string; platform: string; whatItIs: string; number: string; whyForYou: string; format: string }
-export interface Watch { market: string; players: Array<{ name: string; url: string; what: string }>; finds: Find[]; events: Array<{ name: string; when: string; why: string }>; sources: string[] }
+export interface Player { name: string; url: string; what: string; place?: string; size?: string; audience?: string; channels?: string; publishes?: string; strength?: string; opening?: string }
+export interface Event { name: string; when: string; why: string; post?: string }
+export interface Watch { market: string; players: Player[]; finds: Find[]; events: Event[]; sources: string[] }
 export interface Snapshot { at: string; platform: string; followers: number; posts: number }
 export interface TeamView {
   agents: Array<{ id: AgentId; name: string; role: string }>;

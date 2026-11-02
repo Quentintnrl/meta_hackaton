@@ -46,6 +46,7 @@ export class ContentStore {
     this.#addColumn('items', 'proof', 'TEXT');
     this.#addColumn('items', 'pitch', 'TEXT');
     this.#addColumn('account_posts', 'item_id', 'TEXT');
+    this.#addColumn('account_posts', 'views', 'INTEGER');
   }
 
   #addColumn(table: string, col: string, def: string) {
@@ -107,8 +108,8 @@ export class ContentStore {
       .map(r => [String(r.text), String(r.item_id)] as const));
     if (platform) this.#db.prepare('DELETE FROM account_posts WHERE project_id = ? AND platform = ?').run(projectId, platform);
     else this.#db.prepare('DELETE FROM account_posts WHERE project_id = ?').run(projectId);
-    const ins = this.#db.prepare('INSERT INTO account_posts (project_id, platform, text, format, likes, comments, shares, saves, posted_at, simulated, item_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
-    for (const p of posts) ins.run(projectId, p.platform || platform || 'instagram', p.text, p.format, p.likes, p.comments, p.shares, p.saves, p.postedAt, p.simulated ? 1 : 0, p.itemId ?? links.get(p.text) ?? null);
+    const ins = this.#db.prepare('INSERT INTO account_posts (project_id, platform, text, format, likes, comments, shares, saves, views, posted_at, simulated, item_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    for (const p of posts) ins.run(projectId, p.platform || platform || 'instagram', p.text, p.format, p.likes, p.comments, p.shares, p.saves, p.views ?? null, p.postedAt, p.simulated ? 1 : 0, p.itemId ?? links.get(p.text) ?? null);
   }
 
   snapshot(projectId: string, s: Snapshot) {
@@ -122,7 +123,7 @@ export class ContentStore {
   account(projectId: string): AccountPost[] {
     return (this.#db.prepare('SELECT * FROM account_posts WHERE project_id = ? ORDER BY posted_at DESC').all(projectId) as Row[]).map(r => ({
       id: Number(r.id), platform: String(r.platform ?? 'instagram'), text: String(r.text), format: String(r.format), likes: Number(r.likes), comments: Number(r.comments), shares: Number(r.shares),
-      saves: Number(r.saves), postedAt: String(r.posted_at), simulated: r.simulated === 1, itemId: r.item_id ? String(r.item_id) : undefined,
+      saves: Number(r.saves), views: r.views == null ? undefined : Number(r.views), postedAt: String(r.posted_at), simulated: r.simulated === 1, itemId: r.item_id ? String(r.item_id) : undefined,
     }));
   }
 

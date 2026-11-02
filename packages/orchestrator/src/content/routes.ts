@@ -15,7 +15,7 @@ const NewItem = z.object({
   kind: ItemKind, title: z.string().trim().min(1).max(160), brief: z.string().max(4000).default(''),
   milestoneId: z.string().optional(), featureId: z.string().optional(), offsetDays: z.number().int().min(-90).max(90).optional(), fixedDate: Date_.optional(),
   // A piece the manager takes from something seen in the field: it keeps where it came from and why.
-  rationale: z.string().max(1500).optional(), source: z.enum(['trend', 'account', 'roadmap', 'manager']).optional(), pitch: z.object({ hook: z.string().max(400), channel: z.string().max(80), measure: z.string().max(300) }).optional(),
+  rationale: z.string().max(1500).optional(), source: z.enum(['trend', 'account', 'roadmap', 'manager']).optional(), pitch: z.object({ hook: z.string().max(400), channel: z.string().max(80), measure: z.string().max(300), context: z.string().max(800).optional(), audience: z.string().max(200).optional() }).optional(),
 });
 const PatchItem = z.object({
   title: z.string().trim().min(1).max(160), brief: z.string().max(4000), draft: z.string().max(20000), kind: ItemKind,
