@@ -3,6 +3,7 @@ import { contentApi, teamApi, type AccountPost, type AgentId, type ContentItem, 
 import { KIND_HUE, KindChip, ago, fmt, useAction } from './shared';
 import { hue } from './Numbers';
 import { Brief, Piece } from './NextView';
+import { Ahead, Compare, Dots, Strip, Timeline, dateIn, followersIn } from './charts';
 import type { View } from './Studio';
 
 type Common = { pid: string; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; open: (id: string) => void; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void };
@@ -146,44 +147,80 @@ function PlatformCard({ pid, name, posts, snaps, planned, reload, connected, las
   );
 }
 
-// --- Community: who follows, what they did, the silence, and what the Analyst says to do about it
+// --- Community: the account as a story with drawings, each finding in one sentence, then what the Analyst says to do
+const DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 export function CommunityBoard({ pid, team, reload, go, askAgent }: Common) {
   const [posts, setPosts] = useState<AccountPost[] | null>(null);
   useEffect(() => { contentApi.accountPosts(pid).then(setPosts).catch(() => setPosts([])); }, [pid, team.accountPosts]);
   const { busy, error, run } = useAction(reload);
   if (!posts) return null;
+  const f = team.facts;
+  if (!f || posts.length === 0) return <section className="card"><h3>No posts yet</h3><p className="hint">Feed a platform first: paste the posts, or connect Instagram. The drawings start from the first post.</p><button className="linkish" onClick={() => go('platforms')}>Platforms →</button></section>;
   const snaps = team.snapshots;
   const latest = [...new Set(snaps.map(s => platformKey(s.platform)))].map(p => snaps.filter(s => platformKey(s.platform) === p).at(-1)!);
-  const sorted = [...posts].sort((a, b) => a.postedAt.localeCompare(b.postedAt));
-  const comments = posts.reduce((a, p) => a + p.comments, 0);
-  const shares = posts.reduce((a, p) => a + p.shares, 0);
-  const top = [...posts].sort((a, b) => b.likes - a.likes).slice(0, 3);
-  const asked = [...sorted].reverse().find(p => p.text.includes('?'));
+  const asked = [...posts].sort((a, b) => b.postedAt.localeCompare(a.postedAt)).find(p => p.text.includes('?'));
   const report = team.account;
   const fixes = report?.data.fixes ?? [];
-  const noteFor = (p: AccountPost) => report?.data.winners?.find(w => p.text.startsWith(w.text.slice(0, 40)) || w.text.startsWith(p.text.slice(0, 40)))?.note;
+  const noteFor = (p: { text: string }) => report?.data.winners?.find(w => p.text.startsWith(w.text.slice(0, 40)) || w.text.startsWith(p.text.slice(0, 40)))?.note;
+  const top = [...posts].sort((a, b) => b.likes - a.likes).slice(0, 3);
+  const q = f.question, tr = f.trend;
+  const small = (n: number) => n < 8;
+  const diff = (a: number, b: number) => Math.abs(a - b) < Math.max(1, Math.max(a, b) * 0.15);
+  const busiest = [...f.weekday].sort((a, b) => b.n - a.n)[0];
+  const bestDay = [...f.weekday].filter(w => w.n >= 3).sort((a, b) => b.avg - a.avg)[0];
+  const lengths = f.length.filter(l => l.n);
+  const longest = [...lengths].sort((a, b) => b.avg - a.avg)[0];
+  const li = f.reach;
+  const liHue = PLATFORM_HUE.linkedin;
   return (
     <div className="stack">
-      <div className="two uneven">
-        <section className="card">
-          <div className="head"><h3>Reactions, post by post</h3><span className="hint small">one bar per post, oldest to newest, hover for the text</span></div>
-          {posts.length ? <Bars posts={sorted} /> : <p className="hint">No posts loaded. Feed a platform first.</p>}
-        </section>
-        <section className="card hero-stat">
-          <span className="hint small">Followers</span>
-          {latest.length === 0 ? <><b className="big">–</b><span className="hint small">not recorded yet: add a count on the Platforms page</span></>
-            : latest.map(s => <div key={s.platform} className="hero-row"><b className="big">{s.followers.toLocaleString()}</b><Pill name={platformKey(s.platform)} /><span className="hint small">{fmtY(s.at)}</span></div>)}
-          {snaps.length > latest.length && <Spark points={snaps.filter(s => platformKey(s.platform) === platformKey(latest[0].platform)).map(s => s.followers)} />}
-          {snaps.length === latest.length && latest.length > 0 && <span className="hint small">One reading per platform. Each time you update a count on Platforms, a point is added: two make a trend.</span>}
-        </section>
-      </div>
       <section className="card">
-        <div className="head"><h3>What the numbers say, and what to do</h3><span className="hint small">{report ? <>Analyst, {ago(report.at)} · <button className="linkish tight" onClick={() => askAgent('analyst')}>ask →</button></> : 'no reading yet'}</span></div>
-        <p className="plain-truth">
-          {comments === 0 ? <>No one has commented on any of your {posts.length} posts{shares ? `, though ${shares} were shared on` : ''}. {asked ? <>The last question you asked, {fmt(asked.postedAt)}: “{cap(asked.text, 90)}”. Nobody answered.</> : 'None of your posts asks a question.'}</> : <>{comments} comments across {posts.length} posts.</>}
+        <div className="head"><h3>The story of your account</h3><span className="hint small">{latest.map(s => `${s.followers.toLocaleString()} on ${title(platformKey(s.platform))}`).join(' · ')}{latest.length ? ' · ' : ''}{f.n} posts since {fmtY(f.first)}</span></div>
+        <Timeline posts={posts} silences={f.silences} hueOf={p => pHue(p.platform ?? 'instagram')} best={f.best} />
+        <p className="finding">
+          {f.perMonth} posts a month on average, the last one {f.daysSinceLast} days ago.
+          {f.silences.length ? ` ${f.silences.length === 1 ? 'One silence' : `${f.silences.length} silences`} of more than three weeks: ${f.silences.map(s => `${s.days} days from ${fmtY(s.from)}`).join(', ')}. Each one resets what the audience remembers.` : ' No silence longer than three weeks: the account stays in view.'}
+          {f.comments === 0 ? ` No one has commented on any post${asked ? `; your last question, ${fmt(asked.postedAt)}, got no answer` : ''}.` : ` ${f.comments} comments in all.`}
         </p>
+        {[...new Set(posts.map(p => platformKey(p.platform ?? 'instagram')))].length > 1 && <div className="legend">{[...new Set(posts.map(p => platformKey(p.platform ?? 'instagram')))].map(p => <span key={p}><i style={{ background: `hsl(${pHue(p)} 65% 50%)` }} />{title(p)}</span>)}</div>}
+      </section>
+
+      <section className="card">
+        <div className="head"><h3>What the posts say, counted</h3><span className="hint small">computed from the posts, no model. Each drawing says how many posts stand behind it: under eight, read it as a hint, not a rule.</span></div>
+        <div className="findings">
+          <article className="finding-card">
+            <h4>{tr.direction === 'up' ? 'Likes are climbing' : tr.direction === 'down' ? 'Likes are slipping' : 'Likes are flat'}: {tr.early.avg} per post in the first half, {tr.late.avg} in the second, {tr.last5.avg} on the last five.</h4>
+            <Compare groups={[{ label: 'first half', n: tr.early.n, avg: tr.early.avg }, { label: 'second half', n: tr.late.n, avg: tr.late.avg }, { label: 'last five', n: tr.last5.n, avg: tr.last5.avg }]} />
+          </article>
+          <article className="finding-card">
+            <h4>{q.asked.n === 0 ? 'None of your posts asks a question.' : diff(q.asked.avg, q.not.avg) ? `Asking a question changes nothing in likes (${q.asked.avg} against ${q.not.avg})${f.comments === 0 ? ', and it does not bring answers either' : ''}.` : q.asked.avg > q.not.avg ? `Posts that ask a question get more likes: ${q.asked.avg} against ${q.not.avg}.` : `Posts that ask a question get fewer likes: ${q.asked.avg} against ${q.not.avg}.`}{small(Math.min(q.asked.n, q.not.n)) ? ' Few posts on one side.' : ''}</h4>
+            <Compare groups={[{ label: 'asks a question', n: q.asked.n, avg: q.asked.avg }, { label: 'does not', n: q.not.n, avg: q.not.avg }]} />
+          </article>
+          <article className="finding-card">
+            <h4>{lengths.length < 2 ? `All your posts are ${lengths[0]?.label ?? 'the same length'}.` : diff(longest.avg, Math.min(...lengths.map(l => l.avg))) ? 'Length does not change the likes.' : `${title(longest.label)} posts do best: ${longest.avg} likes against ${lengths.filter(l => l !== longest).map(l => `${l.avg} for ${l.label}`).join(' and ')}.`}{lengths.some(l => small(l.n)) ? ' Thin groups.' : ''}</h4>
+            <Compare groups={f.length.map(l => ({ label: l.label === 'short' ? 'short (<120)' : l.label === 'medium' ? 'medium (<300)' : 'long', n: l.n, avg: l.avg }))} />
+          </article>
+          <article className="finding-card">
+            <h4>You post mostly on {DAYS[busiest.day]} ({busiest.n} posts).{bestDay && bestDay.day !== busiest.day && !diff(bestDay.avg, busiest.avg) ? ` ${DAYS[bestDay.day]} did better: ${bestDay.avg} likes against ${busiest.avg}.` : bestDay ? ' No weekday stands out.' : ''}</h4>
+            <Compare groups={f.weekday.map(w => ({ label: DAYS[w.day], n: w.n, avg: w.avg }))} />
+          </article>
+          <article className="finding-card">
+            <h4>{f.words.length ? 'Words your best third of posts use more than the others.' : 'No word comes back in your best posts more than in the others: what they share is a scene, not a vocabulary.'}</h4>
+            {f.words.length > 0 && <div className="words">{f.words.map(w => <span key={w.word} className="word" style={{ fontSize: `${13 + Math.round(w.best * 10)}px` }} title={`in ${Math.round(w.best * 100)}% of the best third, ${Math.round(w.rest * 100)}% of the others`}>{w.word}<i>{Math.round(w.best * 100)}% · {Math.round(w.rest * 100)}%</i></span>)}</div>}
+            <p className="hint small">Best third = the {Math.max(1, Math.floor(f.n / 3))} most liked posts. The two figures: share of those posts using the word, share of the others.</p>
+          </article>
+          {li.length > 0 && <article className="finding-card">
+            <h4>On LinkedIn, {li.reduce((a, r) => a + r.likes, 0)} reactions for {li.reduce((a, r) => a + r.views, 0).toLocaleString()} views: {Math.round((li.reduce((a, r) => a + r.likes, 0) / li.reduce((a, r) => a + r.views, 0)) * 1000) / 10}% of the people who saw a post reacted. The most seen post ({li[0].views} views) got {li[0].likes}.</h4>
+            <Dots points={li} hue={liHue} />
+          </article>}
+        </div>
+        {f.thin && <p className="plain-truth">With likes this small and no comments, formats cannot be ranked: a few likes apart is noise. What the drawings can show is the pace, the silences, the drift, and what the best posts have in common.</p>}
+      </section>
+
+      <section className="card">
+        <div className="head"><h3>What the Analyst makes of it, and what to do</h3><span className="hint small">{report ? <>Analyst, {ago(report.at)} · <button className="linkish tight" onClick={() => askAgent('analyst')}>ask →</button></> : 'no reading yet'}</span></div>
         {report && <p className="piece-why">{report.data.summary}</p>}
-        {fixes.length > 0 ? <div className="fixes">{fixes.map((f, n) => <FixCard key={n} pid={pid} f={f} reload={reload} go={go} />)}</div>
+        {fixes.length > 0 ? <div className="fixes">{fixes.map((x, n) => <FixCard key={n} pid={pid} f={x} reload={reload} go={go} />)}</div>
           : <p className="hint small">{report ? 'This reading has no fixes yet: ask the Analyst for a fresh one.' : 'The Analyst has not read the account yet.'} <button className="linkish tight" disabled={busy !== '' || Boolean(team.working)} onClick={() => run('a', () => teamApi.run(pid, ['analyst'], ''))}>{busy ? 'Asking…' : 'Read the account and propose fixes →'}</button></p>}
         {error && <p className="error">{error}</p>}
       </section>
@@ -214,38 +251,11 @@ function FixCard({ pid, f, reload, go }: { pid: string; f: Fix; reload: () => Pr
   );
 }
 
-// Likes per post over time: thin bars anchored to the baseline, one hue per platform, a legend when there are two.
-function Bars({ posts }: { posts: AccountPost[] }) {
-  const w = 600, h = 150, pad = 24;
-  const t0 = Date.parse(posts[0].postedAt), t1 = Math.max(Date.parse(posts.at(-1)!.postedAt), t0 + 1);
-  const max = Math.max(1, ...posts.map(p => p.likes));
-  const x = (iso: string) => pad + ((Date.parse(iso) - t0) / (t1 - t0)) * (w - 2 * pad);
-  const months: string[] = [];
-  for (let d = new Date(t0); d.getTime() <= t1; d.setUTCMonth(d.getUTCMonth() + 1)) months.push(d.toISOString().slice(0, 10));
-  const platforms = [...new Set(posts.map(p => platformKey(p.platform ?? 'instagram')))];
-  return (
-    <>
-      <svg className="bars-svg" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Reactions per post over time">
-        <line x1={pad} x2={w - pad} y1={h - 20} y2={h - 20} className="axis" />
-        {[max, Math.round(max / 2)].map(v => <g key={v}><line x1={pad} x2={w - pad} y1={h - 20 - (v / max) * (h - 40)} y2={h - 20 - (v / max) * (h - 40)} className="grid" /><text x={pad - 4} y={h - 20 - (v / max) * (h - 40) + 4} className="tick" textAnchor="end">{v}</text></g>)}
-        {months.filter((_, i) => i % 2 === 0).map(m => <text key={m} x={x(m)} y={h - 6} className="tick" textAnchor="middle">{new Date(m + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', timeZone: 'UTC' })}</text>)}
-        {posts.map((p, i) => { const bh = (p.likes / max) * (h - 40); const pk = platformKey(p.platform ?? 'instagram'); const ww = words(pk); return <rect key={i} x={x(p.postedAt) - 3} y={h - 20 - bh} width={6} height={bh} rx={3} className="bar" style={{ fill: `hsl(${pHue(pk)} 65% 50%)` }}><title>{`${fmtY(p.postedAt)}, ${pk}: ${p.likes} ${ww.like}${p.comments ? `, ${p.comments} comments` : ''}${p.shares ? `, ${p.shares} ${ww.share}` : ''}${p.views != null ? `, ${p.views} views` : ''} — ${cap(p.text, 80)}`}</title></rect>; })}
-      </svg>
-      {platforms.length > 1 && <div className="legend">{platforms.map(p => <span key={p}><i style={{ background: `hsl(${pHue(p)} 65% 50%)` }} />{title(p)}</span>)}</div>}
-    </>
-  );
-}
-
-function Spark({ points }: { points: number[] }) {
-  const w = 160, h = 36, min = Math.min(...points), max = Math.max(...points);
-  const d = points.map((v, i) => `${(i / (points.length - 1)) * w},${h - 4 - ((v - min) / Math.max(1, max - min)) * (h - 8)}`).join(' ');
-  return <svg className="spark" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Followers over time"><polyline points={d} /></svg>;
-}
-
 // --- Competitors: who else talks to your audience, what they publish, the dates that audience lives by, and posts worth borrowing from
-export function WatchBoard({ pid, team, reload, go }: Common) {
+export function WatchBoard({ pid, team, view, reload, go }: Common) {
   const { busy, error, run } = useAction(reload);
   const w = team.watch;
+  const today = new Date().toISOString().slice(0, 10);
   const again = <button className="primary" disabled={busy !== '' || Boolean(team.working)} onClick={() => run('watch', () => teamApi.run(pid, ['scout'], ''))}>{busy ? 'Sending…' : team.working ? 'Team busy…' : w ? 'Watch again' : 'Watch the field'}</button>;
   if (!w) return <section className="card"><h3>Nobody watched yet</h3><p className="hint">The Scout searches the web for who else talks to your audience, what they publish and how big they are, the dates your audience gathers around, and concrete posts worth borrowing from. A few minutes.</p>{again}{error && <p className="error">{error}</p>}</section>;
   const d = w.data;
@@ -254,6 +264,16 @@ export function WatchBoard({ pid, team, reload, go }: Common) {
       <section className="card">
         <div className="head"><h3>The market, as the Scout sees it</h3><span className="hint small">watched {ago(w.at)} · from the web, with the links</span></div>
         <p className="market">{d.market}</p>
+        {(() => {
+          const seen = new Map<string, number>();
+          for (const x of d.finds) { const n = followersIn(x.number); if (n && platformKey(x.platform) === 'linkedin') seen.set(x.account.split(/ [—-] /)[0], Math.max(seen.get(x.account) ?? 0, n)); }
+          const you = team.snapshots.filter(s => platformKey(s.platform) === 'linkedin').at(-1);
+          const players = [...seen].map(([name, followers]) => ({ name, followers }));
+          return players.length >= 2 ? <>
+            <Strip players={players} you={you ? { name: 'you', followers: you.followers } : undefined} hue={PLATFORM_HUE.linkedin} />
+            <p className="finding">LinkedIn followers of the players the Scout saw, on a log scale{you ? `, and you at ${you.followers}` : ''}. {you && players.length ? `The smallest of them has ${Math.min(...players.map(p => p.followers)).toLocaleString()}: ${Math.round(Math.min(...players.map(p => p.followers)) / Math.max(1, you.followers))} times your audience.` : ''} The game is not to catch them: it is to be the one that speaks to the small town hall, which the fiches below say they leave open.</p>
+          </> : null;
+        })()}
         <div className="row">{again}{error && <p className="error">{error}</p>}</div>
       </section>
       <section className="card">
@@ -262,6 +282,8 @@ export function WatchBoard({ pid, team, reload, go }: Common) {
       </section>
       {d.events.length > 0 && <section className="card">
         <div className="head"><h3>Your audience's calendar</h3><span className="hint small">moments when these people are busy with one thing. Post about it before, not after.</span></div>
+        <Ahead today={today} events={d.events.map(e => ({ name: e.name, at: dateIn(e.when, today) ?? '', post: e.post })).filter(e => e.at)} pieces={view.items.filter(i => !['published', 'rejected'].includes(i.status) && (i.fixedDate ?? i.date)).map(i => ({ title: i.title, at: (i.fixedDate ?? i.date)! }))} />
+        <p className="finding">Above the line, the dates the Scout found; below, what you have planned. An empty stretch under a date is a post to plan.</p>
         <div className="events">{d.events.map(e => <EventCard key={e.name} pid={pid} e={e} reload={reload} go={go} />)}</div>
       </section>}
       <section className="card">

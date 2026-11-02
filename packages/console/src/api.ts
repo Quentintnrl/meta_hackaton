@@ -148,6 +148,19 @@ export interface Audit { summary: string; whatWorks: Array<{ format: string; why
 export interface VerdictPost { text: string; format: string; engagement: number; note: string }
 export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[]; fixes?: Fix[] }
 export interface Fix { problem: string; fix: string; firstStep: string }
+export interface Group { n: number; avg: number }
+export interface Facts {
+  n: number; first: string; last: string; perMonth: number; daysSinceLast: number;
+  silences: Array<{ from: string; to: string; days: number }>;
+  trend: { early: Group; late: Group; last5: Group; direction: 'up' | 'down' | 'flat' };
+  question: { asked: Group; not: Group };
+  length: Array<{ label: 'short' | 'medium' | 'long'; max: number } & Group>;
+  weekday: Array<{ day: number } & Group>;
+  words: Array<{ word: string; best: number; rest: number }>;
+  reach: Array<{ text: string; views: number; likes: number; shares: number; rate: number; postedAt: string }>;
+  best: { text: string; likes: number; postedAt: string; platform: string }; worst: { text: string; likes: number; postedAt: string; platform: string };
+  comments: number; thin: boolean;
+}
 export interface Report<T> { data: T; simulated: boolean; at: string }
 // What the Scout saw at comparable players, each find with its link.
 export interface Find { title: string; url: string; account: string; platform: string; whatItIs: string; number: string; whyForYou: string; format: string }
@@ -160,7 +173,7 @@ export interface TeamView {
   working?: { agent: AgentId; since: string };
   config: Record<AgentId, AgentConfig>; synthesis?: Report<Synthesis>; plan?: Report<Plan>;
   posts: Array<{ text: string; format: string; engagement: number; postedAt: string }>;
-  audit?: Report<Audit>; audits?: Array<Report<Audit>>; account?: Report<AccountReport>; accountPosts: number;
+  audit?: Report<Audit>; audits?: Array<Report<Audit>>; account?: Report<AccountReport>; accountPosts: number; facts: Facts | null;
   watch?: Report<Watch>; snapshots: Snapshot[]; duty: { autopilot: boolean; lastPass?: string }; connected: { instagram: boolean };
   activity: Array<{ id: number; agent: AgentId; summary: string; ok: boolean; at: string }>;
 }

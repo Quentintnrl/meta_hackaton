@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ContentService } from './service.ts';
 import { parseAccountCsv } from './service.ts';
 import { loadInstagram, readInstagram, type InstagramConfig } from './instagram.ts';
+import { accountFacts, factsText } from './facts.ts';
 import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction, type Watch } from './types.ts';
 
 export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
@@ -357,6 +358,9 @@ ${market.text}`, WatchSchema, 'watch');
     const a = await this.#svc.llm.json(
       `Today is ${day(this.#svc.now)}: a date before it is past, never propose to prepare for it. You compare a project's social account with what works in its field. Be concrete and honest; if the data is thin, say so. When posts get a handful of likes each and no comments, say plainly that formats cannot be told apart on these numbers, name what can still be read (the best and worst posts, the pace, the silence), and do not rank formats.
 Engagement = likes + 2*comments + 3*shares + 3*saves. Quote the post texts and engagement numbers below exactly as given: never invent or round them.
+
+FACTS COMPUTED FROM THE POSTS (exact, use them):
+${factsText(accountFacts(posts, day(this.#svc.now))!)}
 
 Average engagement per format on this account:
 ${stats.map(s => `- ${s.format}: ${s.avgEngagement} over ${s.posts} post(s)`).join('\n')}
@@ -739,6 +743,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
       connected: this.connected(),
       duty: { autopilot: this.#svc.profile(projectId).autopilot, lastPass: this.#store.activity(projectId, 50).filter(a => a.agent === 'scout' || a.agent === 'analyst').map(a => a.at).sort().at(-1) },
       accountPosts: this.#store.account(projectId).length,
+      facts: accountFacts(this.#store.account(projectId), day(this.#svc.now)),
       posts: this.#store.account(projectId).map(p => ({ text: p.text, format: p.format, engagement: engagement(p), postedAt: p.postedAt })),
       activity: this.#store.activity(projectId),
     };

@@ -754,3 +754,13 @@ details.more > div button { text-align: left; }
 .field { display: grid; gap: 4px; margin-bottom: 14px; } .field-label { font-weight: 600; font-size: 14px; } .field .hint { line-height: 1.4; } .field input, .field textarea, .field select { margin-top: 4px; }
 .inline + .inline { margin-top: 10px; }
 .feed.connected { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ---- drawings: one hue, thin marks, a sentence for each ---- */
+.chart { width: 100%; height: auto; display: block; } .chart .axis { stroke: var(--line); } .chart .tick { font-size: 10.5px; fill: var(--muted); } .chart .tick.faint { opacity: .75; }
+.chart .value { font-size: 11px; font-weight: 600; fill: var(--ink); } .chart .note { font-size: 11.5px; font-weight: 600; fill: var(--ink); }
+.chart .silence { fill: var(--soft); } .chart .today { stroke: var(--accent); stroke-dasharray: 3 3; } .chart .stem { stroke: var(--line); } .chart .dot-muted { fill: var(--muted); }
+.finding { margin: 8px 0 0; font-size: 14.5px; line-height: 1.55; }
+.findings { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; }
+.finding-card { display: grid; gap: 8px; align-content: start; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.finding-card h4 { margin: 0; font-size: 14px; font-weight: 600; line-height: 1.45; }
+.words { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: baseline; padding: 6px 0; } .word { font-weight: 600; color: var(--accent); } .word i { font-style: normal; font-size: 11px; font-weight: 400; color: var(--muted); margin-left: 4px; }
