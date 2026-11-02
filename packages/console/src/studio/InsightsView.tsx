@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { hasFigure, teamApi, type AgentId, type ContentView, type TeamView } from '../api';
 import { AccountCard, AccountData, AuditCard } from './Insights';
-import { FigureTile, LEVER, PlanMix, hue, num, sameFormat } from './Numbers';
+import { CadenceDots, LEVER, MixBar, PairBars, PlanMix, hue, num, sameFormat } from './Numbers';
 import { ago, useAction } from './shared';
 import type { View } from './Studio';
 
@@ -81,12 +81,17 @@ function PlanCard({ team, go }: { team: TeamView; go: (v: View) => void }) {
         <span className={`pill ${d.basis.audited ? 'good' : 'neg'}`}>{d.basis.audited ? 'field research: done' : 'no field research yet'}</span>
         <span className="hint small">Written {ago(p.at)}</span>
       </div>
+      <div className="two uneven">
+        <div><h4 className="mini">The mix: {d.mix.reduce((a, l) => a + l.count, 0)} posts</h4><MixBar plan={d} /></div>
+        <div><h4 className="mini">The rhythm</h4><CadenceDots plan={d} /></div>
+      </div>
+      <h4 className="mini">Line by line, with the numbers</h4>
       <PlanMix plan={d} simulated={p.simulated} />
+      <div className="lever-legend">{(Object.keys(LEVER) as Array<keyof typeof LEVER>).map(k => <span key={k}><span className={`lever ${k}`}>{LEVER[k].label}</span><small>{LEVER[k].hint}</small></span>)}</div>
       <div className="two">
         <div className="why-big"><b>Cadence</b><p>{d.cadence}</p></div>
         <div className="why-big"><b>Next</b><p>{d.next}</p></div>
       </div>
-      <p className="hint small">Levers: {(Object.keys(LEVER) as Array<keyof typeof LEVER>).map(k => `${LEVER[k].label} = ${LEVER[k].hint.toLowerCase()}`).join(' · ')}.</p>
     </section>
   );
 }
@@ -113,11 +118,11 @@ function CompareCard({ team }: { team: TeamView }) {
     <section className="card">
       {(cadence !== undefined || freq) && (
         <div className="cmp-cadence">
-          <div className="figure yours"><b>{cadence === undefined ? '–' : num(cadence)}</b><span>posts / week on your account{team.account?.simulated ? ' · demo' : ''}</span></div>
-          <span className="vs">vs</span>
-          <FigureTile figure={freq ? { what: freq.name, value: freq.value, unit: freq.unit, source: freq.source, period: '' } : undefined} label="no field figure on posting frequency" />
+          <h4 className="mini">Posts per week</h4>
+          <PairBars a={{ label: 'You', value: cadence, note: team.account?.simulated ? 'demo account' : 'from the dates of your posts' }} b={{ label: 'The field', value: freq?.value, note: freq ? `${freq.name}${freq.source ? ` · ${new URL(freq.source).hostname.replace(/^www\./, '')}` : ''}` : 'no field figure on posting frequency' }} />
         </div>
       )}
+      <h4 className="mini">Score per format</h4>
       <div className="cmp" role="table" aria-label="Your score per format against the field">
         <div className="cmp-head" role="row"><span>Format</span><span>Your average score</span><span>In the field</span><span>Plan</span></div>
         {names.map(f => {

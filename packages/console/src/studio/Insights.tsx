@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { contentApi, hasFigure, teamApi, type AccountPost, type Audit, type ContentItem, type TeamView } from '../api';
-import { FigureTile, Thumb, hue } from './Numbers';
+import { FigureTile, StrengthChart, Thumb, hue } from './Numbers';
 import { ago, useAction } from './shared';
 
 const firstSentence = (t: string) => (t.match(/^.*?[.!?](\s|$)/)?.[0] ?? t).trim();
@@ -40,6 +40,7 @@ export function AuditCard({ pid, audit, log, onBrief }: { pid: string; audit?: {
         {benches.length > 0 ? (
           <div className="bench">{benches.map(b => <FigureTile key={b.name} figure={{ what: b.name, value: b.value, unit: b.unit, source: b.source, period: b.note }} />)}</div>
         ) : <p className="hint small">No benchmark figure found in this research. Ask the Scout to look again, or with more researchers.</p>}
+        <StrengthChart rows={a.whatWorks} />
         <p className="hint small">Researched {ago(audit.at)} · {measured} of {a.whatWorks.length} formats with a measured figure · {a.sources.length} source{a.sources.length === 1 ? '' : 's'}{a.sources.slice(0, 4).map((u, i) => <a key={u} href={u} target="_blank" rel="noopener noreferrer"> [{i + 1}]</a>)}</p>
       </section>
 

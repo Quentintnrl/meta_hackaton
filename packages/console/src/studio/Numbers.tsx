@@ -5,7 +5,8 @@ import { hasFigure, teamApi, type Figure, type Plan, type PlanLever, type Proof,
 // the proof behind an idea, the plan's format mix. All read-only; nothing here calls a model.
 
 export type FormatStat = { format: string; posts: number; avgEngagement: number };
-export const hue = (s: string) => [...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7);
+// spread with the golden angle so two formats rarely share a hue
+export const hue = (s: string) => Math.round(([...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9973, 7) * 137.508) % 360);
 export const num = (n: number) => (Number.isInteger(n) ? n : Math.round(n * 10) / 10).toLocaleString();
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
 
@@ -102,6 +103,68 @@ export function PlanMix({ plan, simulated }: { plan: Plan; simulated?: boolean }
             <FigureTile figure={l.field} label="no field figure" />
           </div>
         </div>
+      ))}
+    </div>
+  );
+}
+
+// The plan's mix as one segmented bar: eight posts, coloured by format, with the count on each segment.
+export function MixBar({ plan }: { plan: Plan }) {
+  const total = plan.mix.reduce((a, l) => a + l.count, 0) || 1;
+  return (
+    <div className="mixbar-wrap">
+      <div className="mixbar" role="img" aria-label={plan.mix.map(l => `${l.count} ${l.format}`).join(', ')}>
+        {plan.mix.map(l => <span key={l.format} className={`seg ${l.lever}`} style={{ flex: l.count, ['--h' as string]: hue(l.format) }}><b>{l.count}</b></span>)}
+      </div>
+      <div className="legend2">{plan.mix.map(l => <span key={l.format}><i style={{ background: `hsl(${hue(l.format)} 65% 50%)` }} />{l.format} · {Math.round((l.count / total) * 100)}%</span>)}</div>
+    </div>
+  );
+}
+
+// The same mix spread over the period, one dot per post: a picture of the rhythm, not a schedule.
+export function CadenceDots({ plan }: { plan: Plan }) {
+  const weeks = Math.max(1, Math.min(12, Number(plan.period.match(/(\d+)\s*week/i)?.[1] ?? 4)));
+  const posts = plan.mix.flatMap(l => Array.from({ length: l.count }, () => l.format));
+  // round-robin across formats so every week gets a mix
+  const byWeek: string[][] = Array.from({ length: weeks }, () => []);
+  const queues = plan.mix.map(l => Array.from({ length: l.count }, () => l.format));
+  let w = 0;
+  while (queues.some(q => q.length)) for (const q of queues) { const f = q.shift(); if (f) byWeek[w++ % weeks].push(f); }
+  if (posts.length === 0) return null;
+  return (
+    <div className="cadence" role="img" aria-label={`${posts.length} posts over ${weeks} weeks`}>
+      {byWeek.map((fs, i) => (
+        <div key={i} className="week"><small>Week {i + 1}</small><span className="dots-row">{fs.map((f, k) => <i key={k} style={{ ['--h' as string]: hue(f) }} title={f} />)}{fs.length === 0 && <em>–</em>}</span></div>
+      ))}
+      <p className="hint small">{posts.length} posts over {weeks} weeks, about {Math.round((posts.length / weeks) * 10) / 10} a week. One way to spread them; the dates are set when you accept each idea.</p>
+    </div>
+  );
+}
+
+// Formats ranked by how strongly the Scout saw them work, with the measured figure next to each bar.
+export function StrengthChart({ rows }: { rows: Array<{ format: string; strength?: number; figure?: Figure }> }) {
+  const sorted = [...rows].sort((a, b) => (b.strength ?? 3) - (a.strength ?? 3));
+  return (
+    <div className="bars strength" role="img" aria-label="Formats ranked by strength in the field">
+      {sorted.map(r => (
+        <div key={r.format} className="barrow" style={{ ['--h' as string]: hue(r.format) }}>
+          <span>{r.format}</span>
+          <div><i style={{ width: `${((r.strength ?? 3) / 5) * 100}%`, background: `hsl(${hue(r.format)} 65% 50%)` }} /></div>
+          <b>{hasFigure(r.figure) ? `${num(r.figure.value)}${r.figure.unit.trim().startsWith('%') ? '%' : ''}` : `${r.strength ?? 3}/5`}</b>
+        </div>
+      ))}
+      <span className="hint small">Bar: strength out of 5 as the Scout rated it. Number: the measured figure when one was found, else the rating.</span>
+    </div>
+  );
+}
+
+// Two bars in the same unit, yours and the field's, each with its label.
+export function PairBars({ a, b }: { a: { label: string; value?: number; note?: string }; b: { label: string; value?: number; note?: string } }) {
+  const max = Math.max(1, a.value ?? 0, b.value ?? 0);
+  return (
+    <div className="pair">
+      {[a, b].map((x, i) => (
+        <div key={i} className={`barrow ${i === 0 ? 'yours' : 'field'}`}><span>{x.label}</span><div>{x.value !== undefined && <i style={{ width: `${(x.value / max) * 100}%` }} />}</div><b>{x.value === undefined ? '–' : num(x.value)}</b>{x.note && <small>{x.note}</small>}</div>
       ))}
     </div>
   );

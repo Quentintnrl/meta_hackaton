@@ -59,6 +59,9 @@ export function RoadmapView({ view, project, features, reload, go, askAgent }: {
   const planned = view.items.filter(i => !['idea', 'rejected', 'published'].includes(i.status) && i.milestoneId).length;
   return (
     <div className="stack">
+      <div className="today">
+        <div><b>Your goals</b><span className="hint small">A goal is something you are building towards, like a beta or a launch. The team checks which features are done, projects the real date, and hangs the content on it.</span></div>
+      </div>
       {ms.length === 0 ? (
         <section className="card guide">
           <h3>How the roadmap works</h3>
@@ -70,9 +73,9 @@ export function RoadmapView({ view, project, features, reload, go, askAgent }: {
         </section>
       ) : (
         <div className="stats">
-          <div className="bigstat"><b>{ms.length}</b><span>goals</span></div>
+          <div className="bigstat"><b>{ms.length}</b><span>goal{ms.length > 1 ? 's' : ''}</span></div>
           <div className={`bigstat ${late ? 'warn' : 'good'}`}><b>{late || '✓'}</b><span>{late ? 'running late' : 'all on track'}</span></div>
-          <div className="bigstat"><b>{planned}</b><span>pieces of content planned</span></div>
+          <div className="bigstat"><b>{planned}</b><span>piece{planned === 1 ? '' : 's'} of content tied to a goal</span></div>
         </div>
       )}
       {ms.map(m => <Goal key={m.id} m={m} features={features} view={view} reload={reload} go={go} askAgent={askAgent} />)}
@@ -88,41 +91,49 @@ function Goal({ m, features, view, reload, go, askAgent }: { m: Milestone & { fo
   const mine = view.items.filter(i => i.milestoneId === m.id && !['idea', 'rejected'].includes(i.status));
   const next = mine.filter(i => i.date && i.date >= today() && i.status !== 'published').sort((a, b) => a.date!.localeCompare(b.date!))[0];
   const free = features.filter(x => !m.featureIds.includes(x.id));
-  const verdict = m.status === 'done'
-    ? { tone: 'done', chip: 'Done', text: `Landed on ${fmt(m.doneAt?.slice(0, 10))}.${m.accuracy ? ` That was ${Math.abs(m.accuracy.errorDays)} day${Math.abs(m.accuracy.errorDays) === 1 ? '' : 's'} ${m.accuracy.errorDays > 0 ? 'after' : 'before'} what the team last expected.` : ''}` }
-    : m.atRisk ? { tone: 'late', chip: `${m.slipDays} days late`, text: `The team expects this on ${fmt(f?.predictedDate)}, ${m.slipDays} days after the date you want.` }
-      : { tone: 'ok', chip: 'On track', text: `The team expects this on ${fmt(f?.predictedDate ?? m.targetDate)}: in time.` };
+  const open = m.status === 'open';
+  const expect = open ? f?.predictedDate ?? m.targetDate : m.doneAt?.slice(0, 10);
+  const verdict = !open
+    ? { tone: 'done', chip: 'Done', text: `Landed on ${fmt(expect)}.${m.accuracy ? ` That was ${Math.abs(m.accuracy.errorDays)} day${Math.abs(m.accuracy.errorDays) === 1 ? '' : 's'} ${m.accuracy.errorDays > 0 ? 'after' : 'before'} what the team last expected.` : ''}` }
+    : m.atRisk ? { tone: 'late', chip: `${m.slipDays} days late`, text: `At the pace so far, the team expects it ${m.slipDays} days after the date you want. Content tied to it follows the expected date.` }
+      : { tone: 'ok', chip: 'On track', text: `At the pace so far, the team expects it in time.` };
+  const pct = m.scope ? Math.min(100, Math.round((m.delivered / m.scope) * 100)) : 0;
+  const basis = m.delivered === 0 ? 'nothing delivered yet, so it starts from your own plan' : `${m.delivered} of ${m.scope} feature${m.scope === 1 ? '' : 's'} done, at your pace so far`;
 
   return (
     <section className={`card goal ${verdict.tone}`}>
       <div className="goal-top">
-        <Ring done={m.delivered} total={m.scope} />
         <div className="goal-title"><h3>{m.title}</h3>{m.intent && <p className="hint small clamp">{m.intent}</p>}</div>
         <span className={`verdict ${verdict.tone}`}>{verdict.chip}</span>
       </div>
-      <p className="verdict-text">{verdict.text}</p>
-      {m.status === 'open' && <DateLine m={m} contentDates={mine.map(i => i.date).filter((d): d is string => Boolean(d))} />}
 
-      <h4 className="mini">Features</h4>
-      <ul className="flist">
+      <div className="dates2">
+        <div className="datecol"><small>You want it on</small><b>{fmt(m.targetDate)}</b><span>the date you set</span></div>
+        <div className={`datecol ${verdict.tone}`}><small>{open ? 'The team expects' : 'It landed on'}</small><b>{fmt(expect)}</b><span>{open ? `projected from ${basis}` : 'marked done by you'}</span></div>
+      </div>
+      <p className="verdict-text">{verdict.text}</p>
+      {open && <DateLine m={m} contentDates={mine.map(i => i.date).filter((d): d is string => Boolean(d))} />}
+
+      <div className="progress-line" role="img" aria-label={`${m.delivered} of ${m.scope} features done`}><div className="pbar"><i style={{ width: `${pct}%` }} /></div><span>{m.delivered} of {m.scope} feature{m.scope === 1 ? '' : 's'} done</span></div>
+      <div className="chips">
         {m.featureIds.map(id => {
           const x = features.find(y => y.id === id);
           const [label, kind] = FEATURE[x?.state ?? ''] ?? ['In progress', 'doing'];
-          return <li key={id} className={kind}><span className="fi">{ICON[kind]}</span><span className="ft">{x?.title ?? id}</span><span className="hint small">{label}</span>{m.status === 'open' && <button className="linkish tight" title="Take it out of this goal" disabled={busy !== ''} onClick={() => run('unlink', () => contentApi.unlink(m.id, id))}>✕</button>}</li>;
+          return <span key={id} className={`fchip ${kind}`} title={label}><i>{ICON[kind]}</i>{x?.title ?? id}{open && <button className="linkish tight" aria-label={`Take ${x?.title ?? id} out of this goal`} disabled={busy !== ''} onClick={() => run('unlink', () => contentApi.unlink(m.id, id))}>✕</button>}</span>;
         })}
-        {m.featureIds.length === 0 && <li className="todo"><span className="hint small">No feature attached yet: the team cannot tell how far along you are.</span></li>}
-      </ul>
-      {m.status === 'open' && free.length > 0 && (
-        <select className="addfeat" value="" aria-label="Add a feature" onChange={e => e.target.value && run('link', () => contentApi.link(m.id, e.target.value))}><option value="">+ Add a feature to this goal</option>{free.map(x => <option key={x.id} value={x.id}>{x.title}</option>)}</select>
-      )}
+        {open && free.length > 0 && <select className="addfeat" value="" aria-label="Add a feature" onChange={e => e.target.value && run('link', () => contentApi.link(m.id, e.target.value))}><option value="">+ Add a feature</option>{free.map(x => <option key={x.id} value={x.id}>{x.title}</option>)}</select>}
+        {m.featureIds.length === 0 && <span className="hint small">No feature attached yet: the team cannot tell how far along you are.</span>}
+      </div>
 
       <div className="goal-foot">
-        <button className="linkish left" onClick={() => go('calendar')}>{mine.length ? `${mine.length} piece${mine.length > 1 ? 's' : ''} of content planned${next ? ` · next: ${next.title}, ${fmt(next.date)}` : ''} →` : 'No content planned yet: ask the Strategist →'}</button>
+        <button className="linkish left" onClick={() => go('calendar')}>{mine.length ? `${mine.length} piece${mine.length > 1 ? 's' : ''} of content around this goal${next ? `, next: ${next.title} on ${fmt(next.date)}` : ''}` : 'No content around this goal yet'}</button>
         <div className="row nomargin">
           {f && <button onClick={async () => setWhy(why ? null : await contentApi.forecasts(m.id))}>{why ? 'Hide' : 'Why this date?'}</button>}
-          <button className="linkish" onClick={() => askAgent('strategist', 'milestone', m.id)}>Ask the Strategist →</button>
-          {m.status === 'open' && <button disabled={busy !== ''} onClick={() => run('done', () => contentApi.markDone(m.id))}>Mark as done</button>}
-          <button className="linkish" disabled={busy !== ''} onClick={() => run('rm', () => contentApi.removeMilestone(m.id))}>Remove</button>
+          <button onClick={() => askAgent('strategist', 'milestone', m.id)}>Ask the Strategist</button>
+          <details className="more"><summary>More</summary><div>
+            {open && <button disabled={busy !== ''} onClick={() => run('done', () => contentApi.markDone(m.id))}>Mark as done</button>}
+            <button className="linkish" disabled={busy !== ''} onClick={() => run('rm', () => contentApi.removeMilestone(m.id))}>Remove this goal</button>
+          </div></details>
         </div>
       </div>
 

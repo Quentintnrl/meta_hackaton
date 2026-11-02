@@ -117,7 +117,7 @@ export const SOCIAL_KINDS: ItemKind[] = ['social-post', 'teaser'];
 export interface ContentItem {
   media?: Media;
   id: string; projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; draft: string; status: ItemStatus;
-  offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; exportedPath?: string; rationale: string; proof?: Proof; source: ItemSource; rejectedReason?: string;
+  offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; createdAt: string; exportedPath?: string; rationale: string; proof?: Proof; source: ItemSource; rejectedReason?: string;
   seriesId?: string; date?: string; plannedDate?: string; shiftDays?: number; reusedFrom?: string; versionCount?: number;
 }
 export type PublishMode = 'local' | 'assisted' | 'connected';

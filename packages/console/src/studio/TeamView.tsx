@@ -8,10 +8,8 @@ export function TeamView({ pid, team, view, reload, go, askAgent }: { pid: strin
   return (
     <div className="stack">
       <OrgChart pid={pid} team={team} go={go} reload={reload} onAsk={askAgent} />
-      <button className="note-line" onClick={() => go('insights')}><b>Insights:</b> {team.plan ? team.plan.data.headline : team.audit ? 'the research, your numbers and the plan live there' : 'the field research and your numbers live there'} <span>Open →</span></button>
-
       <div className="today">
-        <div><b>Voice & rules</b><span className="hint small">Told once, read by every agent: how you speak, who you speak to, and how pieces leave the studio.</span></div>
+        <div><b>Voice and rules</b><span className="hint small">Written once, read by every agent before it works: how you speak, who you speak to, what never to say, and how pieces leave the studio.</span></div>
       </div>
       <SettingsView pid={pid} view={view} reload={reload} />
     </div>

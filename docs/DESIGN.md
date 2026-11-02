@@ -143,3 +143,13 @@ bêta-testeurs par personas, procédure de tests d'acceptation, différences cul
 ## 11. Espace Figma
 Équipe Figma « Ripple_handoff » (vide pour l'instant, la DA viendra plus tard) :
 https://www.figma.com/files/team/1696616688424995318
+
+
+## 5 ter. Lisible d'un coup d'œil
+
+- **Contraste sans éblouir** : page gris clair (`#e6e8ed`), panneaux blanc cassé, encre presque noire, gris secondaire assombri. Le sombre reste au choix.
+- **Le travail est visiblement celui de l'équipe** : le journal (`TeamLog`) ouvre *Today* et *Brief* — un agent, une phrase, une heure — et chaque idée dit quand elle a été proposée. Un studio de démo le dit en bandeau.
+- **Brief = un geste** : une zone de texte, les trois étapes à cocher avec le dernier résultat de chacune, un bouton. Le déroulé est écrit avant d'appuyer.
+- **Un objectif se lit en deux dates** : « You want it on » / « The team expects », chacune avec sa raison ; la barre d'avancement et les features en puces ; les actions destructrices sous *More*.
+- **Insights, des formes avant des phrases** : barre segmentée du mix, points du rythme hebdomadaire, classement des formats du terrain en barres, cadence toi / terrain en deux barres de même unité.
+- **Team explique** : le flux d'un passage (toi → Scout → Analyst → Strategist → toi → Writer → toi), puis une fiche par agent avec son rôle, son dernier travail et ses deux réglages expliqués en clair.

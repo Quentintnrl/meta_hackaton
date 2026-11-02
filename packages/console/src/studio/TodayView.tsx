@@ -1,9 +1,10 @@
 import { contentApi, type AgentId, type ContentView, type TeamView } from '../api';
-import { KindChip, credit, fmt, logicFor, useAction } from './shared';
+import { KindChip, ago, credit, fmt, logicFor, useAction } from './shared';
+import { TeamLog } from './Agents';
 import { IdeaDeck } from './Pieces';
 import type { View } from './Studio';
 
-// Today: decide, review, publish. Making things lives in Create.
+// Today: decide, review, publish. Every line says who made it and when, so the work is visibly the team's.
 export function TodayView({ team, view, reload, go, open, askAgent }: { team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; open: (id: string) => void; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void }) {
   const ideas = view.items.filter(i => i.status === 'idea');
   const briefed = view.items.filter(i => i.status === 'briefed');
@@ -11,27 +12,34 @@ export function TodayView({ team, view, reload, go, open, askAgent }: { team: Te
   const toPublish = view.items.filter(i => i.status === 'approved');
   const done = view.items.filter(i => i.status === 'published');
   const todo = ideas.length + toReview.length + toPublish.length;
-  const funnel: Array<[string, number]> = [['Ideas', ideas.length], ['Accepted', briefed.length], ['Drafts', toReview.length], ['Ready', toPublish.length], ['Posted', done.length]];
+  const demo = Boolean(team.account?.simulated || team.plan?.simulated || team.audit?.simulated);
+  const funnel: Array<[string, number, string]> = [['ideas', ideas.length, 'to decide on'], ['accepted', briefed.length, 'to be written'], ['drafts', toReview.length, 'to review'], ['ready', toPublish.length, 'to post'], ['posted', done.length, 'done']];
   return (
     <div className="stack">
+      {demo && <p className="demo-note"><b>Demo studio.</b> The posts, research and ideas here were seeded and are marked as demo. Brief the team to see it work on your own words.</p>}
       <div className="today">
-        <div><b>{todo === 0 ? 'All caught up' : `${todo} for you`}</b>
-          <span className="hint small">{ideas.length > 0 && `${ideas.length} to decide on`}{ideas.length > 0 && (toReview.length > 0 || toPublish.length > 0) && ' · '}{toReview.length > 0 && `${toReview.length} to review`}{(ideas.length > 0 || toReview.length > 0) && toPublish.length > 0 && ' · '}{toPublish.length > 0 && `${toPublish.length} to post`}</span></div>
-        <button onClick={() => go('create')}>+ Make something</button>
+        <div><b>{todo === 0 ? 'All caught up' : `${todo} waiting for you`}</b>
+          <span className="hint small">{[ideas.length > 0 && `${ideas.length} idea${ideas.length > 1 ? 's' : ''} to decide on`, toReview.length > 0 && `${toReview.length} draft${toReview.length > 1 ? 's' : ''} to review`, toPublish.length > 0 && `${toPublish.length} to post`].filter(Boolean).join(' · ') || 'Nothing needs you right now.'}</span></div>
+        <button className="primary" onClick={() => go('create')}>Brief the team</button>
       </div>
-      <section className="card funnel" aria-label="Where your content stands">
-        {funnel.map(([label, n], k) => (
-          <div key={label} className="fstep"><b>{n}</b><span>{label}</span>{k < funnel.length - 1 && <i aria-hidden>→</i>}</div>
-        ))}
-      </section>
+
+      <div className="two uneven">
+        <TeamLog team={team} onOpen={a => go(`agent:${a}`)} />
+        <section className="card funnel" aria-label="Where your content stands">
+          <h3>Where the pieces stand</h3>
+          <div className="fsteps">{funnel.map(([label, n, what]) => (
+            <div key={label} className={`fstep ${n ? '' : 'zero'}`}><b>{n}</b><span>{label}</span><small>{what}</small></div>
+          ))}</div>
+        </section>
+      </div>
 
       {ideas.length > 0 && <IdeaDeck key={ideas[0].id} ideas={ideas} milestones={view.milestones} stats={team.account?.data.stats} simulated={team.account?.simulated} reload={reload} askAgent={askAgent} />}
 
       {toReview.length > 0 && (
         <section className="card">
-          <div className="head"><h3>Review <span className="count">{toReview.length}</span></h3></div>
+          <div className="head"><h3>Drafts to review <span className="count">{toReview.length}</span></h3><span className="hint small">Written by the Writer, waiting for your edits or your approval.</span></div>
           <ul className="rows">{toReview.map(i => (
-            <li key={i.id}><button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{credit(i)}{logicFor(i) ? ` · ${logicFor(i)}` : ''} · Open →</span></button>
+            <li key={i.id}><button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{credit(i)}{logicFor(i) ? ` · ${logicFor(i)}` : ''} · in the studio since {ago(i.createdAt)} · Open →</span></button>
               <span className="row"><button className="linkish" onClick={() => askAgent('writer', 'item', i.id)}>Ask the Writer →</button></span></li>
           ))}</ul>
         </section>
@@ -40,13 +48,13 @@ export function TodayView({ team, view, reload, go, open, askAgent }: { team: Te
       {toPublish.length > 0 && <PublishQueue items={toPublish} reload={reload} open={open} />}
 
       {team.synthesis && (
-        <button className="note-line" onClick={() => go('agent:director')}><b>Director:</b> {team.synthesis.data.headline} <span>Ask →</span></button>
+        <button className="note-line" onClick={() => go('agent:director')}><b>Director, {ago(team.synthesis.at)}:</b> {team.synthesis.data.headline} <span>Ask →</span></button>
       )}
 
       {todo === 0 && (
         <section className="card guide"><h3>How a piece moves</h3>
           <ol className="steps big">
-            <li><span className="tick">1</span><span><b>Brief the team</b> in <button className="linkish" onClick={() => go('create')}>Create</button>: it proposes ideas grounded in field research and your numbers.</span></li>
+            <li><span className="tick">1</span><span><b>Brief the team</b>: it researches, scores your posts and proposes ideas with the numbers behind them.</span></li>
             <li><span className="tick">2</span><span><b>You judge here</b>: yes writes it, no teaches the team, keep for later parks it.</span></li>
             <li><span className="tick">3</span><span><b>Copy the caption, post it</b> where your audience lives, then mark it posted. The team learns from the winners.</span></li>
           </ol>
@@ -67,9 +75,9 @@ function PublishQueue({ items, reload, open }: { items: ContentView['items']; re
   };
   return (
     <section className="card">
-      <div className="head"><h3>To post <span className="count">{items.length}</span></h3></div>
+      <div className="head"><h3>Ready to post <span className="count">{items.length}</span></h3><span className="hint small">Approved by you. Copy the caption, post it, then mark it here.</span></div>
       <ul className="rows">{items.map(i => (
-        <li key={i.id}><button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{fmt(i.date)}{logicFor(i) ? ` · ${logicFor(i)}` : ''} · Open →</span></button>
+        <li key={i.id}><button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">planned {fmt(i.date)}{logicFor(i) ? ` · ${logicFor(i)}` : ''} · Open →</span></button>
           <span className="row"><button disabled={busy !== ''} onClick={() => copy(i.id)}>Copy caption</button><button className="primary" disabled={busy !== ''} onClick={() => run(`pub-${i.id}`, () => contentApi.publish(i.id))}>{busy === `pub-${i.id}` ? 'Recording…' : 'Mark posted'}</button></span></li>
       ))}</ul>
       {error && <p className="error">{error}</p>}

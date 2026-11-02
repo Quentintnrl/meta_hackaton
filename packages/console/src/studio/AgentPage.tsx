@@ -1,17 +1,12 @@
 import { useEffect, useState } from 'react';
 import { teamApi, type AgentId, type ContentView, type TeamView } from '../api';
 import { AGENT_HUE, ago, useAction } from './shared';
-import { Avatar, agentState } from './Agents';
+import { ABOUT, Avatar, agentState } from './Agents';
+export { ABOUT };
 import { Chat } from './Chat';
 import { Switch, Workers } from './DirectorPage';
 import type { View } from './Studio';
 
-export const ABOUT: Record<Exclude<AgentId, 'director'>, { does: string; workers: string; ideas: string[]; starters: string[] }> = {
-  scout: { does: 'Searches the web for what works in your field.', workers: 'Each extra researcher takes another angle (formats, hooks and topics, what flops) at the same time.', ideas: ['Only look at video formats', 'Ignore big brands, focus on solo developers', 'Always cite recent examples'], starters: ['What did you find?', 'Look only at video formats from now on', 'How reliable are your sources?'] },
-  analyst: { does: 'Compares your account with what the Scout found.', workers: 'One analyst is enough: it reads all your posts.', ideas: ['Weigh shares more than likes', 'Compare only the last 3 months', 'Be blunt about what does not work'], starters: ['What is my weakest format?', 'Be blunter in your analysis', 'How do you measure engagement?'] },
-  strategist: { does: 'Reads your roadmap and proposes content, with its evidence.', workers: 'Each extra strategist looks through another lens (roadmap, your account, field trends) and the proposals are merged.', ideas: ['Always propose one video', 'Max 3 proposals at a time', 'Favour posts tied to a milestone'], starters: ['Why these proposals?', 'Propose fewer, better ideas', 'Focus on the beta launch'] },
-  writer: { does: 'Drafts what you accept: caption, hashtags, slides or storyboard.', workers: 'Extra writers draft several accepted pieces at the same time.', ideas: ['Shorter captions, max 3 hashtags', 'Always end with a question', 'More humour, fewer adjectives'], starters: ['Write shorter captions from now on', 'Always end with a question', 'What do you draft first?'] },
-};
 
 export function AgentPage({ pid, agent, team, view, reload, go, aboutCtx, onClearAbout }: { pid: string; agent: Exclude<AgentId, 'director'>; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; aboutCtx?: { label: string; context?: string; about?: string } | null; onClearAbout?: () => void }) {
   const info = team.agents.find(a => a.id === agent)!;

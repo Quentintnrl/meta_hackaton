@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { contentApi, teamApi, type AgentId, type ContentItem, type ContentView, type TeamView } from '../api';
-import { KindChip, SOURCE, credit, fmt, logicFor, useAction } from './shared';
+import { contentApi, teamApi, type AgentId, type ContentItem, type ContentView } from '../api';
+import { KindChip, SOURCE, ago, credit, fmt, logicFor, useAction } from './shared';
 import { ProofCard } from './Numbers';
 import type { View } from './Studio';
 
@@ -10,35 +10,13 @@ const WHAT: Record<string, string> = {
   newsletter: 'An email to your list', changelog: 'A short “what is new” note', 'release-notes': 'Release notes for a version', 'doc-update': 'An update to your docs', 'demo-script': 'A script for a demo video',
 };
 
-// Ask the team for ideas: one input, three examples, go. Ideas land in Today when ready.
-export function AskPanel({ pid, team, view, go, reload }: { pid: string; team: TeamView; view: ContentView; go: (v: View) => void; reload: () => Promise<void> }) {
-  const [brief, setBrief] = useState('');
-  const { busy, error, run } = useAction(reload);
-  const working = Boolean(team.working);
-  const ask = () => run('run', () => teamApi.run(pid, ['scout', 'analyst', 'strategist'], brief.trim()));
-  return (
-    <section className="card brief-card">
-      <label>What should the team think about? <span className="opt">optional</span>
-        <div className="briefbar">
-          <input value={brief} onChange={e => setBrief(e.target.value)} placeholder="e.g. Get people excited about the beta. Or leave empty." onKeyDown={e => e.key === 'Enter' && ask()} />
-          <button className="primary" disabled={busy !== '' || working} onClick={ask}>{working ? 'Working…' : busy ? 'Asking…' : 'Go'}</button>
-        </div>
-      </label>
-      <div className="chips">{['Prepare the next release', 'More like what works for us', 'Refresh the field research'].map(q => <button key={q} className="chip" onClick={() => setBrief(q)}>{q}</button>)}</div>
-      {!(view.profile.voice || view.profile.audience || view.profile.niche || view.profile.directives) && <p className="hint small">The team writes better when it knows your voice. <button className="linkish" onClick={() => go('team')}>Tell it about your project →</button></p>}
-      {error && <p className="error">{error}</p>}
-    </section>
-  );
-}
-
 // Accepted pieces the Writer has not drafted yet: visible here, not lost in the calendar.
 export function BriefedList({ briefed, autoDraft, reload, go, open, askAgent }: { pid: string; briefed: ContentItem[]; autoDraft: boolean; reload: () => Promise<void>; go: (v: View) => void; open: (id: string) => void; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void }) {
   const { busy, error, run } = useAction(reload);
   return (
     <section className="card">
-      <div className="head"><h3>Waiting to be written <span className="count">{briefed.length}</span></h3><button className="linkish" onClick={() => go('calendar')}>See in calendar →</button></div>
-      <p className="hint small">{autoDraft ? 'The Writer drafts these on its own 3 days before they are due. You can also start one now.' : 'Auto-draft is off. Start one now, or let the Writer do it in Team → Voice & rules.'}</p>
-      {!autoDraft && <p className="hint small"><button className="linkish" onClick={() => go('team')}>Turn on auto-draft →</button></p>}
+      <div className="head"><h3>Accepted, not written yet <span className="count">{briefed.length}</span></h3><button className="linkish" onClick={() => go('calendar')}>See in calendar →</button></div>
+      <p className="hint small">{autoDraft ? 'The Writer drafts these on its own 3 days before they are due. You can also start one now.' : <>The Writer waits for you to start one. Or <button className="linkish tight" onClick={() => go('team')}>let it draft on its own</button> 3 days before the date.</>}</p>
       <ul className="rows">{briefed.map(i => (
         <li key={i.id}>
           <button onClick={() => open(i.id)}><span className="rowmain"><KindChip kind={i.kind} /> <b>{i.title}</b></span><span className="hint small">{credit(i)} · {fmt(i.fixedDate ?? i.date)} · Open →</span></button>
@@ -63,7 +41,7 @@ export function IdeaDeck({ ideas, milestones, stats, simulated, reload, askAgent
   const ms = milestones.find(m => m.id === item.milestoneId)?.title;
   return (
     <section className="card deck">
-      <div className="head"><h3>Idea from your team</h3><span className="hint small">{ideas.length > 1 ? `${ideas.length} waiting · this is the first` : 'the only one waiting'}</span></div>
+      <div className="head"><h3>Idea for you to judge</h3><span className="hint small">Proposed {ago(item.createdAt)}{ideas.length > 1 ? ` · ${ideas.length} waiting, this is the first` : ' · the only one waiting'}</span></div>
       <div className="idea">
         <div className="top"><KindChip kind={item.kind} /><span className="hint small">{WHAT[item.kind] ?? ''} · {credit(item)}</span><button className="linkish" onClick={() => askAgent('strategist', 'item', item.id)}>Ask the Strategist →</button></div>
         <h2>{item.title}</h2>

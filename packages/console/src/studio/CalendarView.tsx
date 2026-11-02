@@ -31,6 +31,9 @@ export function CalendarView({ view, openId, open }: { view: ContentView; openId
 
   return (
     <div className="cal-wrap">
+      <div className="today">
+        <div><b>The month</b><span className="hint small">Every piece on the day it is planned. Accepted pieces follow their goal's expected date; a date you lock never moves.</span></div>
+      </div>
       <section className="card">
         <div className="head">
           <h3>{first.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</h3>

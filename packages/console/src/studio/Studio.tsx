@@ -17,11 +17,11 @@ import { TeamPulse } from './Agents';
 export type View = 'today' | 'create' | 'calendar' | 'insights' | 'team' | `agent:${AgentId}`;
 
 const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: string }> = {
-  today: { title: 'Today', about: 'Your to-do list: judge ideas, review drafts, post what is ready.' },
-  create: { title: 'Create', about: 'Feed the machine: brief the team, collect ideas, start writing.' },
-  calendar: { title: 'Calendar', about: 'When everything lands: goals, dates, and every piece on the line.' },
-  insights: { title: 'Insights', about: 'The numbers: the plan, how your account compares with the field, and what the research measured.' },
-  team: { title: 'Team', about: 'The crew, how much of it works, and the rules you set.' },
+  today: { title: 'Today', about: 'What the team did, and what waits for you: ideas to judge, drafts to review, pieces to post.' },
+  create: { title: 'Brief the team', about: 'Say what you want. The Scout researches, the Analyst scores your posts, the Strategist proposes. The ideas land in Today.' },
+  calendar: { title: 'Calendar', about: 'What you are building towards and when it really lands, then every piece on its day.' },
+  insights: { title: 'Insights', about: 'The numbers: the plan, your account against the field, and what the research measured.' },
+  team: { title: 'Team', about: 'Five agents: what each one does, what it did last, how many of them work at once, and the rules they all follow.' },
 };
 
 // The communication team of a project: a sub-menu on the left, one page at a time.
@@ -69,7 +69,7 @@ export function Studio({ project }: { project: Project }) {
   const late = view.milestones.filter(m => m.atRisk).length;
   const nav: Array<[View, string, number?, string?]> = [
     ['today', 'Today', waiting],
-    ['create', 'Create'],
+    ['create', 'Brief'],
     ['calendar', 'Calendar', late, 'late'],
     ['insights', 'Insights'],
     ['team', 'Team'],
@@ -119,7 +119,7 @@ export function Studio({ project }: { project: Project }) {
       </nav>
 
       <div className="studio-main">
-        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about} An AI team proposes, you decide.</p></header>
+        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p></header>
         {page === 'today' && <TodayView team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'create' && <CreateView pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'calendar' && <div className="stack"><RoadmapView view={view} project={project} features={[]} reload={reload} go={setPage} askAgent={askAgent} /><CalendarView view={view} openId={openId} open={setOpenId} /></div>}
