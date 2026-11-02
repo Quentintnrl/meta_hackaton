@@ -92,6 +92,33 @@ test('the scout files flops with examples, kept as a watch log', async () => {
   assert.ok(log[0].id > log[1].id);
 });
 
+test('with a backend that runs tools, the Scout watches the field as an agent and keeps its trail', async () => {
+  const opened: string[] = [];
+  const web = (async (u: string | URL) => { opened.push(String(u)); return { ok: true, status: 200, url: String(u), headers: new Headers({ 'content-type': 'text/html' }), text: async () => '<p>Berger-Levrault publie 3 posts par semaine</p>' }; }) as unknown as typeof fetch;
+  const agentPrompts: string[] = [];
+  const { svc, team, searches } = setup({
+    agent: async (prompt, tools, schema, _name, opts) => {
+      agentPrompts.push(prompt);
+      const t = Object.fromEntries(tools.map(x => [x.name, x]));
+      const r1 = await t.search.run({ query: 'acteurs comparables' });
+      opts?.onStep?.({ tool: 'search', args: { query: 'acteurs comparables' }, result: r1 });
+      const r2 = await t.open.run({ url: 'https://www.berger-levrault.com/' });
+      opts?.onStep?.({ tool: 'open', args: { url: 'https://www.berger-levrault.com/' }, result: r2 });
+      const r3 = await t.open.run({ url: 'http://localhost:9/private' });
+      opts?.onStep?.({ tool: 'open', args: { url: 'http://localhost:9/private' }, result: r3 });
+      return schema.parse({ market: 'm', players: [{ name: 'Berger-Levrault', url: 'https://www.berger-levrault.com/', what: 'éditeur', strategy: { rhythm: '3 posts par semaine' } }], finds: [], events: [] });
+    },
+  });
+  const w = await new Team(svc, { web }).watch('app', 'App');
+  assert.deepEqual(opened, ['https://www.berger-levrault.com/']);
+  assert.equal(searches.length, 1, 'the search went through the Scout tool');
+  assert.deepEqual(w.trail, ['Searched: acteurs comparables', 'Opened https://www.berger-levrault.com/', 'Opened http://localhost:9/private → only public http(s) pages can be opened.']);
+  assert.deepEqual(w.sources, ['https://example.com/a', 'https://www.berger-levrault.com/'], 'sources are the pages it read, the refused one left out');
+  assert.match(agentPrompts[0], /open each player's website or LinkedIn page/);
+  assert.equal(svc.store.latestReport<{ trail?: string[] }>('app', 'watch')!.data.trail!.length, 3);
+  void team;
+});
+
 test('the analyst names the best and worst posts with their real scores', async () => {
   const { svc, team, prompts } = setup();
   team.loadDemoAccount('app', 'App');

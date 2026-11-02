@@ -176,7 +176,8 @@ export interface Strategy { rhythm: string; formats: string; subjects: string; t
 export interface Player { name: string; url: string; what: string; place?: string; size?: string; audience?: string; channels?: string; publishes?: string; strength?: string; opening?: string; strategy?: Strategy }
 // A date the audience gathers around, and what to post about it, when.
 export interface Event { name: string; when: string; why: string; post?: string }
-export interface Watch { market: string; players: Player[]; finds: Find[]; events: Event[]; sources: string[] }
+// `trail`: what the Scout did to get there when it worked as an agent (searches made, pages opened), newest last.
+export interface Watch { market: string; players: Player[]; finds: Find[]; events: Event[]; sources: string[]; trail?: string[] }
 // The size of the audience on one platform at one moment: a trend once there are two.
 export interface Snapshot { at: string; platform: string; followers: number; posts: number }
 export const engagement = (p: Pick<AccountPost, 'likes' | 'comments' | 'shares' | 'saves'>) => p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3;

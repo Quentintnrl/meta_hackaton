@@ -3,6 +3,7 @@ import { z } from 'zod';
 import type { ContentService } from './service.ts';
 import { parseAccountCsv } from './service.ts';
 import { loadInstagram, readInstagram, type InstagramConfig } from './instagram.ts';
+import { scoutTools } from './scout-tools.ts';
 import { accountFacts, factsText } from './facts.ts';
 import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction, type Watch } from './types.ts';
 
@@ -278,8 +279,9 @@ export class Team {
 
   #instagram: () => InstagramConfig | null;
   #fetch?: Parameters<typeof readInstagram>[1];
+  #web?: typeof fetch; // the Scout's page opener, replaceable in tests
   // instagram: where the API credentials come from (.env by default); fetch: replaced in tests.
-  constructor(svc: ContentService, o: { instagram?: () => InstagramConfig | null; fetch?: Parameters<typeof readInstagram>[1] } = {}) { this.#svc = svc; this.#instagram = o.instagram ?? loadInstagram; this.#fetch = o.fetch; }
+  constructor(svc: ContentService, o: { instagram?: () => InstagramConfig | null; fetch?: Parameters<typeof readInstagram>[1]; web?: typeof fetch } = {}) { this.#svc = svc; this.#instagram = o.instagram ?? loadInstagram; this.#fetch = o.fetch; this.#web = o.web; }
 
   // --- the connected account: when .env names an Instagram account, the app reads it itself
   // (posts, likes, comments, saves, shares, reach, followers) instead of waiting for a paste.
@@ -324,7 +326,10 @@ Fill misses with the formats and angles that fall flat, each with a concrete exa
     return audit;
   }
 
-  // --- the Scout, second job: what comparable players actually post, with the links, and the market they draw
+  // --- the Scout, second job: what comparable players actually post, with the links, and the market they draw.
+  // With a backend that runs tools, the Scout works as an agent: it searches, opens the pages it names (a company
+  // page, a LinkedIn page, a programme) and checks a figure or a rhythm before reporting it, as many steps as it
+  // decides within a budget; every step is kept as its trail. Otherwise two searches and one condensation.
   async watch(projectId: string, projectName: string): Promise<Watch> {
     const llm = this.#svc.llm;
     if (!llm.search) throw new Error('this model backend cannot search the web');
@@ -332,19 +337,37 @@ Fill misses with the formats and angles that fall flat, each with a concrete exa
     const field = profile.niche || projectName;
     const who = profile.audience ? ` whose audience is ${profile.audience}` : '';
     const country = /fran|mairie|commune/i.test(`${profile.niche} ${profile.audience} ${profile.language}`) ? ' (France, in French where the sources are French)' : '';
-    const [posts, market] = await Promise.all([
-      llm.search(`Find 8 to 12 recent public posts (last 12 months) from companies, products or organisations comparable to "${field}"${who}${country}, on LinkedIn, Instagram, their blog or the press. For each: the account, the exact URL of the post or page, what it is (format: carousel, video, testimonial, event, case study, article…), its hook or subject, and any visible figure (likes, comments, views). Only real, visited pages with their URL; skip anything you cannot link.${behaviour(this.#svc, projectId, 'scout')}`),
-      llm.search(`Who are the comparable players for a project like "${field}"${who}${country}? Name 4 to 8 and, for each: its website, what it sells, its place in the market (leader, historic publisher, challenger, media, association…) with a fact that shows it, its size in figures (customers, communes, followers, years, staff), who it talks to, where it publishes and how often, what it actually publishes (kinds of posts and subjects, with an example), what it does well, and what it leaves uncovered. Describe its communication strategy as seen on its pages: rhythm per network, the formats it leans on, its recurring subjects, its tone (quote a telling phrase), who speaks (the brand, founders, sales, customers), and what it asks readers to do (demo, guide, stand, comment). Also list the upcoming events, salons or seasonal dates (next 6 months) where this audience gathers, with dates and what the audience is doing then. Prefer sources you visited.`),
-    ]);
-    const w = await llm.json(`Today is ${day(this.#svc.now)}: an event or deadline before that date is past, say so in its "when" or drop it. Condense this research. Keep only what the text supports, with the URLs exactly as given; drop a find without a link. Short, concrete, no filler. Write everything in ${profile.language || 'English'} (names and figures as they are). "whyForYou" says what the project "${projectName}" (${field}) could take from each find, in one sentence a busy person acts on.
-For each player fill place, size, audience, channels, publishes, strength, opening and the strategy block (rhythm, formats, subjects, tone, voices, callsToAction, lesson) from the text (short, concrete, with the figures as written; '' when the text says nothing). For each event, "post" says what "${projectName}" should post about it and when.
-
-POSTS SEEN:
-${posts.text}
-
-MARKET AND EVENTS:
-${market.text}`, WatchSchema, 'watch');
-    const watch: Watch = { ...w, sources: [...new Set([...posts.sources, ...market.sources])].slice(0, 12) };
+    const rules = `Today is ${day(this.#svc.now)}: an event or deadline before that date is past, say so in its "when" or drop it. Keep only what the pages support, with the URLs exactly as found; drop a find without a link. Short, concrete, no filler. Write everything in ${profile.language || 'English'} (names and figures as they are). "whyForYou" says what the project "${projectName}" (${field}) could take from each find, in one sentence a busy person acts on.
+For each player fill place, size, audience, channels, publishes, strength, opening and the strategy block (rhythm, formats, subjects, tone, voices, callsToAction, lesson) from what you read (short, concrete, with the figures as written; '' when nothing was found). For each event, "post" says what "${projectName}" should post about it and when.`;
+    const trail: string[] = [];
+    let w: z.infer<typeof WatchSchema>;
+    let sources: string[] = [];
+    if (llm.agent) {
+      const tools = scoutTools(llm, this.#web);
+      w = await llm.agent(`You are the Scout of a small communication team working for the project "${projectName}" (${field}${who}${country}). Build a field watch: the comparable players and their communication strategy, 8 to 12 recent public posts seen at them (last 12 months, with the exact URL), and the upcoming events, salons or seasonal dates (next 6 months) where this audience gathers.
+Work it out yourself with the tools: search to find the players and their pages, then open each player's website or LinkedIn page and read it for its real rhythm, formats, subjects, tone and calls to action, and open an event page to confirm its dates. Verify before you report: a figure, a date or a rhythm you give must come from a page or a result you read. When a page refuses you (LinkedIn often does), say so and rely on what the search gave. A find is a dated post, article, press piece or event page, not a home page: search "linkedin.com/posts" with the player's name, their news or blog pages, and the trade press when their own page refuses. Stop when you have 4 to 8 players and the posts and dates, or when you have nothing left to check.
+${rules}${behaviour(this.#svc, projectId, 'scout')}`, tools, WatchSchema, 'watch', {
+        maxSteps: 14,
+        onStep: ({ tool, args, result }) => {
+          const url = typeof args.url === 'string' && /^https?:/.test(args.url) ? args.url : '';
+          const opened = tool === 'open' || (tool === 'web_search' && args.type === 'open_page') ? url : '';
+          const query = tool === 'search' ? String(args.query) : tool === 'web_search' && args.type === 'search' ? String(args.query ?? args.queries ?? '') : '';
+          const what = opened ? `Opened ${opened}` : query ? `Searched: ${query}` : tool === 'web_search' ? (args.type === 'open_page' ? 'Read a page from the results' : `Searched the web (${String(args.type ?? '')})`) : `${tool}(${JSON.stringify(args)})`;
+          const err = /^Error:/.test(result) ? ` → ${result.slice(7, 90)}` : '';
+          trail.push(what + err);
+          for (const m of result.matchAll(/https?:\/\/[^\s,)]+/g)) sources.push(m[0]);
+          if (opened && !err) sources.push(opened);
+        },
+      });
+    } else {
+      const [posts, market] = await Promise.all([
+        llm.search(`Find 8 to 12 recent public posts (last 12 months) from companies, products or organisations comparable to "${field}"${who}${country}, on LinkedIn, Instagram, their blog or the press. For each: the account, the exact URL of the post or page, what it is (format: carousel, video, testimonial, event, case study, article…), its hook or subject, and any visible figure (likes, comments, views). Only real, visited pages with their URL; skip anything you cannot link.${behaviour(this.#svc, projectId, 'scout')}`),
+        llm.search(`Who are the comparable players for a project like "${field}"${who}${country}? Name 4 to 8 and, for each: its website, what it sells, its place in the market (leader, historic publisher, challenger, media, association…) with a fact that shows it, its size in figures (customers, communes, followers, years, staff), who it talks to, where it publishes and how often, what it actually publishes (kinds of posts and subjects, with an example), what it does well, and what it leaves uncovered. Describe its communication strategy as seen on its pages: rhythm per network, the formats it leans on, its recurring subjects, its tone (quote a telling phrase), who speaks (the brand, founders, sales, customers), and what it asks readers to do (demo, guide, stand, comment). Also list the upcoming events, salons or seasonal dates (next 6 months) where this audience gathers, with dates and what the audience is doing then. Prefer sources you visited.`),
+      ]);
+      w = await llm.json(`${rules}\nCondense this research.\n\nPOSTS SEEN:\n${posts.text}\n\nMARKET AND EVENTS:\n${market.text}`, WatchSchema, 'watch');
+      sources = [...posts.sources, ...market.sources];
+    }
+    const watch: Watch = { ...w, sources: [...new Set(sources)].slice(0, 12), ...(trail.length ? { trail } : {}) };
     this.#store.addReport(projectId, 'watch', watch, false, this.#svc.now.toISOString());
     return watch;
   }
@@ -540,7 +563,7 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
         const a = await this.scout(projectId, projectName, brief);
         // Same pass, second job: what comparable players post. Its failure does not lose the audit.
         let watched = '';
-        try { const w = await this.watch(projectId, projectName); watched = ` Watched the field: ${w.finds.length} posts at ${w.players.length} comparable players, ${w.events.length} dates to know.`; }
+        try { const w = await this.watch(projectId, projectName); watched = ` Watched the field${w.trail ? ` in ${w.trail.length} steps (${w.trail.filter(t => t.startsWith('Opened')).length} pages opened)` : ''}: ${w.finds.length} posts at ${w.players.length} comparable players, ${w.events.length} dates to know.`; }
         catch (e) { watched = ` (Could not watch the field: ${(e as Error).message})`; }
         return `Found ${a.whatWorks.length} formats that work and ${a.topics.length} topics. ${a.summary}${watched}`;
       });

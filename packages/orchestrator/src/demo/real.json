@@ -1,449 +1,479 @@
 {
- "readAt": "2026-11-02",
+ "readAt": "2026-11-02T20:02:11.937Z",
  "watch": {
-  "market": "Espace partagé pour mairies françaises, surtout <3 500 hab. : projets, calendrier, messagerie, workflows et formation pour secrétaires de mairie/SG, DGS et élus. Bataille B2B sur LinkedIn France en français : éditeurs métier, plateforme entraide-formation, applis citoyennes, association et média. Blanc : personne ne combine pilotage interne + entraide inter-communes + formation simple.",
+  "market": "Espace de travail partagé pour petites mairies françaises : projets, agenda, messagerie, workflows et formation pour secrétaires, DGS et élus, surtout sur LinkedIn en français.",
   "players": [
    {
-    "name": "Berger-Levrault",
-    "url": "https://www.linkedin.com/company/berger-levrault/",
-    "what": "Logiciels gestion finances-RH, e.sedit, e-Magnus / WeGF <5 000 hab., Légibase, services + formation",
-    "place": "Leader historique multi-secteur",
-    "size": "40,000 customers, 2,000 employees, 1,001-5,000, 29 apps Android + 7 iOS",
-    "audience": "DGS, DRH, DAF, DSIT moyennes-grandes collectivités + petites via Segilog / Magnus",
-    "channels": "LinkedIn France, X, YouTube replays, blog + guides",
-    "publishes": "Produit-réglementaire NIS2, facturation électronique, RH, finances ; cas Nice, Lambesc ; clubs CUSMA ~200 participants 100 collectivités",
-    "strength": "Autorité, exhaustivité, veille juridique, catalogue formation, du <5 000 hab. à Région",
-    "opening": "Vie solo secrétaire <1 000 hab., entraide pairs, messagerie-agenda simple, lisibilité prix.",
-    "strategy": {
-     "rhythm": "LinkedIn ~3-5x/semaine, pic SMCL / webinaires",
-     "formats": "Carrousels produits, infographies réglementaires, témoignages vidéo, webinaires",
-     "subjects": "Conformité, IA, RH, finances locales, Légibase + Assistant IA",
-     "tone": "Institutionnel-expert, rassurant",
-     "voices": "Marque + experts produit + clients clubs",
-     "callsToAction": "Démo, livre blanc, stand SMCL, club",
-     "lesson": "L'autorité conformité + clubs clients vendent le stack complet."
-    }
-   },
-   {
-    "name": "JVS-Mairistem - Groupe JVS",
-    "url": "https://www.linkedin.com/company/groupe-jvs/",
-    "what": "Logiciels 100% collectivités : finances, RH, état civil, collaboratif, web-cloud, conseil, formation",
-    "place": "Référence petites communes, groupe 4 filiales : Mairistem, Citopia, PanneauPocket, Sistec",
-    "size": "Plus de 15 000 collectivités Mairistem, plus de 15 000 clients groupe, plus de 40 ans",
-    "audience": "Secrétaires générales, DGS petites communes, maires",
-    "channels": "LinkedIn FR, blog / guides, webinaires, email",
-    "publishes": "Guides conformité NIS2, PPI, messagerie pro, locations ; Mémento élus ; webinaires gratuits Élus 2026 début mandat",
-    "strength": "Ultra-concret métier, proximité, co-construction, cybersécurité messagerie",
-    "opening": "Espace projet transversal inter-communes, communauté pairs hors clients, messagerie interne mairie.",
-    "strategy": {
-     "rhythm": "LinkedIn 3-4x/semaine + blog",
-     "formats": "Guides à télécharger, brochures, témoignages vidéo, astuces Cloud",
-     "subjects": "Messagerie sécurisée NIS2, PPI, état-civil, cloud, 2 500 violations +56 %",
-     "tone": "Proche, aidant : servir les citoyens",
-     "voices": "Marque + clients + experts webinaire",
-     "callsToAction": "TÉLÉCHARGER LA BROCHURE, Lire l'article, webinaire, démo",
-     "lesson": "Le concret métier + co-construction Store selon vos besoins fidélise."
-    }
-   },
-   {
     "name": "idealCO",
-    "url": "https://www.linkedin.com/company/ideal-co/",
-    "what": "Plateforme collaborative + social learning + événements, 35 cercles métiers, entraide projets",
-    "place": "Leader co-formation, plus grande plateforme collaborative sphère publique",
-    "size": "650+ webconférences/an, 1 700 intervenants, 20 000h vidéo, 25 événements 26 000 participants, 37 ans",
-    "audience": "Agents territoriaux, chefs de projets, RH / formation, moins maires en direct",
-    "channels": "LinkedIn quasi-quotidien, forums plateforme, newsletter",
-    "publishes": "IA pour agents, Travail Social, webconférences 30 min-2h + replay, questions communautés",
-    "strength": "Entraide pairs à l'échelle, formats courts, replay VOD, réseau porteurs projets",
-    "opening": "Outillage quotidien calendrier-tâches-messagerie, petite mairie 1 secrétaire, com citoyenne.",
+    "url": "https://idealco.fr",
+    "what": "Plateforme collaborative de la sphère publique",
+    "place": "France",
+    "size": "Plus de 500 000 membres, 1 200 collectivités clientes, 46 communautés métiers",
+    "audience": "Agents et acteurs de la sphère publique, collterr",
+    "channels": "Plateforme d'échanges, webconférences et événements",
+    "publishes": "Forums, 650 webconférences par an, 7 500 formations, salons",
+    "strength": "Plus grande plateforme collaborative dédiée à la sphère publique, 37 ans d'accompagnement",
+    "opening": "Organise le Carrefour de l'Eau et 25 événements nationaux avec 1 000 exposants et 1 400 intervenants",
     "strategy": {
-     "rhythm": "Teasing calendrier, live, replay en boucle",
-     "formats": "Direct vidéo, interview expert, question communauté, teasing-live-replay",
-     "subjects": "Eau-déchets, ressources, solidarité, territoire, vie locale",
-     "tone": "Collaboratif capacitant, solidaire",
-     "voices": "Community managers, 1 700 intervenants, agents pairs",
-     "callsToAction": "Rejoindre communauté, prendre rendez-vous, voir évènements",
-     "lesson": "Boucle calendrier-live-replay + pairs crée l'apprentissage continu."
+     "rhythm": "Plus de 650 directs par an",
+     "formats": "Forums, webconférences, replays, salons",
+     "subjects": "Eau, territoires, IA, travail social",
+     "tone": "",
+     "voices": "Pairs et 1 700 intervenants experts",
+     "callsToAction": "Créer un compte, réserver une démo, je participe",
+     "lesson": "Cumuler entraide, formation et salons pour fidéliser toute l'année."
     }
    },
    {
-    "name": "PanneauPocket - Groupe JVS",
-    "url": "https://www.linkedin.com/company/panneaupocket/",
-    "what": "Appli mobile info-alertes n°1 : info, alerte, agenda, push, signalement, annuaire, affichage légal",
-    "place": "Leader info-alerte citoyenne, partenaire AMRF et Gendarmerie depuis 2016",
-    "size": "15 500 collectivités, 1 000 gendarmeries, 9 M administrés, 83 % foyers, 3 M notifs/jour, 98 % satisfaction",
-    "audience": "Maires / élus ruraux et secrétaires diffuseurs, habitants destinataires",
-    "channels": "LinkedIn 2-3x/semaine, Facebook actif, YouTube témoignages, salons départementaux",
-    "publishes": "Alertes, agenda local, sécurité gendarmerie, vie locale, rencontres Salon des Maires de l'Ain",
-    "strength": "Simplicité, réactivité équipe, rapidité mise en œuvre, gratuit anonyme sans pub côté habitant",
-    "opening": "Travail interne : projets, calendrier, workflows, formation, pilotage DGS.",
+    "name": "Groupe JVS / Mairistem",
+    "url": "https://jvs-mairistem.fr",
+    "what": "Éditeur de logiciels et solutions numériques pour collectivités",
+    "place": "France, fondé en 1983",
+    "size": "Plus de 15 000 communes et collectivités en SaaS",
+    "audience": "Mairies, intercommunalités, syndicats et services des eaux",
+    "channels": "Site, LinkedIn refusé à la lecture, YouTube",
+    "publishes": "Logiciels finances, RH, administrés, travail collaboratif, conseil et formation",
+    "strength": "Logiciels 100% collectivités locales depuis plus de 40 ans",
+    "opening": "4 filiales : Mairistem, Citopia, PanneauPocket et Sistec pour la relation citoyen",
     "strategy": {
-     "rhythm": "LinkedIn + Facebook miroir, push salons",
-     "formats": "Témoignages verticaux courts, chiffres clés, captures app, photos stand",
-     "subjects": "Alerte, agenda, affichage légal, signalement, annuaire",
-     "tone": "Simplicité militante, bienveillant : l'info va vers l'habitant",
-     "voices": "Équipe + maires clients + habitants PlayStore",
-     "callsToAction": "Demandez démo gratuite, contact@panneaupocket.com 09.71.29.27.43",
-     "lesson": "Simplicité + preuve maires + présence terrain gagnent le rural."
+     "rhythm": "",
+     "formats": "Vidéos courtes, démos, retours salon",
+     "subjects": "Paie dématérialisée, gestion, citoyen",
+     "tone": "",
+     "voices": "Éditeur",
+     "callsToAction": "",
+     "lesson": "Publier utile RH et finances en vidéo de 5 min pour les secrétaires."
+    }
+   },
+   {
+    "name": "Berger-Levrault / CARL",
+    "url": "https://berger-levrault.com",
+    "what": "Éditeur international de logiciels pour administration publique",
+    "place": "Boulogne-Billancourt, France",
+    "size": "Chiffre estimé 171,9 M$ en 2026",
+    "audience": "Collectivités de toutes tailles, CCAS, préfectures, santé et éducation",
+    "channels": "Site berger-levrault.com, LinkedIn refusé à la lecture",
+    "publishes": "Finances, RH, GMAO, maintenance et IoT",
+    "strength": "Éditeur international, n°1 France et leader européen GMAO",
+    "opening": "CARL présente GMAO augmentée par IA et IoT avec BL.Predict",
+    "strategy": {
+     "rhythm": "",
+     "formats": "Article salon, pitch, conférence immersive",
+     "subjects": "Maintenance 5.0, IA, jumeaux numériques, mobilité terrain",
+     "tone": "",
+     "voices": "Filiale experte CARL",
+     "callsToAction": "Badge gratuit salon",
+     "lesson": "Incarner l'IA par un cas maintenance chiffré plutôt que par slogan."
     }
    },
    {
     "name": "IntraMuros",
-    "url": "https://intramuros.org",
-    "what": "Appli citoyenne : journal local, agenda culturel, sondages, démarches en ligne",
-    "place": "Challenger revendiquant n°1 mairies-EPCI, plus complet vs plus simple",
-    "size": "8000 communes, 200 EPCI, 400.000 actualités, 250.000 événements, +1 million utilisateurs, 4,7 35 000 notes",
-    "audience": "Mairies + EPCI + habitants, angle EPCI fort",
-    "channels": "LinkedIn 1-2x/semaine, Facebook communes, Instagram agenda, stores",
-    "publishes": "Nouvelle commune onboardée, sondage, top événements week-end, notes store",
-    "strength": "Complétude info-culture-services, échelle EPCI, UX notée",
-    "opening": "Espace secrétaire interne, entraide inter-mairies, formation, pilotage élus.",
+    "url": "https://play.google.com/store/apps/details?id=com.intramuros.Intramuros.production&hl=en_US&gl=US",
+    "what": "Application mairie-habitants pour informer et alerter",
+    "place": "France",
+    "size": "Plus de 8 000 communes adhérentes, màj 14 sept 2026",
+    "audience": "Communes et habitants",
+    "channels": "Application mobile et intramuros.org",
+    "publishes": "Alertes temps réel, actus, événements, points d'intérêt",
+    "strength": "Note 4.7 avec 30886 avis",
+    "opening": "Sondages, signalements à la mairie, annuaire et actes administratifs",
     "strategy": {
-     "rhythm": "Annonces onboarding régulières",
-     "formats": "Captures app, cartes communes, visuels événements",
-     "subjects": "Vie locale, agenda culturel, sondages, démarches en ligne",
-     "tone": "Pratique-essentiel : L'essentiel de votre territoire",
-     "voices": "Marque centrale",
-     "callsToAction": "Télécharger app, démo collectivité",
-     "lesson": "Exhaustivité info-culture-services + note store portent l'adoption."
+     "rhythm": "",
+     "formats": "Alerte push, post court",
+     "subjects": "Vie locale, cantine, médiathèque, événements",
+     "tone": "",
+     "voices": "Mairie",
+     "callsToAction": "S'abonner aux alertes, contacter sa mairie pour adhérer",
+     "lesson": "Gagner par simplicité et preuve par 8 000 communes."
     }
    },
    {
-    "name": "AMRF - Association des Maires Ruraux",
-    "url": "https://amrf.fr",
-    "what": "Représentation, mutualisation, info maires ruraux, journal 36 000 Communes",
-    "place": "Représentative rurale, 89 associations départementales",
-    "size": "30772 communes rurales, 1 Français sur 3 en rural, 89 départements",
-    "audience": "Maires ruraux d'abord, secrétaires via maires",
-    "channels": "LinkedIn + X + Facebook quasi-quotidien, newsletter, YouTube congrès, mensuel 36 000 Communes",
-    "publishes": "Portraits maires, communiqués, live events, 36 000 Communes octobre 2026 : 4 présidents AMR, télé-expertise Montclar 126 hab.",
-    "strength": "Plaidoyer, appartenance, preuve terrain réactive",
-    "opening": "Outils opérationnels SaaS et formation quotidienne secrétaire.",
+    "name": "illiwap",
+    "url": "https://station.illiwap.com",
+    "what": "Application d'alerte et d'info communale",
+    "place": "France",
+    "size": "",
+    "audience": "Mairies et communautés de communes",
+    "channels": "Stations station.illiwap.com",
+    "publishes": "Actus courtes datées : travaux, école, emploi, conseils",
+    "strength": "Usages concrets : alerte sécheresse du 11/2/26 et bon de Noël du 30/10/26",
+    "opening": "Modules Sondage, Signalement et Boîte à idées",
     "strategy": {
-     "rhythm": "Quasi-quotidien + mensuel print",
-     "formats": "Portraits, communiqués, live",
-     "subjects": "Ruralité chance, école, santé, mutualisation",
-     "tone": "Militant-dignité, pairs : Des maires au service des maires",
-     "voices": "Présidents départementaux + national, maires témoins",
-     "callsToAction": "Adhérer, congrès, pétition, lire magazine",
-     "lesson": "Appartenance + preuve terrain défendent la ruralité."
+     "rhythm": "Plusieurs posts par semaine en octobre 2026",
+     "formats": "Actu courte datée",
+     "subjects": "Sécheresse, rénovation, transports scolaires, emploi",
+     "tone": "",
+     "voices": "Mairie et interco",
+     "callsToAction": "Participer, signaler",
+     "lesson": "Montrer le flux réel d'une interco pour rassurer une secrétaire débordée."
     }
    },
    {
-    "name": "La Gazette des Communes",
-    "url": "https://lagazettedescommunes.com",
-    "what": "Actu + clubs + emploi + formation territoriaux, référence fonction publique territoriale",
-    "place": "Média leader administration territoriale",
-    "size": "672,000 contacts, 80-85% décideurs lecteurs, 37,533 diffusion, 386.9K visites",
-    "audience": "DGS, DGA, cadres, élus, secrétaires concours-carrière",
-    "channels": "LinkedIn quotidien multiple, X, newsletters matin, webinars clubs",
-    "publishes": "Décryptage budget, statut secrétaire, IA, attractivité, Q&A juristes, classements, offres emploi",
-    "strength": "Agenda-setting, décodage loi, employabilité",
-    "opening": "Workflow action, communauté pratique, outil non paywalled.",
+    "name": "Réseau des Communes",
+    "url": "https://reseaudescommunes.fr",
+    "what": "Sites officiels et services en ligne pour communes",
+    "place": "France",
+    "size": "",
+    "audience": "Mairies, communautés de communes et syndicats",
+    "channels": "Site reseaudescommunes.fr",
+    "publishes": "Création de sites, espace collaboratif et billetterie",
+    "strength": "Pack site plus intranet plus billetterie pour petites structures",
+    "opening": "",
     "strategy": {
-     "rhythm": "Quotidien multiple + newsletters",
-     "formats": "Articles, live Q&A juristes, classements, offres emploi",
-     "subjects": "Budget, statut, concours-carrière, droit, IA",
-     "tone": "Journalistique-expert",
-     "voices": "Journalistes + experts + DGS témoins",
-     "callsToAction": "S'abonner, club, webinaire, stand salon",
-     "lesson": "Décryptage droit + employabilité fixent l'agenda."
+     "rhythm": "",
+     "formats": "Site vitrine communal",
+     "subjects": "Site officiel, intranet, financement",
+     "tone": "",
+     "voices": "",
+     "callsToAction": "",
+     "lesson": "Packager web plus collaboratif au prix des petites communes."
     }
    }
   ],
   "finds": [
    {
-    "title": "Trophées du FIRM 2026 : à vous de voter",
-    "url": "https://www.linkedin.com/company/ideal-co/",
-    "account": "idealCO",
-    "platform": "LinkedIn",
-    "whatItIs": "Vote Prix du Public 6 projets risques majeurs, lauréats 18 novembre Stade de la Meinau Strasbourg.",
-    "number": "13,714 followers, vu 3d, publié 2026-10-30T09:04:27.951Z",
-    "whyForYou": "Copiez le vote public + forum pour animer l'entraide projets entre mairies dans Mairie360 (demo).",
-    "format": "post événement vote"
+    "title": "CARL Software à Global Industrie 2026 : cap sur la Maintenance 5.0 avec IA et IoT",
+    "url": "https://www.carl-software.com/global-industry-2026-cmms-maintenance-5-0-ai-iot/",
+    "account": "CARL Software (filiale Berger-Levrault)",
+    "platform": "Site carl-software.com",
+    "whatItIs": "Article du 2026-02-16 annonçant CARL Source Factory, GMAO augmentée par IA, à Paris Villepinte Hall 5A stand S139.",
+    "number": "30 mars au 2 avril 2026, passé au 02/11/2026 ; 40 ans d'expertise, 20% d'économies annoncées",
+    "whyForYou": "Copier le pitch chiffré en version Secrétariat 5.0 avec un cas IA qui fait gagner 30 min par semaine.",
+    "format": "Article salon avec pitch"
    },
    {
-    "title": "Assemblées générales des maires ruraux Hautes-Alpes et Meurthe-et-Moselle",
-    "url": "https://www.linkedin.com/company/panneaupocket/",
-    "account": "PanneauPocket",
-    "platform": "LinkedIn",
-    "whatItIs": "Compte-rendu AG maires ruraux Savines-le-Lac et Dommartin-sous-Amance, renouvellement partenariat AMR54.",
-    "number": "1,292 followers, 15 500 collectivités, 83 % foyers, 79 communes soit 45 % Hautes-Alpes",
-    "whyForYou": "Copiez le reportage terrain avec chiffre départemental pour prouver l'adoption de Mairie360 (demo).",
-    "format": "post terrain + carrousel"
+    "title": "IntraMuros - fiche Google Play",
+    "url": "https://play.google.com/store/apps/details?id=com.intramuros.Intramuros.production&hl=en_US&gl=US",
+    "account": "IntraMuros",
+    "platform": "Google Play",
+    "whatItIs": "Fiche store décrivant alertes temps réel, actus, événements, sondages et signalements à la mairie.",
+    "number": "Plus de 8 000 communes adhérentes, note 4.708333492279053 avec 30886 avis, màj 14 sept 2026",
+    "whyForYou": "Afficher votre compteur et une capture d'alerte pour répondre à ça marche ailleurs.",
+    "format": "Fiche application"
    },
    {
-    "title": "illiwap voyage au Salon des Maires de l'Ardèche + stations liées",
-    "url": "https://www.linkedin.com/company/illiwap/",
-    "account": "illiwap",
-    "platform": "LinkedIn",
-    "whatItIs": "Salon des Maires de l'Ardèche au Pouzin, stations liées assos-écoles-bibliothèques, rapport d'envoi temps réel.",
-    "number": "3,295 followers, vu 1w, plus de 3 000 collectivités",
-    "whyForYou": "Copiez les espaces dédiés assos-écoles et le rapport d'envoi pour la messagerie de Mairie360 (demo).",
-    "format": "post événement + conseil produit"
+    "title": "Station illiwap Saint-Michel-de-Maurienne : alertes sécheresse et rénovation",
+    "url": "https://station.illiwap.com/en/public/73261",
+    "account": "Mairie de Saint-Michel-de-Maurienne via illiwap",
+    "platform": "station.illiwap.com",
+    "whatItIs": "Page station avec actus datées, modules Sondage, Signalement et Boîte à idées.",
+    "number": "[ALERTE SÉCHERESSE] 11/2/26, [BON DE NOËL] 10/30/26",
+    "whyForYou": "Reprendre le triptyque alerte, travaux et fête pour calibrer votre calendrier éditorial.",
+    "format": "Fil d'actus station"
    },
    {
-    "title": "L'IA transforme le quotidien des collectivités",
-    "url": "https://www.linkedin.com/company/groupe-jvs/",
-    "account": "Groupe JVS",
-    "platform": "LinkedIn",
-    "whatItIs": "IA intégrée pour demandes citoyennes, communication et support client, 4 filiales dont PanneauPocket.",
-    "number": "3,936 followers, vu 1mo, plus de 15 000 clients, plus de 40 ans",
-    "whyForYou": "Ajoutez un gain de temps IA concret demandes-communication comme JVS dans Mairie360 (demo).",
-    "format": "article / mise à jour produit"
+    "title": "Station illiwap CC Haut-Lignon : rythme d'octobre 2026",
+    "url": "https://station.illiwap.com/en/public/cchl/actu/embed",
+    "account": "Communauté de Communes du Haut-Lignon via illiwap",
+    "platform": "station.illiwap.com",
+    "whatItIs": "Fil public avec 30 actus de juin à octobre 2026 : conseils, école de musique, voie verte, emploi.",
+    "number": "27 oct 2026, 26 oct 2026, 14 oct 2026, 3 oct 2026 ; conseil, job dating, transports scolaires rentrée 2026",
+    "whyForYou": "Viser deux posts par semaine sur rentrée et travaux, c'est le rythme attendu par les habitants.",
+    "format": "Fil d'actus interco"
    },
    {
-    "title": "Retour 36e congrès du Cusma à Troyes",
-    "url": "https://www.linkedin.com/company/berger-levrault/",
-    "account": "Berger-Levrault",
-    "platform": "LinkedIn",
-    "whatItIs": "Témoignage Florence CANESTRELLI sur SaaS WeSedit rh, éditeur international France.",
-    "number": "35,569 followers, 176 membres CUSMA, 70 grandes collectivités, 36e édition Troyes",
-    "whyForYou": "Copiez le témoignage client filmé en congrès pour crédibiliser les workflows RH de Mairie360 (demo).",
-    "format": "récap événement + témoignage"
-   },
-   {
-    "title": "Budget participatif : déposer sans créer de compte",
-    "url": "https://www.linkedin.com/company/cap-collectif/",
-    "account": "Cap Collectif",
-    "platform": "LinkedIn",
-    "whatItIs": "Ville de Parthenay, dépôt d'idée sans inscription préalable sur plateforme participative.",
-    "number": "3,527 followers, vu 4d, plus de 280 budgets participatifs depuis 2015, Parthenay automne",
-    "whyForYou": "Supprimez l'inscription à l'entrée comme Cap Collectif pour lever le frein des élus dans Mairie360 (demo).",
-    "format": "cas d'usage / nouveauté produit"
-   },
-   {
-    "title": "L'essentiel d'octobre + entretien professionnel",
-    "url": "https://www.linkedin.com/company/cnfpt/",
-    "account": "CNFPT",
-    "platform": "LinkedIn",
-    "whatItIs": "Newsletter octobre, actu juridique territoriale, Mag SGM, offre formation entretien professionnel.",
-    "number": "216,309 followers, vu 3d, n°84 Secrétaire général de mairie : Le Mag",
-    "whyForYou": "Branchez un mag SGM + module entretien pro court dans la formation de Mairie360 (demo).",
-    "format": "offre formation + éditorial"
-   },
-   {
-    "title": "Les dotations de soutien à l'investissement en 2025",
-    "url": "https://www.collectivites-locales.gouv.fr/actualites/les-dotations-de-soutien-linvestissement-des-collectivites-territoriales-en-2025",
-    "account": "Collectivités Locales / DGCL",
-    "platform": "Site officiel",
-    "whatItIs": "Bilan DETR / DSIL / DSID / DPV publié par la DGCL.",
-    "number": "plus de 20 000 projets, près de 16 000 collectivités, plus de 1,7 Mds€ en 2025, publié 22 octobre 2026",
-    "whyForYou": "Transformez ce bilan DETR-DSIL en checklist financement projet dans Mairie360 (demo).",
-    "format": "article bilan officiel"
-   },
-   {
-    "title": "Situation mensuelle comptable au 30 septembre 2026",
-    "url": "https://www.collectivites-locales.gouv.fr/actualites/situation-mensuelle-comptable-des-collectivites-locales-au-30-septembre-2026",
-    "account": "Collectivités Locales / DGCL",
-    "platform": "Site officiel",
-    "whatItIs": "Recettes réelles de fonctionnement en hausse, tableau comptable mensuel.",
-    "number": "RRF +3,4 % soit +5,5 Md€, publié 26 octobre 2026, situation au 30 septembre 2026",
-    "whyForYou": "Affichez ce +3,4 % RRF en vignette budget pour cadrer les arbitrages dans Mairie360 (demo).",
-    "format": "article statistiques officiel"
-   },
-   {
-    "title": "Town Hall General Secretaries: préparer les municipales 2026",
-    "url": "https://www.youtube.com/watch?v=hWn2f5J24kg",
-    "account": "Service Public / Vie Publique",
+    "title": "Finances locales : quoi de neuf en septembre 2026 ?",
+    "url": "https://www.youtube.com/watch?v=KVWCsXidiw8",
+    "account": "Avenir Collectivités (presse métier finances)",
     "platform": "YouTube",
-    "whatItIs": "Replay pour secrétaires de mairie, accès info élections municipales 2026.",
-    "number": "Webinaire secrétaires généraux, chapitres inscription procuration bureau de vote",
-    "whyForYou": "Découpez ce replay élections en fiches workflow pas-à-pas dans Mairie360 (demo).",
-    "format": "vidéo / replay webinaire"
+    "whatItIs": "Live de rentrée sur PLF, dotations, masse salariale, M57, FCTVA et stratégie de trésorerie fin 2026.",
+    "number": "Septembre 2026, 21 minutes ; DGF, DETR, DSIL, M57 et CFU",
+    "whyForYou": "Sortir avant fin novembre votre checklist DGF et M57 pour capter secrétaires et DGS.",
+    "format": "Vidéo 21 min"
    },
    {
-    "title": "Q ENERGY France and AMRF sign agreement",
-    "url": "https://energynews.pro/en/q-energy-france-and-amrf-sign-agreement-to-accelerate-rural-electrification/",
-    "account": "energynews.pro / AMRF",
-    "platform": "Presse",
-    "whatItIs": "Partenariat Q ENERGY France et Association des Maires Ruraux pour électrification rurale.",
-    "number": "Publié 2025-12-01, Grand Atelier des Maires Ruraux pour la Transition Écologique",
-    "whyForYou": "Proposez un modèle projet transition rurale prêt à dupliquer dans Mairie360 (demo).",
-    "format": "article presse"
+    "title": "Salon des Maires 2026 : L'audace est locale",
+    "url": "https://www.salondesmaires.com/",
+    "account": "Salon des Maires et des Collectivités Locales",
+    "platform": "salondesmaires.com",
+    "whatItIs": "Page d'accueil 2026 : contexte renouvellement municipal, offre par transitions et visiteurs maires et cadres territoriaux.",
+    "number": "24-26 novembre 2026 ; 65 672 visiteurs, 1 380 exposants, 448 prises de parole",
+    "whyForYou": "Préparer une prise de parole retours d'expérience de petites communes plutôt qu'un simple stand.",
+    "format": "Page événement organisateur"
    },
    {
-    "title": "PanneauPocket modèles de communication municipale",
-    "url": "https://www.instagram.com/panneaupocket/",
-    "account": "PanneauPocket",
-    "platform": "Instagram",
-    "whatItIs": "Gabarits de proximité que les mairies republient pour alerter et informer.",
-    "number": "875 followers, 256 following",
-    "whyForYou": "Fournissez des gabarits prêts à poster comme PanneauPocket dans Mairie360 (demo).",
-    "format": "profil + gabarits"
+    "title": "Carrefour des Gestions Locales de l'Eau : parcours et hall IA",
+    "url": "https://www.carrefour-eau.com/",
+    "account": "idealCO / Carrefour Eau",
+    "platform": "carrefour-eau.com",
+    "whatItIs": "Page 2027 à Rennes Parc Expo avec parcours gouvernance, cycle de l'eau et nouveau hall IA data et outils numériques.",
+    "number": "700 exposants, 240 conférences, +30 000 m²",
+    "whyForYou": "Positionner Mairie360 sur le hall IA et data avec une démo workflows eau.",
+    "format": "Page événement organisateur"
+   },
+   {
+    "title": "Carrefour des Gestions Locales de l'Eau 2027 à Rennes",
+    "url": "https://www.cantonfair.net/event/16991-carrefour-des-gestions-locales-de-leau",
+    "account": "idealCO via cantonfair",
+    "platform": "cantonfair.net",
+    "whatItIs": "Fiche confirmant dates, lieu Rennes et rôle d'idealCO avec plateforme collaborative toute l'année.",
+    "number": "27-28 janvier 2027 ; environ 19 000 participants, environ 650 exposants, 200 conférences, plateforme 500 000 membres",
+    "whyForYou": "Copier le triptyque réseau, formation et salon pour fidéliser les agents entre deux événements.",
+    "format": "Fiche événement tiers"
    }
   ],
   "events": [
    {
-    "name": "Trophées du FIRM 2026",
-    "when": "18 novembre 2026, Stade de la Meinau Strasbourg, vote ouvert fin octobre 2026",
-    "why": "6 projets en compétition Prix du Public, engagement vote idéal pour petite mairie.",
-    "post": "Publier pendant vote début novembre : sondage Mairie360 « quelle initiative résilience copier en mairie ? » + relais lauréat 18 novembre."
+    "name": "Salon des Maires et des Collectivités Locales + Congrès AMF",
+    "when": "24-26 novembre 2026, Paris Expo Porte de Versailles, Pavillon 7",
+    "why": "65 672 visiteurs, 1 380 exposants, 448 prises de parole ; réunit maires, élus, cadres territoriaux et acheteurs publics.",
+    "post": "Publier J-7 un teaser démo pour nouvelles équipes puis J+2 un album avec 3 cas d'usage petites communes."
    },
    {
-    "name": "Salon des Maires et Congrès des Maires Paris",
-    "when": "24-26 novembre 2026, Porte de Versailles Paris",
-    "why": "Achats fournisseurs, élus et décideurs, pic LinkedIn et stands.",
-    "post": "Publier 10-26 novembre : live stand, démo 3 min projets-calendrier-messagerie, capter secrétaires et maires ruraux."
+    "name": "Carrefour des Gestions Locales de l'Eau",
+    "when": "27-28 janvier 2027, Rennes Parc Expo",
+    "why": "700 exposants, 240 conférences, +30 000 m² ; organisé par idealCO, lieu des DGS et élus techniques.",
+    "post": "Publier mi-janvier une checklist eau + délibérations puis sur place une vidéo 60s avec un DGS."
    },
    {
-    "name": "Vœux du maire et aux agents",
-    "when": "Janvier 2027 partout en France",
-    "why": "Pic communication locale, agenda et info, bilan post-municipales 2026.",
-    "post": "Publier mi-décembre à mi-janvier : kit modèles cérémonie, bilan, agenda partagé et message habitants."
+    "name": "Cérémonies des voeux des maires",
+    "when": "Début janvier 2027, dans chaque commune",
+    "why": "Rituel des petites communes : samedi 6 janvier à 16h, vendredi 10 janvier à 19h00 ; pic de communication locale.",
+    "post": "Publier le 5 janvier un modèle de discours et de diffusion des voeux via messagerie Mairie360."
    },
    {
-    "name": "Vote Budget Primitif 2027",
-    "when": "Jusqu'au 15 avril 2027",
-    "why": "Stress secrétaire-DGS, PPI et subventions, moment workflows + formation.",
-    "post": "Publier février à début avril : kit workflow PPI, DETR/DSIL, checklist vote secrétaire-DGS."
-   },
-   {
-    "name": "Salons départementaux des maires + AMIF",
-    "when": "Janvier-mai 2027, AMIF 1-2 juin 2027",
-    "why": "Sourcing proximité, rencontres pairs, cascade locale du SMCL.",
-    "post": "Publier mars-mai : tournée terrain, témoignage secrétaire 2h gagnées, photos stand style PanneauPocket."
+    "name": "Saison budgétaire 2027 des communes",
+    "when": "Novembre 2026 à mars 2027, saison DGF, DETR, DSIL et CFU",
+    "why": "Sujet n°1 des secrétaires et DGS : dotations, M57, FCTVA et préparation du budget 2027.",
+    "post": "Publier fin novembre un gabarit délibération budget M57/CFU et workflow de validation, relance mi-février."
    }
   ],
   "sources": [
-   "https://www.linkedin.com/company/ideal-co/",
-   "https://www.linkedin.com/company/panneaupocket/",
-   "https://www.linkedin.com/company/illiwap/",
-   "https://www.linkedin.com/company/groupe-jvs/",
-   "https://www.linkedin.com/company/berger-levrault/",
-   "https://www.linkedin.com/company/cap-collectif/",
-   "https://www.linkedin.com/company/cnfpt/",
-   "https://www.collectivites-locales.gouv.fr/",
-   "https://www.youtube.com/watch?v=hWn2f5J24kg",
-   "https://energynews.pro/en/q-energy-france-and-amrf-sign-agreement-to-accelerate-rural-electrification/",
-   "https://www.instagram.com/panneaupocket/",
-   "https://www.jvs-mairistem.fr/"
+   "https://idealco.fr/",
+   "https://idealco.fr",
+   "https://www.salondesmaires.com/",
+   "https://www.carrefour-eau.com/",
+   "https://www.carl-software.com/global-industry-2026-cmms-maintenance-5-0-ai-iot/",
+   "https://play.google.com/store/apps/details?id=com.intramuros.Intramuros.production&hl=en_US&gl=US",
+   "https://www.cantonfair.net/event/16991-carrefour-des-gestions-locales-de-leau",
+   "https://station.illiwap.com/en/public/73261",
+   "https://www.youtube.com/watch?v=KVWCsXidiw8",
+   "https://station.illiwap.com/en/public/cchl/actu/embed",
+   "https://www.service-public.gouv.fr/particuliers/actualites/A15421?lang=en&xtor=RSS-111",
+   "https://www.oaklins.com/fr/en/deals/110476/"
+  ],
+  "trail": [
+   "Searched: solution numérique mairie française espace collaboratif secrétaires mairie",
+   "Searched: JVS-Mairistem LinkedIn posts collectivités",
+   "Searched: IdealCO plateforme collaborative collectivités LinkedIn",
+   "Searched: PanneauPocket Intramuros Illiwap communication mairies LinkedIn",
+   "Searched: Berger-Levrault collectivités LinkedIn actualités blog",
+   "Searched: Intramuros application mairies actualités 2026",
+   "Searched: Salon des Maires et des Collectivités Locales 2026 dates Paris",
+   "Searched: site idealco.fr plateforme collaborative collectivités",
+   "Searched: Ruralitic 2026 2027 dates Aurillac",
+   "Searched: \"linkedin.com/posts\" JVS-Mairistem",
+   "Searched: \"linkedin.com/posts\" idealCO",
+   "Searched: \"linkedin.com/posts\" Berger-Levrault collectivités",
+   "Searched: \"linkedin.com/posts\" PanneauPocket",
+   "Searched: idealco.fr actualités webconférences formations collectivités 2026",
+   "Opened https://idealco.fr",
+   "Searched: JVS-Mairistem actualités blog 2026 collectivités",
+   "Searched: Berger-Levrault actualités collectivités 2026 blog",
+   "Searched: IntraMuros blog actualités communes 2026",
+   "Searched: PanneauPocket actualités blog communes 2026",
+   "Searched: mairistem.fr actualités",
+   "Opened https://www.mairistem.fr/actualites/ → could not open the page (fetch failed).",
+   "Opened https://www.intramuros.org/ → the page has no readable text.",
+   "Opened https://www.berger-levrault.com/fr/actualites/ → the page answered HTTP 404.",
+   "Searched: Mairistem actualités Salon des Maires 2025",
+   "Searched: Congrès des Maires 2026 dates Porte de Versailles",
+   "Searched: Tech Ovin salon maires rural 2026 dates",
+   "Searched: salons collectivités locales 2027 maires programme",
+   "Searched: Carrefour des Gestions Locales de l'Eau janvier 2027 dates Rennes",
+   "Searched: Congrès Association des Maires Ruraux 2026 dates",
+   "Searched: élections municipales mars 2026 dates officielles premier tour",
+   "Searched: Réseau des Communes reseaudescommunes.fr espace collaboratif mairies",
+   "Searched: idealCO Trophées héros territoriaux 2026 vote",
+   "Searched: site:panneaupocket.com actualités",
+   "Searched: panneaupocket.com Groupe JVS nombre communes",
+   "Searched: intramuros.org 8000 communes application",
+   "Searched: AMF Congrès des maires novembre 2026 dates",
+   "Searched: Semaine innovation publique novembre 2026 dates",
+   "Searched: Ruralitic 2026 août Aurillac 20 ans programme",
+   "Searched: Groupe JVS Salon des Maires 2025 retour images",
+   "Searched: site:berger-levrault.com actualités septembre 2026 finances locales",
+   "Searched: Berger-Levrault finances locales septembre 2026 replay",
+   "Searched: CARL Software Global Industrie 2026 Maintenance 5.0",
+   "Searched: illiwap actualités nouveautés 2026 communes",
+   "Searched: idealCO Carrefour Eau 2027 Rennes janvier",
+   "Searched: Mayors Congress AMF November 2026 dates Paris",
+   "Searched: \"voeux\" maires janvier 2027 cérémonie",
+   "Opened https://www.salondesmaires.com/",
+   "Opened https://www.carrefour-eau.com/",
+   "Opened https://www.carl-software.com/global-industry-2026-cmms-maintenance-5-0-ai-iot/",
+   "Opened https://play.google.com/store/apps/details?id=com.intramuros.Intramuros.production&hl=en_US&gl=US",
+   "Opened https://www.cantonfair.net/event/16991-carrefour-des-gestions-locales-de-leau",
+   "Opened https://station.illiwap.com/en/public/73261",
+   "Opened https://www.youtube.com/watch?v=KVWCsXidiw8",
+   "Opened https://station.illiwap.com/en/public/cchl/actu/embed",
+   "Searched: service-public.fr élections municipales 15 mars 2026 inscription listes",
+   "Opened https://www.service-public.gouv.fr/particuliers/actualites/A15421?lang=en&xtor=RSS-111",
+   "Searched: jvs-mairistem.fr actualité IA finances",
+   "Opened https://www.oaklins.com/fr/en/deals/110476/",
+   "Searched: \"Dématérialisation des bulletins de paie\" collectivités JVS"
   ]
  },
  "audit": {
-  "summary": "For SGM/DGS/elus <3,500 hab: PDF carousels and multi-photo win on LinkedIn, personal profiles beat Pages, saves and replies drive reach.",
+  "summary": "LinkedIn for SGM/DGS/elus: carousels, multi-image, stories win; native, weekday, saves focus",
   "whatWorks": [
    {
-    "format": "Native PDF carousel fiche 5-8 slides",
-    "why": "Saveable printable, saves weigh 5x like",
-    "example": "idealCO PDF 5 erreurs budget / Absences secretaire",
+    "format": "Native PDF carousel / Document",
+    "why": "Checklist dwell 15-20s, swipe save",
+    "example": "Budget 2026 7 pages errors + checklist",
     "strength": 5,
     "figure": {
-     "what": "engagement rate Company Pages",
-     "value": 7,
+     "what": "engagement rate",
+     "value": 5.85,
      "unit": "%",
-     "source": "",
-     "period": "2025"
+     "source": "Social Insider 2025 via Sprout, 1M posts",
+     "period": "Jan-Dec 2024"
     },
-    "exampleUrl": "http://www.linkedin.com/company/ideal-co",
-    "exampleFigure": "150-400 reactions + 30-80 comments"
+    "exampleUrl": "https://blog.closelyhq.com/linkedin-company-page-benchmarks-followers-engagement-and-growth-rates/",
+    "exampleFigure": "15,000 professionals, 180 leads"
    },
    {
-    "format": "Multi-photo retour experience commune",
-    "why": "Peers tag other mairies, proof over pitch",
-    "example": "Gazette 3-4 photos before/after maire/secretaire",
+    "format": "Multi-image 2-4 images",
+    "why": "Before/after, double CTR vs single",
+    "example": "Registre papier -> workflow + calendrier",
     "strength": 4,
     "figure": {
-     "what": "engagement rate multi-image",
-     "value": 6.45,
+     "what": "engagement rate",
+     "value": 6.6,
      "unit": "%",
-     "source": "",
+     "source": "Social Insider 2025",
      "period": "2025"
     },
-    "exampleUrl": "https://www.linkedin.com/company/la-gazette-des-communes/",
-    "exampleFigure": "200-600 reactions"
+    "exampleUrl": "https://www.linkedin.com/company/berger-levrault",
+    "exampleFigure": ""
    },
    {
-    "format": "Poll + carousel debrief",
-    "why": "Polls give reach, carousel gives saves",
-    "example": "Qui gere calendrier salle des fetes? Cahier/Excel/Outil/Tete",
+    "format": "Personal story + single image",
+    "why": "Real SGM testimony, people beat logos",
+    "example": "Jeudi 17h 47 mails, convocation basculee",
     "strength": 4,
     "figure": {
-     "what": "more reach vs average posts",
-     "value": 206.33,
+     "what": "engagement rate",
+     "value": 3.49,
      "unit": "%",
-     "source": "",
-     "period": "Jan 2023-Jan 2025"
+     "source": "AuthoredUp Mar 2025-Feb 2026 personal",
+     "period": "Mar 2025-Feb 2026"
     },
     "exampleUrl": "",
     "exampleFigure": ""
    },
    {
-    "format": "Native short video <90s temoignage",
-    "why": "Lower reach than carousel, higher comments DMs",
-    "example": "Une journee avec Martine, 60s face-cam mairie",
+    "format": "Short native video 45-90s captioned",
+    "why": "Workflow demo, hook 3s, native",
+    "example": "Tri demandes etat-civil + elections 45s",
     "strength": 3,
     "figure": {
-     "what": "engagement rate video",
-     "value": 6,
+     "what": "engagement rate",
+     "value": 3.38,
      "unit": "%",
-     "source": "",
-     "period": "2025"
+     "source": "AuthoredUp Mar 2025-Feb 2026 personal",
+     "period": "Mar 2025-Feb 2026"
     },
     "exampleUrl": "",
     "exampleFigure": ""
    },
    {
-    "format": "Link post utile with teaser",
-    "why": "Useful links get clicks, put value in post",
-    "example": "Modele PV conseil + ordre du jour, 3 bullets + visual",
-    "strength": 3,
+    "format": "Poll + results carousel follow-up",
+    "why": "1.78x reach, follow-up outperforms poll",
+    "example": "Tache lundi plus temps? then results",
+    "strength": 2,
     "figure": {
-     "what": "more interactions vs no-link",
-     "value": 13.57,
-     "unit": "%",
-     "source": "",
-     "period": "Jan 2023-Jan 2025"
+     "what": "median reach multiplier",
+     "value": 1.78,
+     "unit": "x",
+     "source": "AuthoredUp Polls Guide 2026",
+     "period": "Mar 2025-Feb 2026"
     },
-    "exampleUrl": "https://www.idealco.fr/campagne/?campaign=e-29809-a6eb5880&utm_campaign=formation_29809&utm_source=partnerLKD",
+    "exampleUrl": "https://authoredup.com/blog/linkedin-polls",
     "exampleFigure": ""
    }
   ],
   "hooks": [
-   "Story opener mid-scene - 2.60% median best",
-   "Hook <=40 chars - 25% higher than 200+ chars",
-   "First 140 mobile / 210 desktop chars decide",
-   "End question lift only 0.07pp - use stanced question",
-   "Reply within hour - 2.1x total engagement"
+   "Un tiers postes vacants d'ici 5 ans",
+   "Avant 47 mails / Apres 1 espace",
+   "Mardi 18h42 3 cahiers + WhatsApp",
+   "Combien heures chercher dernier arrete?",
+   "Municipales 2026 passation 100 jours"
   ],
   "topics": [
-   "Municipales 15 et 22 mars 2026 - passation parite installation",
-   "Penurie SGM - one-third vacant in 5 years",
-   "Finances locales - budget arbitrage dotations",
-   "Maires demission - 2,400 since 2020, RACI maire/SGM",
-   "Quotidien technique - etat-civil arretes cimetiere elections",
-   " mutualisation interim - seule en mairie story"
+   "Penurie SGM vacances statut",
+   "Municipales 2026 installation parite",
+   "Budget M57 DGF subventions",
+   "Chantiers before/after timeline",
+   "Arretes deliberations etat-civil",
+   "Formation 15 min workflow"
   ],
   "avoid": [
-   "Text-only Page posts - fewest interactions",
-   "Raw link in body - lowest median engagement",
-   "Lead with product demo - thought leadership wins 3:1",
-   "\"I'm excited to announce\" / \"Hot take:\" / \"Comment YES\""
+   "External link in post body",
+   "Reshare alone without rewrite",
+   "Generic digitalisation opinion poll",
+   "Long video without captions hook"
   ],
   "misses": [
    {
-    "format": "Text-only Page post",
-    "why": "Performed worse across all metrics",
-    "example": "Page text without visual - fewest interactions"
+    "format": "Reshare alone",
+    "why": "246 impressions median, 0.29x reach",
+    "example": "Company page reshares founder post verbatim"
    },
    {
-    "format": "External video link post",
-    "why": "Takes off-platform, reduced distribution",
-    "example": "YouTube link instead of native upload"
+    "format": "External link post",
+    "why": "25-35% reach drop, 30% CTR drop",
+    "example": "YouTube link vs native 45s demo"
    },
    {
-    "format": "Generic question hook",
-    "why": "Question hooks dead last at 2.16%",
-    "example": "\"What do you think?\" with no stance"
+    "format": "Generic poll",
+    "why": "Zero context, zero save",
+    "example": "Etes-vous pour la digitalisation?"
    }
   ],
-  "benchmarks": [],
+  "benchmarks": [
+   {
+    "name": "Poll median reach",
+    "value": 1.78,
+    "unit": "x",
+    "note": "Personal Mar 2025-Feb 2026",
+    "source": "https://authoredup.com/blog/linkedin-polls"
+   },
+   {
+    "name": "Poll engagement rate",
+    "value": 0.65,
+    "unit": "%",
+    "note": "1529 impressions 10 engagements",
+    "source": "https://authoredup.com/blog/linkedin-polls"
+   },
+   {
+    "name": "Native doc example reach",
+    "value": 15000,
+    "unit": "reach",
+    "note": "Single post six months 2025",
+    "source": "https://blog.closelyhq.com/linkedin-company-page-benchmarks-followers-engagement-and-growth-rates/"
+   },
+   {
+    "name": "Native doc example leads",
+    "value": 180,
+    "unit": "leads",
+    "note": "Same post 2025",
+    "source": "https://blog.closelyhq.com/linkedin-company-page-benchmarks-followers-engagement-and-growth-rates/"
+   },
+   {
+    "name": "La Suite tools count",
+    "value": 6,
+    "unit": "tools",
+    "note": "Via ProConnect updated 19/05/2025",
+    "source": "https://lasuite.crisp.help"
+   }
+  ],
   "sources": [
-   "https://www.searchenginejournal.com/linkedin-study-finds-adding-links-boosts-engagement-by-13/542977/",
-   "https://metricool.com/linkedin-trends-study/",
-   "https://www.socialinsider.io/social-media-benchmarks/linkedin",
-   "https://buffer.com/resources/how-often-to-post-on-linkedin/",
-   "https://nealschaffer.com/linkedin-post/",
+   "http://authoredup.com/blog/how-to-calculate-engagement-rate-on-linkedin",
+   "https://sproutsocial.com/insights/linkedin-engagement-rate/",
+   "https://blog.closelyhq.com/linkedin-company-page-benchmarks-followers-engagement-and-growth-rates/",
+   "https://authoredup.com/blog/linkedin-polls",
+   "https://www.revvgrowth.com/saas-content-marketing/goals",
    "https://blog.hootsuite.com/government-social-media-benchmarks/"
   ]
  },
@@ -568,14 +598,14 @@
   ]
  },
  "plan": {
-  "period": "3 au 28 novembre 2026",
-  "headline": "Vous reprenez le rythme avec vos scènes de mairie",
+  "period": "3 – 24 novembre 2026",
+  "headline": "Vous revenez après un long silence, on reprend doucement avec vos scènes de mairie",
   "mix": [
    {
     "format": "carousel",
     "count": 2,
     "lever": "double-down",
-    "why": "Vous êtes à 9 de score sur 5 posts, votre plus haut. Sur le terrain la fiche 5 à 8 slides fait 7 % d'engagement et se garde, un save vaut 5 fois un like. Vous reprenez vos deux scènes fortes : l'info dispersée et le mail contre le fichier partagé. Vous offrez une fiche à poser près de l'accueil. Vous restez simple, vous vouvoyez.",
+    "why": "Vous faites 9 de moyenne sur 5 posts, votre meilleur score. Dehors, le document natif fait 5.85% d'engagement sur 1M posts. On reprend ce qui vous parle : l'info qui se disperse, le mail contre le fichier partagé avant la fête communale. Vous feuilletez, vous gardez pour la réunion.",
     "yours": {
      "value": 9,
      "posts": 5,
@@ -583,18 +613,18 @@
      "of": 10
     },
     "field": {
-     "what": "engagement rate Company Pages",
-     "value": 7,
+     "what": "engagement rate",
+     "value": 5.85,
      "unit": "%",
-     "source": "",
-     "period": "2025"
+     "source": "Social Insider 2025 via Sprout, 1M posts",
+     "period": "Jan-Dec 2024"
     }
    },
    {
     "format": "reel",
     "count": 1,
     "lever": "double-down",
-    "why": "Vous êtes à 8 de score sur 2 posts. Sur le terrain la vidéo courte de moins de 90 s fait 6 % d'engagement, avec plus de commentaires et de messages. Vous en avez besoin, vous avez 0 commentaire sur 32 posts. Vous montrez 60 secondes : la salle des fêtes avant la fête, le fil de mails qui s'arrête. Vous posez une question fermée.",
+    "why": "Vous êtes à 8 de moyenne sur 2 posts. Dehors, la vidéo native 45-90s sous-titrée fait 3.38% d'engagement. On vous montre 60 secondes à l'accueil de la mairie : vous cherchez un arrêté, vous le trouvez. Accroche de 3 secondes. Vous voyez le geste.",
     "yours": {
      "value": 8,
      "posts": 2,
@@ -603,57 +633,57 @@
     }
    },
    {
-    "format": "quiz",
+    "format": "before-after",
     "count": 1,
     "lever": "fill-gap",
-    "why": "Vous êtes à 6 de score sur 2 posts. Sur le terrain sondage + carousel debrief fait 206,33 % de portée en plus. Le sondage porte, le carousel garde. Vous testez : où cherchez-vous l'arrêté le lundi matin ? Vous débriefez en carousel la semaine d'après, sur LinkedIn.",
+    "why": "Vous n'avez que 1 post à 4 de moyenne. Dehors, la multi-image 2-4 images fait 6.6% d'engagement, double clic contre image seule. On vous montre avant-après : le bureau chargé le lundi matin, le même dossier rangé le vendredi. Vous comparez d'un coup d'œil.",
+    "yours": {
+     "value": 4,
+     "posts": 1,
+     "rank": 9,
+     "of": 10
+    }
+   },
+   {
+    "format": "behind-the-scenes",
+    "count": 1,
+    "lever": "fill-gap",
+    "why": "Vous êtes à 3 sur 1 seul post. Dehors, l'histoire vraie + photo simple fait 3.49% d'engagement, les visages parlent mieux que les logos. On vous raconte votre retour du 1er octobre après 128 jours de silence. Vous êtes à votre bureau, vous relancez pour la mairie. Vous voyez qui prépare quoi.",
+    "yours": {
+     "value": 3,
+     "posts": 1,
+     "rank": 10,
+     "of": 10
+    }
+   },
+   {
+    "format": "quiz",
+    "count": 1,
+    "lever": "test",
+    "why": "Vous faites 6 de moyenne sur 2 posts, avec 0 commentaire sur 32 posts. Les questions ouvertes ne vous font pas répondre. Dehors, le sondage fait 1.78x plus de portée, mais 0.65% d'engagement. On teste un vote en un clic : où cherchez-vous l'info le lundi ? Puis un carrousel avec vos réponses. Vous votez, vous vous comparez.",
     "yours": {
      "value": 6,
      "posts": 2,
      "rank": 5,
      "of": 10
     }
-   },
-   {
-    "format": "tips",
-    "count": 1,
-    "lever": "fill-gap",
-    "why": "Vous êtes à 5 de score sur 3 posts. Sur le terrain le post utile avec lien fait 13,57 % d'interactions en plus quand la valeur est dans le post. Vous donnez un geste de mairie : ranger la réunion en trois lignes. Vous mettez le lien en plus. Vous dites mairie, sans prix.",
-    "yours": {
-     "value": 5,
-     "posts": 3,
-     "rank": 8,
-     "of": 10
-    }
-   },
-   {
-    "format": "announcement",
-    "count": 1,
-    "lever": "test",
-    "why": "Vous êtes à 6 de score sur 3 posts, avec des bêtas à 3, 6 et 8 qui montraient l'outil au lieu d'une scène. Sur le terrain le retour d'expérience multi-photo fait 6,45 % d'engagement, la preuve compte plus. La bêta avec les équipes de mairie glisse au 8 décembre après le 20 novembre visé. Vous montrez une scène utile, sans nommer de mairie sans accord écrit.",
-    "yours": {
-     "value": 6,
-     "posts": 3,
-     "rank": 6,
-     "of": 10
-    }
    }
   ],
-  "cadence": "Un à deux posts par semaine au maximum, LinkedIn d'abord.",
-  "next": "Après, vous préparez la bêta avec les équipes de mairie autour du 8 décembre. Vous gardez le rythme, un à deux posts, LinkedIn d'abord.",
+  "cadence": "Au plus deux posts par semaine, LinkedIn d'abord. Vous gardez le rythme après les 24, 36, 38 et 128 jours de silence.",
+  "next": "On prépare la bêta avec les équipes de mairie pour le 20 novembre, visée au 8 décembre. Sans prix, sans nom de commune. Vous nous dites ce que vous gardez.",
   "basis": {
    "posts": 32,
    "audited": true
   }
  },
  "synthesis": {
-  "headline": "Vous reprenez le rythme avec vos scènes de mairie",
+  "headline": "Vous reprenez doucement avec vos scènes de mairie",
   "points": [
-   "Nous avons relu 32 publications, les vôtres et celles d'à côté. L'info perdue entre l'accueil et le bureau du maire monte à 17 et 12. Le mot bêta testeurs tombe à 3. Presque aucun commentaire.",
-   "Nous restons concrets jusqu'à fin novembre. LinkedIn d'abord. Deux publications par semaine au plus. Un document à garder pour la mairie.",
-   "Vous avez 4 textes à valider. La fiche de fin d'année. Le 11 novembre sans chercher la bonne version. Le mardi 8h42 après la réunion. Et l'arrêt du mot bêta testeurs."
+   "En un an, 32 posts et aucun commentaire. Vous vous êtes tus 128 jours entre mai et octobre. Quand vous montrez la vie de la mairie, vous touchez. Quand vous parlez plateforme, vous décrochez.",
+   "Sur LinkedIn, vos carrousels et vos photos de guichet et de couloir portent. Vos profils portent plus que la Page.",
+   "Pour le 3 au 28 novembre, on reste sur LinkedIn d'abord, deux posts par semaine au plus. Quatre textes vous attendent, dont le 11 novembre et la fiche de fin d'année."
   ],
-  "next": "Validez deux textes pour cette semaine sur LinkedIn : la fiche de fin d'année, puis le 11 novembre."
+  "next": "Validez le post du 11 novembre, on s'occupe du reste."
  },
  "ideas": [
   {
@@ -773,7 +803,7 @@
  "activity": [
   {
    "agent": "scout",
-   "summary": "Found 5 formats that work and 6 topics. For SGM/DGS/elus <3,500 hab: PDF carousels and multi-photo win on LinkedIn, personal profiles beat Pages, saves and replies drive reach. Watched the field: 12 posts at 7 comparable players, 5 dates to know.",
+   "summary": "Found 5 formats that work and 6 topics. LinkedIn for SGM/DGS/elus: carousels, multi-image, stories win; native, weekday, saves focus Watched the field in 59 steps (14 pages opened): 8 posts at 6 comparable players, 4 dates to know.",
    "ok": true
   },
   {
@@ -788,12 +818,12 @@
   },
   {
    "agent": "director",
-   "summary": "Plan for 3 au 28 novembre 2026: Vous reprenez le rythme avec vos scènes de mairie",
+   "summary": "Plan for 3 – 24 novembre 2026: Vous revenez après un long silence, on reprend doucement avec vos scènes de mairie",
    "ok": true
   },
   {
    "agent": "director",
-   "summary": "Vous reprenez le rythme avec vos scènes de mairie",
+   "summary": "Vous reprenez doucement avec vos scènes de mairie",
    "ok": true
   }
  ]

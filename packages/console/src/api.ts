@@ -169,7 +169,7 @@ export interface Find { title: string; url: string; account: string; platform: s
 export interface Strategy { rhythm: string; formats: string; subjects: string; tone: string; voices: string; callsToAction: string; lesson: string }
 export interface Player { name: string; url: string; what: string; place?: string; size?: string; audience?: string; channels?: string; publishes?: string; strength?: string; opening?: string; strategy?: Strategy }
 export interface Event { name: string; when: string; why: string; post?: string }
-export interface Watch { market: string; players: Player[]; finds: Find[]; events: Event[]; sources: string[] }
+export interface Watch { market: string; players: Player[]; finds: Find[]; events: Event[]; sources: string[]; trail?: string[] }
 export interface Snapshot { at: string; platform: string; followers: number; posts: number }
 export interface TeamView {
   agents: Array<{ id: AgentId; name: string; role: string }>;
