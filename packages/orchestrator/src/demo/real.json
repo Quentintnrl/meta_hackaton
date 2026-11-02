@@ -1,415 +1,490 @@
 {
  "readAt": "2026-11-02",
  "watch": {
-  "market": "Espace partagé mairie pour secrétaires, DGS petites communes et élus ruraux : projets, agenda, messagerie, workflows, formation.",
+  "market": "Espace partagé pour mairies françaises, surtout <3 500 hab. : projets, calendrier, messagerie, workflows et formation pour secrétaires de mairie/SG, DGS et élus. Bataille B2B sur LinkedIn France en français : éditeurs métier, plateforme entraide-formation, applis citoyennes, association et média. Blanc : personne ne combine pilotage interne + entraide inter-communes + formation simple.",
   "players": [
    {
     "name": "Berger-Levrault",
-    "url": "https://www.berger-levrault.com/",
-    "what": "Logiciels finances, RH, état-civil, facturation, GRC, document management pour collectivités toutes tailles.",
-    "place": "leader / éditeur historique",
-    "size": "51 000 clients actifs, 1 900 collaborateurs France, Espagne, Canada, Maroc, Belgique, Italie",
-    "audience": "DGS, DST, DRH, DAF, secrétaires communes moyennes/grandes, EPCI, SDIS, santé, éducation",
-    "channels": "LinkedIn FR, blog, YouTube, webinaires, newsletter Légibase, salons",
-    "publishes": "Décryptage M57/M59, DSN, tutos e-magnus / BL Enfance, livres blancs, retours clients, IA + Légibase",
-    "strength": "Exhaustivité fonctionnelle, crédibilité juridique, présence nationale salon + formation",
-    "opening": "Peu horizontal petite mairie 500 hab., messagerie interne et entraide peu couvertes, prix/complexité perçus."
+    "url": "https://www.linkedin.com/company/berger-levrault/",
+    "what": "Logiciels gestion finances-RH, e.sedit, e-Magnus / WeGF <5 000 hab., Légibase, services + formation",
+    "place": "Leader historique multi-secteur",
+    "size": "40,000 customers, 2,000 employees, 1,001-5,000, 29 apps Android + 7 iOS",
+    "audience": "DGS, DRH, DAF, DSIT moyennes-grandes collectivités + petites via Segilog / Magnus",
+    "channels": "LinkedIn France, X, YouTube replays, blog + guides",
+    "publishes": "Produit-réglementaire NIS2, facturation électronique, RH, finances ; cas Nice, Lambesc ; clubs CUSMA ~200 participants 100 collectivités",
+    "strength": "Autorité, exhaustivité, veille juridique, catalogue formation, du <5 000 hab. à Région",
+    "opening": "Vie solo secrétaire <1 000 hab., entraide pairs, messagerie-agenda simple, lisibilité prix.",
+    "strategy": {
+     "rhythm": "LinkedIn ~3-5x/semaine, pic SMCL / webinaires",
+     "formats": "Carrousels produits, infographies réglementaires, témoignages vidéo, webinaires",
+     "subjects": "Conformité, IA, RH, finances locales, Légibase + Assistant IA",
+     "tone": "Institutionnel-expert, rassurant",
+     "voices": "Marque + experts produit + clients clubs",
+     "callsToAction": "Démo, livre blanc, stand SMCL, club",
+     "lesson": "L'autorité conformité + clubs clients vendent le stack complet."
+    }
    },
    {
-    "name": "JVS-Mairistem / Groupe JVS",
-    "url": "jvs-mairistem.fr",
-    "what": "Logiciels mairie : finances, RH, état-civil, élections, Millesime Cloud, conseil, formation.",
-    "place": "challenger spécialiste rural",
-    "size": "Plus de 15 000 clients, plus de 400 collaborateurs, 4 filiales : Mairistem, Citopia, PanneauPocket, Sistec",
-    "audience": "Secrétaires de mairie, maires ruraux, petites intercos, syndicats des eaux",
-    "channels": "LinkedIn, YouTube tutos, clubs utilisateurs, salons départementaux maires",
-    "publishes": "Cas concrets, captures écrans, dates butoirs, témoignage commune 800 hab., 2-4 posts/semaine",
-    "strength": "Langage petite mairie, proximité terrain, PanneauPocket porte d'entrée",
-    "opening": "Pas d'espace projet transverse, pas d'entraide inter-mairies, peu de workflows élus/secrétaire."
+    "name": "JVS-Mairistem - Groupe JVS",
+    "url": "https://www.linkedin.com/company/groupe-jvs/",
+    "what": "Logiciels 100% collectivités : finances, RH, état civil, collaboratif, web-cloud, conseil, formation",
+    "place": "Référence petites communes, groupe 4 filiales : Mairistem, Citopia, PanneauPocket, Sistec",
+    "size": "Plus de 15 000 collectivités Mairistem, plus de 15 000 clients groupe, plus de 40 ans",
+    "audience": "Secrétaires générales, DGS petites communes, maires",
+    "channels": "LinkedIn FR, blog / guides, webinaires, email",
+    "publishes": "Guides conformité NIS2, PPI, messagerie pro, locations ; Mémento élus ; webinaires gratuits Élus 2026 début mandat",
+    "strength": "Ultra-concret métier, proximité, co-construction, cybersécurité messagerie",
+    "opening": "Espace projet transversal inter-communes, communauté pairs hors clients, messagerie interne mairie.",
+    "strategy": {
+     "rhythm": "LinkedIn 3-4x/semaine + blog",
+     "formats": "Guides à télécharger, brochures, témoignages vidéo, astuces Cloud",
+     "subjects": "Messagerie sécurisée NIS2, PPI, état-civil, cloud, 2 500 violations +56 %",
+     "tone": "Proche, aidant : servir les citoyens",
+     "voices": "Marque + clients + experts webinaire",
+     "callsToAction": "TÉLÉCHARGER LA BROCHURE, Lire l'article, webinaire, démo",
+     "lesson": "Le concret métier + co-construction Store selon vos besoins fidélise."
+    }
    },
    {
     "name": "idealCO",
-    "url": "https://idealco.fr",
-    "what": "Communautés, formations, events pour réaliser projets territoriaux via réseau social entraide.",
-    "place": "leader revendiqué social learning territorial",
-    "size": "Plus de 5 000 formations, 40 communautés, 20 colloques, 105 employees",
-    "audience": "Agents territoriaux techniciens : eau, déchets, petite enfance, urbanisme, RH",
-    "channels": "LinkedIn FR, plateforme fermée, Calaméo, YouTube lives, webconférences hebdo",
-    "publishes": "Programmes communautés, experts, sondages, baromètre santé mentale 6 513 agents 2026",
-    "strength": "Réseau entraide puissant, formation continue, animation experte",
-    "opening": "Pas de messagerie d'équipe, pas d'agenda opérationnel, pas de workflows conseil/arrêtés, pas centré petite mairie."
+    "url": "https://www.linkedin.com/company/ideal-co/",
+    "what": "Plateforme collaborative + social learning + événements, 35 cercles métiers, entraide projets",
+    "place": "Leader co-formation, plus grande plateforme collaborative sphère publique",
+    "size": "650+ webconférences/an, 1 700 intervenants, 20 000h vidéo, 25 événements 26 000 participants, 37 ans",
+    "audience": "Agents territoriaux, chefs de projets, RH / formation, moins maires en direct",
+    "channels": "LinkedIn quasi-quotidien, forums plateforme, newsletter",
+    "publishes": "IA pour agents, Travail Social, webconférences 30 min-2h + replay, questions communautés",
+    "strength": "Entraide pairs à l'échelle, formats courts, replay VOD, réseau porteurs projets",
+    "opening": "Outillage quotidien calendrier-tâches-messagerie, petite mairie 1 secrétaire, com citoyenne.",
+    "strategy": {
+     "rhythm": "Teasing calendrier, live, replay en boucle",
+     "formats": "Direct vidéo, interview expert, question communauté, teasing-live-replay",
+     "subjects": "Eau-déchets, ressources, solidarité, territoire, vie locale",
+     "tone": "Collaboratif capacitant, solidaire",
+     "voices": "Community managers, 1 700 intervenants, agents pairs",
+     "callsToAction": "Rejoindre communauté, prendre rendez-vous, voir évènements",
+     "lesson": "Boucle calendrier-live-replay + pairs crée l'apprentissage continu."
+    }
+   },
+   {
+    "name": "PanneauPocket - Groupe JVS",
+    "url": "https://www.linkedin.com/company/panneaupocket/",
+    "what": "Appli mobile info-alertes n°1 : info, alerte, agenda, push, signalement, annuaire, affichage légal",
+    "place": "Leader info-alerte citoyenne, partenaire AMRF et Gendarmerie depuis 2016",
+    "size": "15 500 collectivités, 1 000 gendarmeries, 9 M administrés, 83 % foyers, 3 M notifs/jour, 98 % satisfaction",
+    "audience": "Maires / élus ruraux et secrétaires diffuseurs, habitants destinataires",
+    "channels": "LinkedIn 2-3x/semaine, Facebook actif, YouTube témoignages, salons départementaux",
+    "publishes": "Alertes, agenda local, sécurité gendarmerie, vie locale, rencontres Salon des Maires de l'Ain",
+    "strength": "Simplicité, réactivité équipe, rapidité mise en œuvre, gratuit anonyme sans pub côté habitant",
+    "opening": "Travail interne : projets, calendrier, workflows, formation, pilotage DGS.",
+    "strategy": {
+     "rhythm": "LinkedIn + Facebook miroir, push salons",
+     "formats": "Témoignages verticaux courts, chiffres clés, captures app, photos stand",
+     "subjects": "Alerte, agenda, affichage légal, signalement, annuaire",
+     "tone": "Simplicité militante, bienveillant : l'info va vers l'habitant",
+     "voices": "Équipe + maires clients + habitants PlayStore",
+     "callsToAction": "Demandez démo gratuite, contact@panneaupocket.com 09.71.29.27.43",
+     "lesson": "Simplicité + preuve maires + présence terrain gagnent le rural."
+    }
    },
    {
     "name": "IntraMuros",
-    "url": "appli-intramuros.fr",
-    "what": "Appli mairie informer, alerter, faire participer administrés, CRM citoyen.",
-    "place": "challenger communication citoyenne rural",
-    "size": "Plus de 8 000 communes, 120 intercos, 25 625 ratings Android",
-    "audience": "Maires, adjoints com, secrétaires qui publient, habitants",
-    "channels": "LinkedIn, Facebook maires, stores, salons maires dép.",
-    "publishes": "Nouvelles communes adhérentes, sondages, annuaire, alertes, visuels clocher",
-    "strength": "Adoption simple, prix bas à partir de 5 euros, effet réseau habitants",
-    "opening": "100% externe : pas de projets, tâches, formation secrétaires, laisse interne vacant."
+    "url": "https://intramuros.org",
+    "what": "Appli citoyenne : journal local, agenda culturel, sondages, démarches en ligne",
+    "place": "Challenger revendiquant n°1 mairies-EPCI, plus complet vs plus simple",
+    "size": "8000 communes, 200 EPCI, 400.000 actualités, 250.000 événements, +1 million utilisateurs, 4,7 35 000 notes",
+    "audience": "Mairies + EPCI + habitants, angle EPCI fort",
+    "channels": "LinkedIn 1-2x/semaine, Facebook communes, Instagram agenda, stores",
+    "publishes": "Nouvelle commune onboardée, sondage, top événements week-end, notes store",
+    "strength": "Complétude info-culture-services, échelle EPCI, UX notée",
+    "opening": "Espace secrétaire interne, entraide inter-mairies, formation, pilotage élus.",
+    "strategy": {
+     "rhythm": "Annonces onboarding régulières",
+     "formats": "Captures app, cartes communes, visuels événements",
+     "subjects": "Vie locale, agenda culturel, sondages, démarches en ligne",
+     "tone": "Pratique-essentiel : L'essentiel de votre territoire",
+     "voices": "Marque centrale",
+     "callsToAction": "Télécharger app, démo collectivité",
+     "lesson": "Exhaustivité info-culture-services + note store portent l'adoption."
+    }
    },
    {
-    "name": "AMRF",
-    "url": "amrf.fr",
-    "what": "Représentation, info, entraide, label, congrès, pas de logiciel.",
-    "place": "association incontournable rural",
-    "size": "10 000-12 000 maires, 85 associations départementales, créée 1971",
-    "audience": "Maires ruraux moins de 3 500 hab., puis secrétaires via maires",
-    "channels": "LinkedIn, X, YouTube, newsletter, congrès",
-    "publishes": "Plaidoyers, Grand Atelier transition avec VALOREM, 2 400 démissions depuis 2020",
-    "strength": "Confiance, capillarité départementale, accès élus",
-    "opening": "N'outille pas quotidien : pas de SaaS, pas de formation secrétaire, pas de templates arrêtés."
+    "name": "AMRF - Association des Maires Ruraux",
+    "url": "https://amrf.fr",
+    "what": "Représentation, mutualisation, info maires ruraux, journal 36 000 Communes",
+    "place": "Représentative rurale, 89 associations départementales",
+    "size": "30772 communes rurales, 1 Français sur 3 en rural, 89 départements",
+    "audience": "Maires ruraux d'abord, secrétaires via maires",
+    "channels": "LinkedIn + X + Facebook quasi-quotidien, newsletter, YouTube congrès, mensuel 36 000 Communes",
+    "publishes": "Portraits maires, communiqués, live events, 36 000 Communes octobre 2026 : 4 présidents AMR, télé-expertise Montclar 126 hab.",
+    "strength": "Plaidoyer, appartenance, preuve terrain réactive",
+    "opening": "Outils opérationnels SaaS et formation quotidienne secrétaire.",
+    "strategy": {
+     "rhythm": "Quasi-quotidien + mensuel print",
+     "formats": "Portraits, communiqués, live",
+     "subjects": "Ruralité chance, école, santé, mutualisation",
+     "tone": "Militant-dignité, pairs : Des maires au service des maires",
+     "voices": "Présidents départementaux + national, maires témoins",
+     "callsToAction": "Adhérer, congrès, pétition, lire magazine",
+     "lesson": "Appartenance + preuve terrain défendent la ruralité."
+    }
    },
    {
     "name": "La Gazette des Communes",
-    "url": "lagazettedescommunes.com",
-    "what": "Abonnements, pub, events, emploi, Club, formations via Infopro Digital.",
-    "place": "média leader",
-    "size": "672 000 contacts, 316K visites mensuelles, diffusion 37 533",
-    "audience": "DGS, cadres, secrétaires en veille, élus urbains et ruraux",
-    "channels": "LinkedIn, X 37 460 followers, site, newsletter quotidienne, Club Gazette",
-    "publishes": "Décryptages loi finances, statut secrétaire, management, budgets",
-    "strength": "Veille, employabilité, SEO, lu par 80-85% décideurs",
-    "opening": "Ne fait pas travailler ensemble, ne stocke pas projets, prescripteur potentiel."
+    "url": "https://lagazettedescommunes.com",
+    "what": "Actu + clubs + emploi + formation territoriaux, référence fonction publique territoriale",
+    "place": "Média leader administration territoriale",
+    "size": "672,000 contacts, 80-85% décideurs lecteurs, 37,533 diffusion, 386.9K visites",
+    "audience": "DGS, DGA, cadres, élus, secrétaires concours-carrière",
+    "channels": "LinkedIn quotidien multiple, X, newsletters matin, webinars clubs",
+    "publishes": "Décryptage budget, statut secrétaire, IA, attractivité, Q&A juristes, classements, offres emploi",
+    "strength": "Agenda-setting, décodage loi, employabilité",
+    "opening": "Workflow action, communauté pratique, outil non paywalled.",
+    "strategy": {
+     "rhythm": "Quotidien multiple + newsletters",
+     "formats": "Articles, live Q&A juristes, classements, offres emploi",
+     "subjects": "Budget, statut, concours-carrière, droit, IA",
+     "tone": "Journalistique-expert",
+     "voices": "Journalistes + experts + DGS témoins",
+     "callsToAction": "S'abonner, club, webinaire, stand salon",
+     "lesson": "Décryptage droit + employabilité fixent l'agenda."
+    }
    }
   ],
   "finds": [
    {
     "title": "Trophées du FIRM 2026 : à vous de voter",
-    "url": "https://www.linkedin.com/company/ideal-co",
+    "url": "https://www.linkedin.com/company/ideal-co/",
     "account": "idealCO",
     "platform": "LinkedIn",
-    "whatItIs": "Concours 6 projets exemplaires risques majeurs : Bordeaux Métropole, Strasbourg, SDIS 58, Gironde.",
-    "number": "13,714 followers, post vu 3d, 6 projets en lice",
-    "whyForYou": "Copie le vote public + fiche projet lauréat pour créer un modèle projet partageable dans Mairie360 (demo).",
-    "format": "post carrousel + vote public"
+    "whatItIs": "Vote Prix du Public 6 projets risques majeurs, lauréats 18 novembre Stade de la Meinau Strasbourg.",
+    "number": "13,714 followers, vu 3d, publié 2026-10-30T09:04:27.951Z",
+    "whyForYou": "Copiez le vote public + forum pour animer l'entraide projets entre mairies dans Mairie360 (demo).",
+    "format": "post événement vote"
    },
    {
-    "title": "L'eau n'est plus un sujet technique, c'est un sujet politique",
-    "url": "https://www.linkedin.com/company/ideal-co",
-    "account": "idealCO",
+    "title": "Assemblées générales des maires ruraux Hautes-Alpes et Meurthe-et-Moselle",
+    "url": "https://www.linkedin.com/company/panneaupocket/",
+    "account": "PanneauPocket",
     "platform": "LinkedIn",
-    "whatItIs": "Tribune Thierry Burlot : moins de 1% réseaux renouvelés, un litre sur cinq perdu, DERU-2.",
-    "number": "13,714 followers, post 4d",
-    "whyForYou": "Reprends le format tribune + event pour animer un workflow eau avec échéance dans Mairie360 (demo).",
-    "format": "tribune + annonce event"
+    "whatItIs": "Compte-rendu AG maires ruraux Savines-le-Lac et Dommartin-sous-Amance, renouvellement partenariat AMR54.",
+    "number": "1,292 followers, 15 500 collectivités, 83 % foyers, 79 communes soit 45 % Hautes-Alpes",
+    "whyForYou": "Copiez le reportage terrain avec chiffre départemental pour prouver l'adoption de Mairie360 (demo).",
+    "format": "post terrain + carrousel"
    },
    {
-    "title": "Retour 36e congrès du CUSMA à Troyes",
-    "url": "https://www.linkedin.com/company/berger-levrault",
+    "title": "illiwap voyage au Salon des Maires de l'Ardèche + stations liées",
+    "url": "https://www.linkedin.com/company/illiwap/",
+    "account": "illiwap",
+    "platform": "LinkedIn",
+    "whatItIs": "Salon des Maires de l'Ardèche au Pouzin, stations liées assos-écoles-bibliothèques, rapport d'envoi temps réel.",
+    "number": "3,295 followers, vu 1w, plus de 3 000 collectivités",
+    "whyForYou": "Copiez les espaces dédiés assos-écoles et le rapport d'envoi pour la messagerie de Mairie360 (demo).",
+    "format": "post événement + conseil produit"
+   },
+   {
+    "title": "L'IA transforme le quotidien des collectivités",
+    "url": "https://www.linkedin.com/company/groupe-jvs/",
+    "account": "Groupe JVS",
+    "platform": "LinkedIn",
+    "whatItIs": "IA intégrée pour demandes citoyennes, communication et support client, 4 filiales dont PanneauPocket.",
+    "number": "3,936 followers, vu 1mo, plus de 15 000 clients, plus de 40 ans",
+    "whyForYou": "Ajoutez un gain de temps IA concret demandes-communication comme JVS dans Mairie360 (demo).",
+    "format": "article / mise à jour produit"
+   },
+   {
+    "title": "Retour 36e congrès du Cusma à Troyes",
+    "url": "https://www.linkedin.com/company/berger-levrault/",
     "account": "Berger-Levrault",
     "platform": "LinkedIn",
-    "whatItIs": "176 membres CUSMA, 70 grandes collectivités, 3 jours RH, Finances, ATAL, IA, témoignage Grigny WeSedit RH.",
-    "number": "35,565 followers, post 1mo",
-    "whyForYou": "Reproduis le retour client vidéo 1 min + chiffres pour prouver l'usage quotidien de Mairie360 (demo).",
-    "format": "album retour congrès + témoignage vidéo"
+    "whatItIs": "Témoignage Florence CANESTRELLI sur SaaS WeSedit rh, éditeur international France.",
+    "number": "35,569 followers, 176 membres CUSMA, 70 grandes collectivités, 36e édition Troyes",
+    "whyForYou": "Copiez le témoignage client filmé en congrès pour crédibiliser les workflows RH de Mairie360 (demo).",
+    "format": "récap événement + témoignage"
    },
    {
-    "title": "AG maires ruraux Hautes-Alpes et Meurthe-et-Moselle",
-    "url": "https://www.linkedin.com/company/panneaupocket",
-    "account": "PanneauPocket",
+    "title": "Budget participatif : déposer sans créer de compte",
+    "url": "https://www.linkedin.com/company/cap-collectif/",
+    "account": "Cap Collectif",
     "platform": "LinkedIn",
-    "whatItIs": "AMR05 Savines-le-Lac 79 communes 45% territoire, AMR54 Dommartin-sous-Amance 141 communes.",
-    "number": "1,292 followers, post 9h, 15 500 collectivités, 83% foyers",
-    "whyForYou": "Cible les AG AMR départementales pour démo terrain commune 1000-3000 hab. avec Mairie360 (demo).",
-    "format": "post terrain + photo AG"
+    "whatItIs": "Ville de Parthenay, dépôt d'idée sans inscription préalable sur plateforme participative.",
+    "number": "3,527 followers, vu 4d, plus de 280 budgets participatifs depuis 2015, Parthenay automne",
+    "whyForYou": "Supprimez l'inscription à l'entrée comme Cap Collectif pour lever le frein des élus dans Mairie360 (demo).",
+    "format": "cas d'usage / nouveauté produit"
    },
    {
-    "title": "36e Convention des Intercommunalités à Dunkerque",
-    "url": "https://www.linkedin.com/company/panneaupocket",
-    "account": "PanneauPocket",
+    "title": "L'essentiel d'octobre + entretien professionnel",
+    "url": "https://www.linkedin.com/company/cnfpt/",
+    "account": "CNFPT",
     "platform": "LinkedIn",
-    "whatItIs": "14,15,16 octobre derniers : piloter un territoire dans un monde instable, offre interco + communes.",
-    "number": "1,292 followers, post 6d, près de 2 000 participants, 350 EPCI accompagnés",
-    "whyForYou": "Décline l'offre interco + communes en pack cohérence intercommunale à tester dans Mairie360 (demo).",
-    "format": "retour convention + chiffres offre"
+    "whatItIs": "Newsletter octobre, actu juridique territoriale, Mag SGM, offre formation entretien professionnel.",
+    "number": "216,309 followers, vu 3d, n°84 Secrétaire général de mairie : Le Mag",
+    "whyForYou": "Branchez un mag SGM + module entretien pro court dans la formation de Mairie360 (demo).",
+    "format": "offre formation + éditorial"
    },
    {
-    "title": "Stations liées + rapport d'envoi temps réel",
-    "url": "https://www.linkedin.com/company/illiwap",
-    "account": "illiwap",
-    "platform": "LinkedIn",
-    "whatItIs": "Espaces dédiés assos, écoles, bibliothèques ; rapport notifications reçues, ouvertes ou non + conseil multicanal.",
-    "number": "3,295 followers, posts 1w à 2w, plus de 3 000 collectivités, plus de 1 500 000 utilisateurs",
-    "whyForYou": "Ajoute espaces par association/école et accusé d'ouverture aux messages dans Mairie360 (demo).",
-    "format": "carrousel pédagogique + démo fonctionnelle"
+    "title": "Les dotations de soutien à l'investissement en 2025",
+    "url": "https://www.collectivites-locales.gouv.fr/actualites/les-dotations-de-soutien-linvestissement-des-collectivites-territoriales-en-2025",
+    "account": "Collectivités Locales / DGCL",
+    "platform": "Site officiel",
+    "whatItIs": "Bilan DETR / DSIL / DSID / DPV publié par la DGCL.",
+    "number": "plus de 20 000 projets, près de 16 000 collectivités, plus de 1,7 Mds€ en 2025, publié 22 octobre 2026",
+    "whyForYou": "Transformez ce bilan DETR-DSIL en checklist financement projet dans Mairie360 (demo).",
+    "format": "article bilan officiel"
    },
    {
-    "title": "Rendez-vous salons élus Ardèche et Paris",
-    "url": "https://www.linkedin.com/company/illiwap",
-    "account": "illiwap",
-    "platform": "LinkedIn",
-    "whatItIs": "22 octobre Congrès maires Ardèche au Pouzin passé + 24 au 26 novembre Salon des Maires Paris.",
-    "number": "3,295 followers",
-    "whyForYou": "Aligne le calendrier Mairie360 (demo) sur ces 2 dates pour capter secrétaires et élus sur stand.",
-    "format": "annonce event"
+    "title": "Situation mensuelle comptable au 30 septembre 2026",
+    "url": "https://www.collectivites-locales.gouv.fr/actualites/situation-mensuelle-comptable-des-collectivites-locales-au-30-septembre-2026",
+    "account": "Collectivités Locales / DGCL",
+    "platform": "Site officiel",
+    "whatItIs": "Recettes réelles de fonctionnement en hausse, tableau comptable mensuel.",
+    "number": "RRF +3,4 % soit +5,5 Md€, publié 26 octobre 2026, situation au 30 septembre 2026",
+    "whyForYou": "Affichez ce +3,4 % RRF en vignette budget pour cadrer les arbitrages dans Mairie360 (demo).",
+    "format": "article statistiques officiel"
    },
    {
-    "title": "Organiser un bureau de vote 2026 : 5 incontournables",
-    "url": "https://www.jvs-mairistem.fr/actualites/elections-guide-complet-organiser-votre-bureau-de-vote/",
-    "account": "Mairistem",
-    "platform": "Blog",
-    "whatItIs": "Guide élections municipales 2026, circulaire 12 février 2026 procurations, panachage interdit moins 1 000 hab.",
-    "number": "plus de 15 000 collectivités, communes de moins de 1 000 habitants",
-    "whyForYou": "Transforme la checklist bureau de vote en workflow assigné avec mémo scrutateurs dans Mairie360 (demo).",
-    "format": "article guide + checklist téléchargeable"
-   },
-   {
-    "title": "Messagerie personnelle vs professionnelle en collectivité",
-    "url": "https://www.jvs-mairistem.fr/actualites/messagerie-personnelle-professionnelle-collectivite/",
-    "account": "Mairistem",
-    "platform": "Blog",
-    "whatItIs": "Gmail, Orange, Outlook, Yahoo encore quotidien petites communes ; solution prenom.nom@jolieville.fr, hébergement France.",
-    "number": "plus de 2 500 violations au 1er trimestre 2025 +56%, NIS2",
-    "whyForYou": "Crée messagerie nominative + agendas et carnets partagés sécurisés par défaut dans Mairie360 (demo).",
-    "format": "comparatif article + CTA produit"
-   },
-   {
-    "title": "Former secrétaires de mairie : pénurie et retraites",
-    "url": "https://www.jvs-mairistem.fr/actualites/former-secretaires-mairie-communes/",
-    "account": "Mairistem",
-    "platform": "Blog",
-    "whatItIs": "Finances, RH, état civil, listes électorales, compta, télétransmissions, Zen'Pass chat + communauté.",
-    "number": "17 heures fondamentaux + 61 heures logicielle, présentiel + Teams 3h",
-    "whyForYou": "Packe un parcours 17h métier + aide en ligne pour rendre un secrétaire opérationnel dans Mairie360 (demo).",
-    "format": "page formation / article levier RH"
-   },
-   {
-    "title": "Secrétaires généraux de mairie : ressources clés Municipales 2026",
+    "title": "Town Hall General Secretaries: préparer les municipales 2026",
     "url": "https://www.youtube.com/watch?v=hWn2f5J24kg",
     "account": "Service Public / Vie Publique",
     "platform": "YouTube",
-    "whatItIs": "Inscription, procurations, vérification inscription, bureau, page Vie Publique dédiée municipales 2026.",
-    "number": "sans compteur public",
-    "whyForYou": "Intègre ces chapitres en modules formation courts avec liens officiels dans Mairie360 (demo).",
-    "format": "webinar replay vidéo chapitrée 0:00-23:12"
+    "whatItIs": "Replay pour secrétaires de mairie, accès info élections municipales 2026.",
+    "number": "Webinaire secrétaires généraux, chapitres inscription procuration bureau de vote",
+    "whyForYou": "Découpez ce replay élections en fiches workflow pas-à-pas dans Mairie360 (demo).",
+    "format": "vidéo / replay webinaire"
    },
    {
-    "title": "Finances locales : quoi de neuf en septembre 2026",
-    "url": "https://www.youtube.com/watch?v=KVWCsXidiw8",
-    "account": "Avenir Collectivités",
-    "platform": "YouTube",
-    "whatItIs": "DGF, DETR, DSIL, fiscalité, M57, CFU, FCTVA, trésorerie pour élus, DGS, secrétaires.",
-    "number": "pas de likes scrapés",
-    "whyForYou": "Propose un décryptage mensuel 20 min DGF/DETR/M57 réutilisable en formation dans Mairie360 (demo).",
-    "format": "live 21 min + newsletter"
+    "title": "Q ENERGY France and AMRF sign agreement",
+    "url": "https://energynews.pro/en/q-energy-france-and-amrf-sign-agreement-to-accelerate-rural-electrification/",
+    "account": "energynews.pro / AMRF",
+    "platform": "Presse",
+    "whatItIs": "Partenariat Q ENERGY France et Association des Maires Ruraux pour électrification rurale.",
+    "number": "Publié 2025-12-01, Grand Atelier des Maires Ruraux pour la Transition Écologique",
+    "whyForYou": "Proposez un modèle projet transition rurale prêt à dupliquer dans Mairie360 (demo).",
+    "format": "article presse"
+   },
+   {
+    "title": "PanneauPocket modèles de communication municipale",
+    "url": "https://www.instagram.com/panneaupocket/",
+    "account": "PanneauPocket",
+    "platform": "Instagram",
+    "whatItIs": "Gabarits de proximité que les mairies republient pour alerter et informer.",
+    "number": "875 followers, 256 following",
+    "whyForYou": "Fournissez des gabarits prêts à poster comme PanneauPocket dans Mairie360 (demo).",
+    "format": "profil + gabarits"
    }
   ],
   "events": [
    {
-    "name": "Salon des Maires et des Collectivités Locales",
-    "when": "24-26 novembre 2026, Paris Expo Porte de Versailles",
-    "why": "10 000 participants attendus, repérage logiciels Berger-Levrault / JVS / IntraMuros / idealCO.",
-    "post": "Publier live stand + checklist projet/budget/agenda partagé pendant le salon 24-26 nov."
+    "name": "Trophées du FIRM 2026",
+    "when": "18 novembre 2026, Stade de la Meinau Strasbourg, vote ouvert fin octobre 2026",
+    "why": "6 projets en compétition Prix du Public, engagement vote idéal pour petite mairie.",
+    "post": "Publier pendant vote début novembre : sondage Mairie360 « quelle initiative résilience copier en mairie ? » + relais lauréat 18 novembre."
    },
    {
-    "name": "Trophées du FIRM 2026 - Prix du Public",
-    "when": "Lauréats annoncés mercredi 18 novembre au stade de la Meinau",
-    "why": "6 projets en lice face aux risques majeurs : Bordeaux Métropole, Strasbourg, SDIS 58, Gironde.",
-    "post": "Poster vote puis analyse lauréats : fiche projet duplicable dans Mairie360 le 19 nov."
+    "name": "Salon des Maires et Congrès des Maires Paris",
+    "when": "24-26 novembre 2026, Porte de Versailles Paris",
+    "why": "Achats fournisseurs, élus et décideurs, pic LinkedIn et stands.",
+    "post": "Publier 10-26 novembre : live stand, démo 3 min projets-calendrier-messagerie, capter secrétaires et maires ruraux."
    },
    {
-    "name": "28e Carrefour eau",
-    "when": "27 et 28 janvier 2027 à Rennes",
-    "why": "Raison d'être du Carrefour : moins de 1% réseaux renouvelés, DERU-2 micropolluants.",
-    "post": "Poster dossier eau : 1% réseaux renouvelés, 1 litre sur 5 perdu, modèle plan d'action fin janvier."
+    "name": "Vœux du maire et aux agents",
+    "when": "Janvier 2027 partout en France",
+    "why": "Pic communication locale, agenda et info, bilan post-municipales 2026.",
+    "post": "Publier mi-décembre à mi-janvier : kit modèles cérémonie, bilan, agenda partagé et message habitants."
    },
    {
-    "name": "Vote budget primitif 2027",
-    "when": "Butoir 15 avril 2027, transmis au représentant de l'Etat dans 15 jours",
-    "why": "Premier acte obligatoire du cycle budgétaire, pic recherche secrétaires + DGS + trésorerie.",
-    "post": "Publier workflow budget + modèle délibération M57 et calendrier partagé en février-mars."
+    "name": "Vote Budget Primitif 2027",
+    "when": "Jusqu'au 15 avril 2027",
+    "why": "Stress secrétaire-DGS, PPI et subventions, moment workflows + formation.",
+    "post": "Publier février à début avril : kit workflow PPI, DETR/DSIL, checklist vote secrétaire-DGS."
    },
    {
-    "name": "Salon de l'AMIF",
-    "when": "1-2 juin 2027, Paris Expo Porte de Versailles, Hall 6",
-    "why": "Second pic annuel après SMCL, ensemble des élus franciliens et partenaires.",
-    "post": "Préparer dès mai : démo espace projet inter-mairies + retour SMCL pour élus franciliens."
+    "name": "Salons départementaux des maires + AMIF",
+    "when": "Janvier-mai 2027, AMIF 1-2 juin 2027",
+    "why": "Sourcing proximité, rencontres pairs, cascade locale du SMCL.",
+    "post": "Publier mars-mai : tournée terrain, témoignage secrétaire 2h gagnées, photos stand style PanneauPocket."
    }
   ],
   "sources": [
-   "https://www.linkedin.com/company/ideal-co",
-   "https://www.linkedin.com/company/berger-levrault",
-   "https://www.linkedin.com/company/panneaupocket",
-   "https://www.linkedin.com/company/illiwap",
-   "https://www.jvs-mairistem.fr/",
+   "https://www.linkedin.com/company/ideal-co/",
+   "https://www.linkedin.com/company/panneaupocket/",
+   "https://www.linkedin.com/company/illiwap/",
+   "https://www.linkedin.com/company/groupe-jvs/",
+   "https://www.linkedin.com/company/berger-levrault/",
+   "https://www.linkedin.com/company/cap-collectif/",
+   "https://www.linkedin.com/company/cnfpt/",
+   "https://www.collectivites-locales.gouv.fr/",
    "https://www.youtube.com/watch?v=hWn2f5J24kg",
-   "https://www.youtube.com/watch?v=KVWCsXidiw8"
+   "https://energynews.pro/en/q-energy-france-and-amrf-sign-agreement-to-accelerate-rural-electrification/",
+   "https://www.instagram.com/panneaupocket/",
+   "https://www.jvs-mairistem.fr/"
   ]
  },
  "audit": {
-  "summary": "Petites mairies LinkedIn: docs natifs #1, multi-image #2, video longue + newsletter formation, zero lien externe.",
+  "summary": "For SGM/DGS/elus <3,500 hab: PDF carousels and multi-photo win on LinkedIn, personal profiles beat Pages, saves and replies drive reach.",
   "whatWorks": [
    {
-    "format": "Native document / PDF carousel",
-    "why": "Free value saveable: checklist framework fiche, 6-8 slides",
-    "example": "Check-list conseil sans stress / Budget M57 7 slides / Hrabren Lindfors model",
+    "format": "Native PDF carousel fiche 5-8 slides",
+    "why": "Saveable printable, saves weigh 5x like",
+    "example": "idealCO PDF 5 erreurs budget / Absences secretaire",
     "strength": 5,
     "figure": {
-     "what": "engagement rate by impressions",
+     "what": "engagement rate Company Pages",
      "value": 7,
      "unit": "%",
-     "source": "Socialinsider 2.45M posts 26k pages",
+     "source": "",
      "period": "2025"
     },
-    "exampleUrl": "https://www.linkedin.com/posts/marketingharry_content-creation-is-changing-activity-7329104788204220416-1JlR",
-    "exampleFigure": "346 comments"
+    "exampleUrl": "http://www.linkedin.com/company/ideal-co",
+    "exampleFigure": "150-400 reactions + 30-80 comments"
    },
    {
-    "format": "Multi-image post (album)",
-    "why": "Best reach <50k + likes, 2-4 photos natives terrain",
-    "example": "Avant/après travaux, inauguration, planning cantine / Silja Engelstoft visual",
+    "format": "Multi-photo retour experience commune",
+    "why": "Peers tag other mairies, proof over pitch",
+    "example": "Gazette 3-4 photos before/after maire/secretaire",
     "strength": 4,
     "figure": {
-     "what": "engagement rate by impressions",
+     "what": "engagement rate multi-image",
      "value": 6.45,
      "unit": "%",
-     "source": "Socialinsider 2.45M posts 26k pages",
+     "source": "",
      "period": "2025"
     },
-    "exampleUrl": "https://www.linkedin.com/posts/siljaengelstoft_linkedin-can-be-overwhelming-right-eliminate-activity-7327932885502455808-zc5x",
-    "exampleFigure": ""
+    "exampleUrl": "https://www.linkedin.com/company/la-gazette-des-communes/",
+    "exampleFigure": "200-600 reactions"
    },
    {
-    "format": "Native video 90s-3min+ teaching",
-    "why": "Face-cam captioned demo, long wins despite -36% views",
-    "example": "2'30 écran demande au parapheur / Alex B. Sheridan hooks first second",
-    "strength": 3,
-    "figure": {
-     "what": "reach vs average video for 3min+",
-     "value": 1.21,
-     "unit": "x",
-     "source": "AuthoredUp 36,946 videos",
-     "period": "Oct 2025-Mar 2026"
-    },
-    "exampleUrl": "https://www.linkedin.com/posts/alexbsheridan_most-recruitment-firms-are-active-on-linkedin-activity-7326220929062084608-qXb8",
-    "exampleFigure": ""
-   },
-   {
-    "format": "Text + personal story / témoignage",
-    "why": "Founder-led long, reply to comments +30% reach",
-    "example": "Maire 800 hab accueil 1 secrétaire 80% / Nick Broekema text-only",
-    "strength": 3,
-    "figure": {
-     "what": "reach for 20+ sentences vs average",
-     "value": 1.14,
-     "unit": "x",
-     "source": "AuthoredUp personal profiles",
-     "period": "Mar 2025-Feb 2026"
-    },
-    "exampleUrl": "",
-    "exampleFigure": ""
-   },
-   {
-    "format": "LinkedIn Newsletter hebdo",
-    "why": "Bypass algorithm via email push, repurpose blog fiches",
-    "example": "La Minute Mairie 3 infos 2 modèles 1 échéance / Kate Sotsenko Good Busy",
+    "format": "Poll + carousel debrief",
+    "why": "Polls give reach, carousel gives saves",
+    "example": "Qui gere calendrier salle des fetes? Cahier/Excel/Outil/Tete",
     "strength": 4,
     "figure": {
-     "what": "median open rate newsletters",
-     "value": 49.3,
+     "what": "more reach vs average posts",
+     "value": 206.33,
      "unit": "%",
-     "source": "CloselyHQ compilation 2025 data",
+     "source": "",
+     "period": "Jan 2023-Jan 2025"
+    },
+    "exampleUrl": "",
+    "exampleFigure": ""
+   },
+   {
+    "format": "Native short video <90s temoignage",
+    "why": "Lower reach than carousel, higher comments DMs",
+    "example": "Une journee avec Martine, 60s face-cam mairie",
+    "strength": 3,
+    "figure": {
+     "what": "engagement rate video",
+     "value": 6,
+     "unit": "%",
+     "source": "",
      "period": "2025"
     },
     "exampleUrl": "",
-    "exampleFigure": "18,000 subscribers in 20 editions"
+    "exampleFigure": ""
+   },
+   {
+    "format": "Link post utile with teaser",
+    "why": "Useful links get clicks, put value in post",
+    "example": "Modele PV conseil + ordre du jour, 3 bullets + visual",
+    "strength": 3,
+    "figure": {
+     "what": "more interactions vs no-link",
+     "value": 13.57,
+     "unit": "%",
+     "source": "",
+     "period": "Jan 2023-Jan 2025"
+    },
+    "exampleUrl": "https://www.idealco.fr/campagne/?campaign=e-29809-a6eb5880&utm_campaign=formation_29809&utm_source=partnerLKD",
+    "exampleFigure": ""
    }
   ],
   "hooks": [
-   "Check-list conseil municipal sans stress: convocation > délibération > PV",
-   "Budget M57 en 7 slides: ce qui change pour <3 500 hab.",
-   "Municipales 2026 : votre calendrier est-il prêt ? [modèle]",
-   "Secrétaire 800 hab.: c'est quoi VOTRE mardi type ?",
-   "Qui prépare encore le PV le dimanche soir? [moi / DGS / élu]"
+   "Story opener mid-scene - 2.60% median best",
+   "Hook <=40 chars - 25% higher than 200+ chars",
+   "First 140 mobile / 210 desktop chars decide",
+   "End question lift only 0.07pp - use stanced question",
+   "Reply within hour - 2.1x total engagement"
   ],
   "topics": [
-   "Pénurie + revalorisation loi 2023-1380 catégorie B",
-   "Municipales 2026 parité <1000 hab. passation",
-   "Finances + interco mutualisation",
-   "Workflows convocation PV parapheur calendrier partagé",
-   "Formation CET CNFPT visio",
-   "État-civil 5 erreurs dossier"
+   "Municipales 15 et 22 mars 2026 - passation parite installation",
+   "Penurie SGM - one-third vacant in 5 years",
+   "Finances locales - budget arbitrage dotations",
+   "Maires demission - 2,400 since 2020, RACI maire/SGM",
+   "Quotidien technique - etat-civil arretes cimetiere elections",
+   " mutualisation interim - seule en mairie story"
   ],
   "avoid": [
-   "Link-only posts: 2.50% Q3 2026 least performing",
-   "Reshare alone: 0.29x reach no personal take",
-   "Poll alone without J+7 carousel follow-up",
-   "0-30s video / YouTube link, no captions"
+   "Text-only Page posts - fewest interactions",
+   "Raw link in body - lowest median engagement",
+   "Lead with product demo - thought leadership wins 3:1",
+   "\"I'm excited to announce\" / \"Hot take:\" / \"Comment YES\""
   ],
   "misses": [
    {
-    "format": "Poll alone",
-    "why": "1.78x reach but only 0.37x engagement, 4.8x gap",
-    "example": "Vote only, no comments: 340 impressions 1-5K vs doc 525"
+    "format": "Text-only Page post",
+    "why": "Performed worse across all metrics",
+    "example": "Page text without visual - fewest interactions"
    },
    {
-    "format": "Link-only post",
-    "why": "2.50% Q3 2026 least performing, vs 3.40% Q2",
-    "example": "Drop blog URL without native teaser, link in post"
+    "format": "External video link post",
+    "why": "Takes off-platform, reduced distribution",
+    "example": "YouTube link instead of native upload"
    },
    {
-    "format": "Reshare alone",
-    "why": "0.29x reach and 0.22x engagement",
-    "example": "Founder reposts page post with no own text"
-   },
-   {
-    "format": "Short video 0-30s",
-    "why": "0.96x reach 0.91x engagement worst, views -36% YoY",
-    "example": "30s uncaptioned clip vs 2'30 captioned demo"
+    "format": "Generic question hook",
+    "why": "Question hooks dead last at 2.16%",
+    "example": "\"What do you think?\" with no stance"
    }
   ],
   "benchmarks": [],
   "sources": [
-   "http://socialinsider.io/social-media-benchmarks/linkedin",
-   "http://authoredup.com/blog/best-performing-content-on-linkedin",
-   "https://buffer.com/resources/state-of-social-media-engagement-2026/",
-   "https://blog.closelyhq.com/linkedin-newsletter-vs-articles-which-drives-more-leads/",
-   "https://www.socialinsider.io/blog/linkedin-benchmarks/",
-   "https://brusselssignal.eu/2025/06/crisis-in-local-government-almost-2200-french-mayors-resign-since-2020/"
+   "https://www.searchenginejournal.com/linkedin-study-finds-adding-links-boosts-engagement-by-13/542977/",
+   "https://metricool.com/linkedin-trends-study/",
+   "https://www.socialinsider.io/social-media-benchmarks/linkedin",
+   "https://buffer.com/resources/how-often-to-post-on-linkedin/",
+   "https://nealschaffer.com/linkedin-post/",
+   "https://blog.hootsuite.com/government-social-media-benchmarks/"
   ]
  },
  "account": {
-  "summary": "Données trop fines pour départager les formats : 15 posts récents entre 3 et 17 d’engagement, moyennes par format entre 3 et 9. On ne peut pas classer les formats. Ce qu’on peut lire : 2 posts concrets sur la dispersion de l’information sortent à 17 et 12, les appels à bêta testeurs et les slogans abstraits tombent à 3-4, et le silence domine avec quasiment aucun commentaire.",
+  "summary": "32 posts du 2025-10-27 au 2026-10-30 à 2,6 par mois avec 0 commentaire : avec une poignée de likes chacun, on ne peut pas départager les formats, quelques likes d’écart c’est du bruit. Ce qui se lit : rythme coupé par 4 silences dont 128 jours du 2026-05-26 au 2026-10-01, dérive plate de 6,6 à 5,4 puis 3,6 likes, meilleur à 17 Une information est créée dans un service municipal... et plus faible à 3 Mairie360 recherche ses premiers bêta testeurs : une plateforme tout-en-un pensée pour les agents municipaux. Le concret de mairie accroche, le discours plateforme décroche.",
   "strengths": [
-   "Une scène de mairie reconnaissable fait réagir : le parcours d’une information qui se disperse parle aux secrétaires de mairie.",
-   "Les posts qui finissent par une vraie question de terrain créent un début d’échange.",
-   "Un rythme de publication tenu sur LinkedIn, avec des situations concrètes (réunion, fête communale, mails) et le mot « mairie ».",
-   "Un ton collègue, sans jargon vendeur, qui correspond à l’attente des petites mairies."
+   "Deux scènes concrètes qui sortent du lot : dispersion de l’information et e-mail contre fichier partagé.",
+   "Thèmes du quotidien de mairie, réunion, fête communale, fils de mails, bien alignés avec secrétaires, DGS et élus.",
+   "Ton déjà collégial, vouvoiement et phrases simples, proche de la voix demandée.",
+   "Retour récent il y a 3 jours après le long silence, fenêtre pour réinstaller un rythme."
   ],
   "gaps": [
-   "Engagement très faible partout : moyennes par format à 9, 8, 7, 6, 5, 4, 3, sans commentaires, impossible de départager les formats.",
-   "Aucune preuve visible ni visage : pas de démo écran, pas de témoignage d’agent, pas de photo de terrain de mairie.",
-   "Appels à bêta testeurs répétés sans valeur donnée en échange, jusqu’à 3 d’engagement.",
-   "Posts slogans trop généraux sans scène vécue ni suite concrète à sauvegarder."
+   "Rythme haché : 2,6 posts par mois avec 24, 36, 38 et 128 jours de silence, le dernier du 2026-05-26 au 2026-10-01.",
+   "0 commentaire sur 32 posts : l’audience secrétaires, DGS et élus ne répond pas, les questions ouvertes ne déclenchent rien.",
+   "Dérive douce : 6,6 likes sur les 16 premiers, 5,4 sur les 16 suivants, 3,6 sur les 5 derniers, sans écart permettant de classer les formats.",
+   "Annonces bêta à 3, 6 et 8 qui parlent plateforme tout-en-un au lieu de montrer une scène utile de mairie."
   ],
   "opportunities": [
-   "Carrousel document natif 6-8 slides à sauvegarder : check-list, fiche réflexe, modèle convocation > délibération > PV.",
-   "Vidéo native 90s-3min face-cam + capture écran : montrer en 2 minutes comment retrouver la bonne version sans ouvrir 15 fils de mails.",
-   "Récit texte + témoignage d’agent de mairie : raconter un mardi type, répondre aux commentaires pour gagner en portée.",
-   "Lettre LinkedIn hebdo type La Minute Mairie : 3 infos, 2 modèles, 1 échéance, pour sortir de l’algorithme par e-mail."
+   "Fiche carrousel PDF 5-8 slides enregistrable type 5 erreurs budget : dans le métier 7% d’engagement, les saves valent 5x un like.",
+   "Sondage Qui gère le calendrier de la salle des fêtes ? Cahier / Excel / Outil / De tête + débrief carrousel : +206,33% de reach vs post moyen.",
+   "Retour d’expérience multi-photos anonymisé sans nommer la mairie sans consentement écrit : 6,45% d’engagement, les pairs taguent d’autres mairies.",
+   "Lien utile avec teaser type modèle PV et ordre du jour + vidéo <90s face-cam Une journée avec Martine : +13,57% d’interactions et plus de commentaires et messages."
   ],
   "winners": [
    {
     "text": "Une information est créée dans un service municipal. Quelques échanges plus tard, elle existe dans plusieurs outils, sous plusieurs versions, auprès de plusieurs personnes. Qui dispose de la dernière version ? Quels services ont été informés ? Ce carrousel raconte ce parcours, de la création de l’information à sa dispersion, puis à son regroupement dans un espace partagé. Dans votre collectivité, à quel moment l’information devient-elle la plus difficile à suivre ?",
     "format": "carousel",
     "engagement": 17,
-    "note": "Gagné car scène vécue ultra-précise + question directe qui fait se reconnaître."
+    "note": "Gagné par le récit concret de la dispersion : chacun en mairie s’y reconnaît."
    },
    {
     "text": "Un e-mail. Un fichier partagé. Un message à l’équipe… et maintenant, où est la bonne information ?",
     "format": "carousel",
     "engagement": 12,
-    "note": "Gagné car phrase courte de vécu de mairie que chacun a déjà vécue."
+    "note": "Gagné par le hook très court et visuel qui résume le désordre quotidien."
    },
    {
     "text": "Et si l’organisation d’un événement communal ne nécessitait pas une multitude de fils de mails ? Entre les élus, les services techniques, la communication, les associations et les prestataires, une organisation simple au départ se transforme vite en une succession d’e-mails, de pièces jointes et de versions différentes. Mairie360 : un espace commun pour suivre les informations, les documents, les tâches et les échéances d’un même projet. Moins de fils de mails. Plus de coordination.",
     "format": "opinion",
     "engagement": 9,
-    "note": "Gagné car problème concret fête communale + promesse simple moins de fils de mails."
+    "note": "Gagné par la scène d’organisation d’événement avec élus, services et assos."
    }
   ],
   "losers": [
@@ -417,48 +492,90 @@
     "text": "Mairie360 recherche ses premiers bêta testeurs : une plateforme tout-en-un pensée pour les agents municipaux",
     "format": "announcement",
     "engagement": 3,
-    "note": "Flop car appel à tester centré sur Mairie360, sans bénéfice concret pour une secrétaire débordée."
+    "note": "Flop logique : promesse générique tout-en-un sans scène ni bénéfice concret pour une mairie."
    },
    {
     "text": "5 abonnements. 5 interfaces. 5 fois plus d’erreurs. La réalité de nombreuses mairies aujourd’hui",
     "format": "opinion",
     "engagement": 4,
-    "note": "Flop car slogan chiffré sans histoire ni exemple de mairie, rien à sauvegarder ni à répondre."
+    "note": "Constat trop slogan, sans exemple vécu ni solution à enregistrer."
    },
    {
-    "text": "Une réunion de coordination, une échéance administrative, la préparation d’un événement communal : chaque date s’inscrit dans une organisation collective. Avec ce carrousel, nous présentons le calendrier partagé Mairie360 à travers cinq situations du quotidien municipal : organiser une réunion, coordonner plusieurs services, préparer un événement communal, suivre les échéances, visualiser la semaine. Dans votre collectivité, quel est le principal défi pour partager les plannings entre services ?",
-    "format": "carousel",
+    "text": "Copier-coller. Ressaisir. Attendre une validation. Refaire le même rapport. Plusieurs heures perdues chaque semaine",
+    "format": "opinion",
     "engagement": 5,
-    "note": "Flop car descriptif de fonctionnalité calendrier trop long, sans tension ni scène à trancher."
+    "note": "Liste de douleurs juste mais sans histoire ni question tranchée, donc sans vote ni commentaire."
    }
   ],
   "fixes": [
    {
-    "problem": "Les 3 appels à bêta testeurs plafonnent à 6, 8 et 3 d’engagement, le dernier à 3 montre que demander sans donner ne marche pas.",
-    "fix": "Remplacer par 1 carrousel document natif LinkedIn par semaine (max 2 posts/semaine) : fiche à sauvegarder « Retrouver la bonne version en mairie en 7 réflexes », 7 slides concrètes, ton collègue, vouvoiement, dire « mairie ».",
-    "firstStep": "Premier post à écrire : slide 1 « Où est la bonne version du programme de la fête ? », slides 2-6 les 5 réflexes (nommer, dater, lieu unique, qui informe qui, archiver), slide 7 question « Vous, où cherchez-vous en premier : e-mails, dossier partagé, conversation d’équipe, dossier papier ? Dites A, B, C ou D en commentaire », à publier sur LinkedIn mardi 9h."
+    "problem": "Présence coupée : 2,6 posts par mois et 4 silences dont 128 jours du 2026-05-26 au 2026-10-01, ce qui casse toute habitude.",
+    "fix": "Un rendez-vous fixe LinkedIn 1 à 2 fois par semaine, mardi fiche utile enregistrable et jeudi scène de mairie, jamais plus de deux posts.",
+    "firstStep": "Publier mardi sur LinkedIn une fiche carrousel PDF 6 slides : slide 1 Un e-mail. Un fichier partagé. Un message à l’équipe… , slides 2-5 les 4 lieux où se perd le programme de la fête communale, slide 6 check-list où ranger la version à jour en mairie. Texte court 90 mots, vouvoiement, finir par Dites-nous où vous rangez la version à jour en mairie ."
    },
    {
-    "problem": "Les posts abstraits tombent à 4 et 5 d’engagement (« 5 abonnements... » à 4) : sans visage ni démo, personne ne s’arrête.",
-    "fix": "Publier 1 vidéo native 90s-2min face-cam + partage d’écran par quinzaine sur LinkedIn : montrer comment suivre infos, docs, tâches et échéances d’une fête communale sans 15 fils de mails.",
-    "firstStep": "Première vidéo à tourner : plan 1 vous face-cam « Vous préparez la fête, le programme change, où est la dernière version ? », plan 2 capture écran qui montre le regroupement en un espace, plan 3 conclusion « Dites-moi en commentaire où vous perdez le plus de temps : recherche de docs, double saisie, validation ? », sous-titres, 2 minutes max, sur LinkedIn."
+    "problem": "Silence total : 0 commentaire sur 32 posts, et les 9 posts avec question à 5,1 likes font moins que les 23 sans question à 6,3 likes.",
+    "fix": "Sondage natif + carrousel débrief la semaine suivante pour créer du reach et des votes au lieu d’une question ouverte qui ne donne aucun commentaire.",
+    "firstStep": "Publier jeudi un sondage natif LinkedIn : Quand le programme de la fête change, où cherchez-vous la dernière version en premier ? A E-mails / B Dossier partagé / C Conversation d’équipe / D Dossier papier. 7 jours après, publier le carrousel débrief avec les résultats et où ranger la bonne version."
    },
    {
-    "problem": "Silence total : même les posts à 9, 12 et 17 ne créent pas de fils de commentaires, donc pas de portée supplémentaire.",
-    "fix": "Installer un rituel de question terrain + réponse systématique : finir chaque post LinkedIn par un choix A/B/C/D ou « c’est quoi votre mardi type ? », répondre à chaque commentaire.",
-    "firstStep": "Premier post rituel : texte court « Secrétaire de mairie, c’est quoi votre mardi type entre état-civil, parapheur et accueil ? A — accueil non-stop B — dossiers C — réunions D — tout en même temps. Dites A, B, C ou D, je réponds à chacune », puis répondre à tous en 24h avec une phrase collègue."
+    "problem": "Essoufflement : 6,6 likes sur les 16 premiers contre 5,4 sur les 16 suivants et 3,6 sur les 5 derniers, longs à 3,2 likes sur 5.",
+    "fix": "Série Où est la bonne info ? en scènes courtes de mairie, multi-visuels anonymisés et vidéo <90s, dire mairie et montrer le quotidien état-civil, arrêtés, salle des fêtes.",
+    "firstStep": "Reprendre le meilleur post Une information est créée dans un service municipal. Quelques échanges plus tard, elle existe dans plusieurs outils, sous plusieurs versions, auprès de plusieurs personnes. Qui dispose de la dernière version ? Quels services ont été informés ? Ce carrousel raconte ce parcours, de la création de l’information à sa dispersion, puis à son regroupement dans un espace partagé. Dans votre collectivité, à quel moment l’information devient-elle la plus difficile à suivre ? en version courte 60 secondes face-cam sans nommer de mairie : une secrétaire raconte recherche de docs, double saisie, erreur silencieuse, sans prix ni commune nommée."
+   }
+  ],
+  "readings": [
+   {
+    "fact": "pace",
+    "meaning": "32 posts du 2025-10-27 au 2026-10-30 soit 2,6 par mois, dernier il y a 3 jours, avec 4 silences >21 jours dont 128 jours du 2026-05-26 au 2026-10-01 : volume suffisant pour juger le rythme, il est irrégulier et casse l’habitude.",
+    "action": "Passer à 1 à 2 posts LinkedIn par semaine à jours fixes, mardi et jeudi, sans rattrapage."
+   },
+   {
+    "fact": "trend",
+    "meaning": "6,6 likes en moyenne sur les 16 premiers, 5,4 sur les 16 suivants, 3,6 sur les 5 derniers : baisse réelle mais faible, à lire comme tassement plat avec 0 commentaire, pas comme preuve qu’un format gagne.",
+    "action": "Geler les textes longs pendant 4 semaines et ne publier que des scènes courtes de mairie."
+   },
+   {
+    "fact": "question",
+    "meaning": "9 posts avec question à 5,1 likes contre 23 sans question à 6,3 likes et 0 commentaire partout : groupes trop petits pour trancher, et le métier montre +0,07pt seulement pour la question de fin.",
+    "action": "Remplacer la question ouverte par un sondage natif tranché puis répondre en moins d’une heure, car la réponse rapide fait 2,1x d’engagement."
+   },
+   {
+    "fact": "length",
+    "meaning": "Court 7,4 likes sur 10, moyen 6 sur 17, long 3,2 sur 5 : groupes trop petits sauf le décrochage constant des longs, seul signal lisible.",
+    "action": "Limiter à 80-120 mots, phrases courtes, détail en carrousel PDF à enregistrer."
+   },
+   {
+    "fact": "weekday",
+    "meaning": "Jeudi 13 posts à 7,5 likes, lundi 6 sur 4, mardi 5,8 sur 5, vendredi 3,3 sur 4, samedi 4,5 sur 4, mercredi 3 sur 1, dimanche 8 sur 1 : le jeudi domine par le volume, les autres groupes sont trop petits pour classer un jour.",
+    "action": "Garder le jeudi comme rendez-vous et tester le mardi en second créneau, rien d’autre."
+   },
+   {
+    "fact": "words",
+    "meaning": "Les mots concrets e-mail, fichier partagé, réunion, fête communale portent les posts à 17, 12 et 9 d’engagement, les mots plateforme tout-en-un portent ceux à 3 et 4 : lecture qualitative seule, pas statistique.",
+    "action": "Écrire comme la collègue du bureau d’à côté, vouvoiement, dire mairie, une scène concrète sans discours vendeur."
+   },
+   {
+    "fact": "reach",
+    "meaning": "Une information est créée dans un servic… 301 vues, 5 réactions (1,7%) contre Une réunion de coordination, une échéanc… 19 vues, 2 réactions (10,5%), avec 68 vues à 4,4%, 62 vues à 4,8%, 35 vues à 8,6% : reach minuscule, le taux monte quand la diffusion baisse, donc non fiable.",
+    "action": "Chercher le reach avec sondage natif puis carrousel, pas avec lien externe sec."
+   },
+   {
+    "fact": "hooks",
+    "meaning": "Première ligne autre 6,4 likes sur 23 contre question 4,9 sur 7, number 4 sur 1, you/vous 6 sur 1 : groupes trop petits pour trancher, mais le métier donne hook <=40 signes +25% et ouverture mid-scene à 2,60% médiane.",
+    "action": "Ouvrir en pleine scène en 40 signes max, les 140 premiers signes sur mobile décident, ex Un e-mail. Un fichier partagé…"
    }
   ]
  },
  "plan": {
-  "period": "3 au 24 novembre 2026",
-  "headline": "On reste concrets, à côté de vous en mairie.",
+  "period": "3 au 28 novembre 2026",
+  "headline": "Vous reprenez le rythme avec vos scènes de mairie",
   "mix": [
    {
     "format": "carousel",
     "count": 2,
     "lever": "double-down",
-    "why": "Vous êtes à 9 de moyenne en 5 posts, votre meilleur score. Sur le terrain, ce format sort à 7 % d'engagement. On prépare deux fiches simples à garder en mairie. Vous retrouvez la réunion du lundi et les papiers qui traînent. Vous finissez par une vraie question pour échanger.",
+    "why": "Vous êtes à 9 de score sur 5 posts, votre plus haut. Sur le terrain la fiche 5 à 8 slides fait 7 % d'engagement et se garde, un save vaut 5 fois un like. Vous reprenez vos deux scènes fortes : l'info dispersée et le mail contre le fichier partagé. Vous offrez une fiche à poser près de l'accueil. Vous restez simple, vous vouvoyez.",
     "yours": {
      "value": 9,
      "posts": 5,
@@ -466,65 +583,77 @@
      "of": 10
     },
     "field": {
-     "what": "engagement rate by impressions",
+     "what": "engagement rate Company Pages",
      "value": 7,
      "unit": "%",
-     "source": "Socialinsider 2.45M posts 26k pages",
+     "source": "",
      "period": "2025"
     }
    },
    {
-    "format": "product preview",
+    "format": "reel",
     "count": 1,
-    "lever": "fill-gap",
-    "why": "Vous êtes à 8 avec 1 seul post, c'est haut mais trop rare. Sur le terrain, la vidéo démo de 90 secondes à 3 minutes fait 1,21 fois plus de portée. On montre un écran simple en mairie, après la fête communale. Vous voyez où va l'information. Vous restez sur LinkedIn d'abord.",
+    "lever": "double-down",
+    "why": "Vous êtes à 8 de score sur 2 posts. Sur le terrain la vidéo courte de moins de 90 s fait 6 % d'engagement, avec plus de commentaires et de messages. Vous en avez besoin, vous avez 0 commentaire sur 32 posts. Vous montrez 60 secondes : la salle des fêtes avant la fête, le fil de mails qui s'arrête. Vous posez une question fermée.",
     "yours": {
      "value": 8,
-     "posts": 1,
-     "rank": 2,
+     "posts": 2,
+     "rank": 3,
      "of": 10
     }
    },
    {
-    "format": "opinion",
+    "format": "quiz",
     "count": 1,
-    "lever": "keep",
-    "why": "Vous êtes à 7 de moyenne en 13 posts, votre rythme tenu. Sur le terrain, un récit long de plus de 20 phrases fait 1,14 fois plus de portée. On raconte une scène vécue en mairie, les mails du soir. Vous posez une question simple. Vous répondez aux commentaires.",
+    "lever": "fill-gap",
+    "why": "Vous êtes à 6 de score sur 2 posts. Sur le terrain sondage + carousel debrief fait 206,33 % de portée en plus. Le sondage porte, le carousel garde. Vous testez : où cherchez-vous l'arrêté le lundi matin ? Vous débriefez en carousel la semaine d'après, sur LinkedIn.",
     "yours": {
-     "value": 7,
-     "posts": 13,
-     "rank": 4,
+     "value": 6,
+     "posts": 2,
+     "rank": 5,
      "of": 10
     }
    },
    {
-    "format": "behind-the-scenes",
+    "format": "tips",
+    "count": 1,
+    "lever": "fill-gap",
+    "why": "Vous êtes à 5 de score sur 3 posts. Sur le terrain le post utile avec lien fait 13,57 % d'interactions en plus quand la valeur est dans le post. Vous donnez un geste de mairie : ranger la réunion en trois lignes. Vous mettez le lien en plus. Vous dites mairie, sans prix.",
+    "yours": {
+     "value": 5,
+     "posts": 3,
+     "rank": 8,
+     "of": 10
+    }
+   },
+   {
+    "format": "announcement",
     "count": 1,
     "lever": "test",
-    "why": "Vous êtes à 3 avec 1 seul post, c'est votre plus bas. Sur le terrain, l'album de 2 à 4 photos vraies sort à 6,45 % d'engagement. On teste une photo simple de votre bureau en mairie, sans nommer de commune. Vous montrez comment vous préparez la bêta. Vous gardez un ton proche.",
+    "why": "Vous êtes à 6 de score sur 3 posts, avec des bêtas à 3, 6 et 8 qui montraient l'outil au lieu d'une scène. Sur le terrain le retour d'expérience multi-photo fait 6,45 % d'engagement, la preuve compte plus. La bêta avec les équipes de mairie glisse au 8 décembre après le 20 novembre visé. Vous montrez une scène utile, sans nommer de mairie sans accord écrit.",
     "yours": {
-     "value": 3,
-     "posts": 1,
-     "rank": 10,
+     "value": 6,
+     "posts": 3,
+     "rank": 6,
      "of": 10
     }
    }
   ],
-  "cadence": "Deux posts par semaine au maximum, sur LinkedIn d'abord. Vous gardez le rythme sans vous épuiser.",
-  "next": "Vous me dites si on garde ce cap avant la bêta du 8 décembre avec les équipes de mairie.",
+  "cadence": "Un à deux posts par semaine au maximum, LinkedIn d'abord.",
+  "next": "Après, vous préparez la bêta avec les équipes de mairie autour du 8 décembre. Vous gardez le rythme, un à deux posts, LinkedIn d'abord.",
   "basis": {
    "posts": 32,
    "audited": true
   }
  },
  "synthesis": {
-  "headline": "On reste utile aux mairies jusqu'à décembre",
+  "headline": "Vous reprenez le rythme avec vos scènes de mairie",
   "points": [
-   "Vous publiez souvent, avec des mots justes. Ce qui accroche, c'est le concret : l'info qui se perd, la pièce qu'on cherche le vendredi soir. L'abstrait retombe, et vous restez sans réponse.",
-   "Autour de vous, sur LinkedIn, le simple porte. Un document à lire sur place. Quelques photos. Pas de lien qui fait sortir.",
-   "8 idées vous attendent, du 11 novembre à la passation de mars. Il vous faut en garder deux pour la semaine prochaine, LinkedIn d'abord."
+   "Nous avons relu 32 publications, les vôtres et celles d'à côté. L'info perdue entre l'accueil et le bureau du maire monte à 17 et 12. Le mot bêta testeurs tombe à 3. Presque aucun commentaire.",
+   "Nous restons concrets jusqu'à fin novembre. LinkedIn d'abord. Deux publications par semaine au plus. Un document à garder pour la mairie.",
+   "Vous avez 4 textes à valider. La fiche de fin d'année. Le 11 novembre sans chercher la bonne version. Le mardi 8h42 après la réunion. Et l'arrêt du mot bêta testeurs."
   ],
-  "next": "Dites-moi les deux sujets que vous validez pour lundi et jeudi."
+  "next": "Validez deux textes pour cette semaine sur LinkedIn : la fiche de fin d'année, puis le 11 novembre."
  },
  "ideas": [
   {
@@ -644,12 +773,12 @@
  "activity": [
   {
    "agent": "scout",
-   "summary": "Found 5 formats that work and 6 topics. Petites mairies LinkedIn: docs natifs #1, multi-image #2, video longue + newsletter formation, zero lien externe. Watched the field: 12 posts at 6 comparable players, 5 dates to know.",
+   "summary": "Found 5 formats that work and 6 topics. For SGM/DGS/elus <3,500 hab: PDF carousels and multi-photo win on LinkedIn, personal profiles beat Pages, saves and replies drive reach. Watched the field: 12 posts at 7 comparable players, 5 dates to know.",
    "ok": true
   },
   {
    "agent": "analyst",
-   "summary": "Compared 32 posts with the field. Données trop fines pour départager les formats : 15 posts récents entre 3 et 17 d’engagement, moyennes par format entre 3 et 9. On ne peut pas classer les formats. Ce qu’on peut lire : 2 posts concrets sur la dispersion de l’information sortent à 17 et 12, les appels à bêta testeurs et les slogans abstraits tombent à 3-4, et le silence domine avec quasiment aucun commentaire.",
+   "summary": "Compared 32 posts with the field. 32 posts du 2025-10-27 au 2026-10-30 à 2,6 par mois avec 0 commentaire : avec une poignée de likes chacun, on ne peut pas départager les formats, quelques likes d’écart c’est du bruit. Ce qui se lit : rythme coupé par 4 silences dont 128 jours du 2026-05-26 au 2026-10-01, dérive plate de 6,6 à 5,4 puis 3,6 likes, meilleur à 17 Une information est créée dans un service municipal... et plus faible à 3 Mairie360 recherche ses premiers bêta testeurs : une plateforme tout-en-un pensée pour les agents municipaux. Le concret de mairie accroche, le discours plateforme décroche.",
    "ok": true
   },
   {
@@ -659,12 +788,12 @@
   },
   {
    "agent": "director",
-   "summary": "Plan for 3 au 24 novembre 2026: On reste concrets, à côté de vous en mairie.",
+   "summary": "Plan for 3 au 28 novembre 2026: Vous reprenez le rythme avec vos scènes de mairie",
    "ok": true
   },
   {
    "agent": "director",
-   "summary": "On reste utile aux mairies jusqu'à décembre",
+   "summary": "Vous reprenez le rythme avec vos scènes de mairie",
    "ok": true
   }
  ]

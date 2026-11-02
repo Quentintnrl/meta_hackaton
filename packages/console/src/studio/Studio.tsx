@@ -16,14 +16,16 @@ import { TeamPulse } from './Agents';
 import { NextView } from './NextView';
 import { SettingsView } from './SettingsView';
 import { CommunityBoard, CreateBoard, DutyLine, PlatformsBoard, WatchBoard } from './boards';
+import { AgendaBoard } from './agenda';
 
-export type View = 'studio' | 'platforms' | 'community' | 'watch' | 'next' | 'settings' | 'today' | 'create' | 'calendar' | 'insights' | 'team' | `agent:${AgentId}`;
+export type View = 'studio' | 'platforms' | 'community' | 'watch' | 'agenda' | 'next' | 'settings' | 'today' | 'create' | 'calendar' | 'insights' | 'team' | `agent:${AgentId}`;
 
 const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: string }> = {
   studio: { title: 'Create', about: 'What the team proposes, what is being written, what is ready. You say yes or no; nothing is written or posted without you.' },
   platforms: { title: 'Platforms', about: 'One card per place you publish: its audience, its rhythm, what is planned there, and where to feed it.' },
   community: { title: 'Community', about: 'Who follows, what they reacted to, and whether anyone talks back.' },
-  watch: { title: 'Competitors', about: 'What comparable players actually post, with the links, and the dates your audience gathers around.' },
+  watch: { title: 'Competitors', about: 'Who else talks to your audience, how they communicate, and what they leave you.' },
+  agenda: { title: 'Calendar', about: 'The dates your audience lives by and your pieces, on the same days. A date with nothing near it is a post to plan.' },
   next: { title: 'What to post next', about: 'The team proposes, with its reasons. You say yes or no. Nothing is written or posted without you.' },
   settings: { title: 'Voice, orders and publishing', about: 'Written once, read by every agent before it works.' },
   today: { title: 'Today', about: 'What the team did, and what waits for you: ideas to judge, drafts to review, pieces to post.' },
@@ -82,6 +84,7 @@ export function Studio({ project }: { project: Project }) {
     ['platforms', 'Platforms'],
     ['community', 'Community'],
     ['watch', 'Competitors'],
+    ['agenda', 'Calendar'],
     ['settings', 'Settings'],
     ...(['next', 'today', 'create', 'calendar', 'insights', 'team'].includes(page) ? [[page, PAGES[page as keyof typeof PAGES].title, page === 'calendar' ? late : undefined, 'late'] as [View, string, number?, string?]] : []),
   ];
@@ -135,6 +138,7 @@ export function Studio({ project }: { project: Project }) {
         {page === 'platforms' && <PlatformsBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'community' && <CommunityBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'watch' && <WatchBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
+        {page === 'agenda' && <AgendaBoard pid={project.id} team={team} view={view} reload={reload} open={setOpenId} go={setPage} />}
         {page === 'next' && <NextView pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'settings' && <SettingsView pid={project.id} view={view} reload={reload} />}
         {page === 'today' && <TodayView team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}

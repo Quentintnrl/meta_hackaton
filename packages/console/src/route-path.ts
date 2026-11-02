@@ -26,7 +26,7 @@ export function appViewToHash(view: AppView): string {
   }
 }
 
-export const STUDIO_PAGES = ['studio', 'platforms', 'community', 'watch', 'settings', 'next', 'today', 'create', 'calendar', 'insights', 'team'];
+export const STUDIO_PAGES = ['studio', 'platforms', 'community', 'watch', 'agenda', 'settings', 'next', 'today', 'create', 'calendar', 'insights', 'team'];
 export const STUDIO_AGENTS = ['director', 'scout', 'analyst', 'strategist', 'writer'];
 
 // Old pages land on their replacement: nothing bookmarked breaks.

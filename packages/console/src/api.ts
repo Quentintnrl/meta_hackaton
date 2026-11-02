@@ -122,7 +122,7 @@ export interface ContentItem {
   seriesId?: string; date?: string; plannedDate?: string; shiftDays?: number; reusedFrom?: string; versionCount?: number;
 }
 export type PublishMode = 'local' | 'assisted' | 'connected';
-export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; autopilot?: boolean; niche: string; directives: string; publishMode: PublishMode }
+export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; autopilot?: boolean; niche: string; directives: string; publishMode: PublishMode; cadence?: Record<string, number> }
 export interface ExportPack { copyText: string; caption: string; hashtags: string[]; mediaFiles: string[]; exportedPath?: string }
 export interface Series { id: string; projectId: string; name: string; createdAt: string }
 export interface AccountPost { id?: number; platform?: string; text: string; format: string; likes: number; comments: number; shares: number; saves: number; views?: number; postedAt: string; simulated: boolean; itemId?: string }
@@ -146,7 +146,8 @@ export interface PlanLine { format: string; count: number; lever: PlanLever; why
 export interface Plan { period: string; headline: string; mix: PlanLine[]; cadence: string; next: string; basis: { posts: number; audited: boolean } }
 export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number; figure?: Figure; exampleUrl?: string; exampleFigure?: string }>; hooks: string[]; topics: string[]; avoid: string[]; misses?: Array<{ format: string; why: string; example: string }>; benchmarks?: Benchmark[]; sources: string[] }
 export interface VerdictPost { text: string; format: string; engagement: number; note: string }
-export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[]; fixes?: Fix[] }
+export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[]; fixes?: Fix[]; readings?: Reading[] }
+export interface Reading { fact: 'pace' | 'trend' | 'question' | 'length' | 'weekday' | 'words' | 'reach' | 'hooks'; meaning: string; action: string }
 export interface Fix { problem: string; fix: string; firstStep: string }
 export interface Group { n: number; avg: number }
 export interface Facts {
@@ -156,6 +157,7 @@ export interface Facts {
   question: { asked: Group; not: Group };
   length: Array<{ label: 'short' | 'medium' | 'long'; max: number } & Group>;
   weekday: Array<{ day: number } & Group>;
+  hooks: Array<{ kind: 'question' | 'number' | 'you' | 'other' } & Group>;
   words: Array<{ word: string; best: number; rest: number }>;
   reach: Array<{ text: string; views: number; likes: number; shares: number; rate: number; postedAt: string }>;
   best: { text: string; likes: number; postedAt: string; platform: string }; worst: { text: string; likes: number; postedAt: string; platform: string };
@@ -164,7 +166,8 @@ export interface Facts {
 export interface Report<T> { data: T; simulated: boolean; at: string }
 // What the Scout saw at comparable players, each find with its link.
 export interface Find { title: string; url: string; account: string; platform: string; whatItIs: string; number: string; whyForYou: string; format: string }
-export interface Player { name: string; url: string; what: string; place?: string; size?: string; audience?: string; channels?: string; publishes?: string; strength?: string; opening?: string }
+export interface Strategy { rhythm: string; formats: string; subjects: string; tone: string; voices: string; callsToAction: string; lesson: string }
+export interface Player { name: string; url: string; what: string; place?: string; size?: string; audience?: string; channels?: string; publishes?: string; strength?: string; opening?: string; strategy?: Strategy }
 export interface Event { name: string; when: string; why: string; post?: string }
 export interface Watch { market: string; players: Player[]; finds: Find[]; events: Event[]; sources: string[] }
 export interface Snapshot { at: string; platform: string; followers: number; posts: number }

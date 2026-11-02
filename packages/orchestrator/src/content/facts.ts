@@ -12,6 +12,7 @@ export interface Facts {
   question: { asked: Group; not: Group };
   length: Array<{ label: 'short' | 'medium' | 'long'; max: number } & Group>;
   weekday: Array<{ day: number } & Group>; // 0 = Monday
+  hooks: Array<{ kind: 'question' | 'number' | 'you' | 'other' } & Group>; // how the first line opens
   words: Array<{ word: string; best: number; rest: number }>; // share of posts using the word, in the best third and in the others
   reach: Array<{ text: string; views: number; likes: number; shares: number; rate: number; postedAt: string }>;
   best: { text: string; likes: number; postedAt: string; platform: string };
@@ -43,6 +44,8 @@ export function accountFacts(posts: AccountPost[], today: string): Facts | null 
     const min = i ? all[i - 1][1] : 0;
     return { label, max: max === Infinity ? 0 : max, ...group(posts.filter(p => p.text.length > min && p.text.length <= max)) };
   });
+  const hookOf = (p: AccountPost): 'question' | 'number' | 'you' | 'other' => { const l = p.text.split('\n')[0].trim(); return /\?\s*$/.test(l) || /^(et si|pourquoi|comment|où|quand|qui|que|what|why|how|where|when|who)\b/i.test(l) ? 'question' : /^\d/.test(l) ? 'number' : /^(vous|votre|vos|you|your|tu|ton|ta|tes)\b/i.test(l) ? 'you' : 'other'; };
+  const hooks = (['question', 'number', 'you', 'other'] as const).map(kind => ({ kind, ...group(posts.filter(p => hookOf(p) === kind)) }));
   const wd = Array.from({ length: 7 }, (_, day) => ({ day, ...group(posts.filter(p => weekday(p.postedAt) === day)) }));
   const byLikes = [...posts].sort((a, b) => b.likes - a.likes);
   const third = Math.max(1, Math.floor(posts.length / 3));
@@ -64,7 +67,7 @@ export function accountFacts(posts: AccountPost[], today: string): Facts | null 
     n: posts.length, first, last, perMonth: Math.round((posts.length / months) * 10) / 10, daysSinceLast: Math.max(0, Math.round((Date.parse(today) - Date.parse(last)) / DAY)),
     silences, trend: { early, late, last5: group(sorted.slice(-5)), direction },
     question: { asked: group(posts.filter(asks)), not: group(posts.filter(p => !asks(p))) },
-    length, weekday: wd, words, reach,
+    length, weekday: wd, hooks, words, reach,
     best: pick(byLikes[0]), worst: pick(byLikes.at(-1)!), comments,
     thin: byLikes[0].likes < 50 && comments < 5,
   };
@@ -80,6 +83,7 @@ export function factsText(f: Facts): string {
     `Likes drift: first half ${g(f.trend.early)}, second half ${g(f.trend.late)}, last five ${g(f.trend.last5)} (${f.trend.direction}).`,
     `Posts that ask a question: ${g(f.question.asked)}; posts that do not: ${g(f.question.not)}. Comments in all: ${f.comments}.`,
     `Length: ${f.length.map(l => `${l.label} ${g(l)}`).join('; ')}.`,
+    `First line opens with: ${f.hooks.filter(h => h.n).map(h => `${h.kind === 'you' ? 'you/vous' : h.kind} ${g(h)}`).join('; ')}.`,
     `Weekday: most posts on ${DAYS[busiest.day]} (${busiest.n}); ${f.weekday.filter(w => w.n).map(w => `${DAYS[w.day]} ${g(w)}`).join(', ')}.`,
     f.words.length ? `Words more present in the best third of posts: ${f.words.map(w => `${w.word} (${Math.round(w.best * 100)}% vs ${Math.round(w.rest * 100)}%)`).join(', ')}.` : '',
     f.reach.length ? `Reach where known: ${f.reach.map(r => `"${r.text.slice(0, 40)}…" ${r.views} views, ${r.likes} reactions (${r.rate}%)`).join('; ')}.` : '',

@@ -54,6 +54,11 @@ export const AccountAnalysis = z.object({
     fix: z.string(), // what to do about it, concrete: a kind of post, a change of channel, a rhythm, a question to ask
     firstStep: z.string(), // the very first post or action, described so the Writer could start from it
   })).max(3).default([]), // the diagnosis turned into solutions: never a question back to the manager
+  readings: z.array(z.object({
+    fact: z.enum(['pace', 'trend', 'question', 'length', 'weekday', 'words', 'reach', 'hooks']), // which computed fact this reads
+    meaning: z.string(), // what this fact says about this account, with its number, in one or two sentences
+    action: z.string(), // what to change because of it, one concrete sentence; "nothing" when the fact asks for nothing
+  })).max(8).default([]), // one reading per computed fact: the drawing shows the number, this says what it means
 });
 export interface FormatStat { format: string; posts: number; avgEngagement: number }
 export type AccountReport = z.infer<typeof AccountAnalysis> & { stats: FormatStat[]; postCount: number };
@@ -91,6 +96,15 @@ const WatchSchema = z.object({
     publishes: z.string().default(''), // what they actually publish, concretely: the kinds of posts and subjects seen, with an example
     strength: z.string().default(''), // what they do well that this project cannot match today
     opening: z.string().default(''), // what they leave uncovered, that this project could take: subject, tone, audience, format
+    strategy: z.object({
+      rhythm: z.string().default(''), // how often, on which network ("LinkedIn 3 posts a week, a newsletter a month")
+      formats: z.string().default(''), // the formats they lean on, in order (carousels, event photos, customer videos, articles…)
+      subjects: z.string().default(''), // what they talk about, the three or four recurring subjects
+      tone: z.string().default(''), // how they speak: institutional, expert, warm, salesy… with a telling phrase
+      voices: z.string().default(''), // who speaks: the brand page only, the founders, the sales people, customers in testimonials
+      callsToAction: z.string().default(''), // what they ask the reader to do: book a demo, download a guide, come to a stand, comment…
+      lesson: z.string().default(''), // what this project should copy or avoid from it, one sentence
+    }).default({ rhythm: '', formats: '', subjects: '', tone: '', voices: '', callsToAction: '', lesson: '' }),
   })).max(8),
   finds: z.array(z.object({
     title: z.string(), // the post or page, in a few words
@@ -320,10 +334,10 @@ Fill misses with the formats and angles that fall flat, each with a concrete exa
     const country = /fran|mairie|commune/i.test(`${profile.niche} ${profile.audience} ${profile.language}`) ? ' (France, in French where the sources are French)' : '';
     const [posts, market] = await Promise.all([
       llm.search(`Find 8 to 12 recent public posts (last 12 months) from companies, products or organisations comparable to "${field}"${who}${country}, on LinkedIn, Instagram, their blog or the press. For each: the account, the exact URL of the post or page, what it is (format: carousel, video, testimonial, event, case study, article…), its hook or subject, and any visible figure (likes, comments, views). Only real, visited pages with their URL; skip anything you cannot link.${behaviour(this.#svc, projectId, 'scout')}`),
-      llm.search(`Who are the comparable players for a project like "${field}"${who}${country}? Name 4 to 8 and, for each: its website, what it sells, its place in the market (leader, historic publisher, challenger, media, association…) with a fact that shows it, its size in figures (customers, communes, followers, years, staff), who it talks to, where it publishes and how often, what it actually publishes (kinds of posts and subjects, with an example), what it does well, and what it leaves uncovered. Also list the upcoming events, salons or seasonal dates (next 6 months) where this audience gathers, with dates and what the audience is doing then. Prefer sources you visited.`),
+      llm.search(`Who are the comparable players for a project like "${field}"${who}${country}? Name 4 to 8 and, for each: its website, what it sells, its place in the market (leader, historic publisher, challenger, media, association…) with a fact that shows it, its size in figures (customers, communes, followers, years, staff), who it talks to, where it publishes and how often, what it actually publishes (kinds of posts and subjects, with an example), what it does well, and what it leaves uncovered. Describe its communication strategy as seen on its pages: rhythm per network, the formats it leans on, its recurring subjects, its tone (quote a telling phrase), who speaks (the brand, founders, sales, customers), and what it asks readers to do (demo, guide, stand, comment). Also list the upcoming events, salons or seasonal dates (next 6 months) where this audience gathers, with dates and what the audience is doing then. Prefer sources you visited.`),
     ]);
     const w = await llm.json(`Today is ${day(this.#svc.now)}: an event or deadline before that date is past, say so in its "when" or drop it. Condense this research. Keep only what the text supports, with the URLs exactly as given; drop a find without a link. Short, concrete, no filler. Write everything in ${profile.language || 'English'} (names and figures as they are). "whyForYou" says what the project "${projectName}" (${field}) could take from each find, in one sentence a busy person acts on.
-For each player fill place, size, audience, channels, publishes, strength and opening from the text (short, concrete, with the figures as written; '' when the text says nothing). For each event, "post" says what "${projectName}" should post about it and when.
+For each player fill place, size, audience, channels, publishes, strength, opening and the strategy block (rhythm, formats, subjects, tone, voices, callsToAction, lesson) from the text (short, concrete, with the figures as written; '' when the text says nothing). For each event, "post" says what "${projectName}" should post about it and when.
 
 POSTS SEEN:
 ${posts.text}
@@ -368,6 +382,7 @@ Recent posts:
 ${posts.slice(0, 15).map(p => `- [${p.format}] ${p.text} (${engagement(p)})${p.itemId ? ` — this one came from the studio piece "${this.#store.item(p.itemId)?.title ?? p.itemId}": weigh linked pieces as proven winners in strengths and gaps` : ''}`).join('\n')}
 
 Name the 3 strongest posts in winners and the 3 weakest in losers (by the engagement numbers above), each with a one-line note on why it won or flopped.
+For each block of the computed facts (pace, trend, question, length, weekday, words, reach when present, hooks), give one reading: what it means for this account (with the number, and whether the group is too small to trust) and the one thing to change because of it.
 Then turn the diagnosis into up to 3 fixes. Each names the problem with the number that shows it, the fix (a kind of post, a channel, a rhythm, a question to ask the audience, a thing to show), and the first step: the first post or action, described so the Writer could start from it. Never ask the manager what they want: decide, and say it.
 
 What works in the field: ${audit ? JSON.stringify({ whatWorks: audit.whatWorks, hooks: audit.hooks, topics: audit.topics }) : '(the scout has not reported yet)'}

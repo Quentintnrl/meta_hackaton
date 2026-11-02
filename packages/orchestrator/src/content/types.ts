@@ -23,9 +23,10 @@ export interface Profile {
   niche: string; // what the project is about, for the scout
   directives: string; // standing orders from the manager, read by every agent
   publishMode: PublishMode; // local by default: nothing depends on Meta
+  cadence?: Record<string, number>; // posts a week the manager aims for, per platform: the Platforms page counts against it
 }
 
-export const defaultProfile: Profile = { voice: '', audience: '', language: 'English', autoDraft: false, autopilot: false, niche: '', directives: '', publishMode: 'local' };
+export const defaultProfile: Profile = { voice: '', audience: '', language: 'English', autoDraft: false, autopilot: false, niche: '', directives: '', publishMode: 'local', cadence: {} };
 
 export interface Milestone {
   id: string;
@@ -171,7 +172,8 @@ export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | '
 // What the Scout saw at comparable players: concrete posts and pages, each with its link, and the market they draw.
 export interface Find { title: string; url: string; account: string; platform: string; whatItIs: string; number: string; whyForYou: string; format: string }
 // One comparable player, as a short profile: where it stands, how big, who it talks to, what it publishes, and the room it leaves.
-export interface Player { name: string; url: string; what: string; place?: string; size?: string; audience?: string; channels?: string; publishes?: string; strength?: string; opening?: string }
+export interface Strategy { rhythm: string; formats: string; subjects: string; tone: string; voices: string; callsToAction: string; lesson: string }
+export interface Player { name: string; url: string; what: string; place?: string; size?: string; audience?: string; channels?: string; publishes?: string; strength?: string; opening?: string; strategy?: Strategy }
 // A date the audience gathers around, and what to post about it, when.
 export interface Event { name: string; when: string; why: string; post?: string }
 export interface Watch { market: string; players: Player[]; finds: Find[]; events: Event[]; sources: string[] }

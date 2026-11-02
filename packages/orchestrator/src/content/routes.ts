@@ -10,7 +10,7 @@ import { existsSync, readFileSync } from 'node:fs';
 const Date_ = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'expected YYYY-MM-DD');
 const NewMilestone = z.object({ title: z.string().trim().min(1).max(120), intent: z.string().trim().max(4000).default(''), targetDate: Date_, scope: z.number().int().min(1).max(50) });
 const PatchMilestone = NewMilestone.partial();
-const Profile = z.object({ voice: z.string().max(2000), audience: z.string().max(1000), language: z.string().trim().min(1).max(40), autoDraft: z.boolean(), autopilot: z.boolean().default(false), niche: z.string().max(500).default(''), directives: z.string().max(3000).default(''), publishMode: PublishMode.default('local') });
+const Profile = z.object({ voice: z.string().max(2000), audience: z.string().max(1000), language: z.string().trim().min(1).max(40), autoDraft: z.boolean(), autopilot: z.boolean().default(false), niche: z.string().max(500).default(''), directives: z.string().max(3000).default(''), publishMode: PublishMode.default('local'), cadence: z.record(z.string(), z.number().min(0).max(30)).default({}) });
 const NewItem = z.object({
   kind: ItemKind, title: z.string().trim().min(1).max(160), brief: z.string().max(4000).default(''),
   milestoneId: z.string().optional(), featureId: z.string().optional(), offsetDays: z.number().int().min(-90).max(90).optional(), fixedDate: Date_.optional(),

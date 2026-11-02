@@ -36,6 +36,7 @@ export class ContentStore {
     this.#addColumn('profiles', 'directives', "TEXT NOT NULL DEFAULT ''");
     this.#addColumn('profiles', 'publish_mode', "TEXT NOT NULL DEFAULT 'local'");
     this.#addColumn('profiles', 'autopilot', 'INTEGER NOT NULL DEFAULT 0');
+    this.#addColumn('profiles', 'cadence', "TEXT NOT NULL DEFAULT '{}'");
     this.#addColumn('account_posts', 'platform', "TEXT NOT NULL DEFAULT 'instagram'");
     this.#db.exec('CREATE TABLE IF NOT EXISTS account_snapshots (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, platform TEXT NOT NULL, followers INTEGER NOT NULL, posts INTEGER NOT NULL, made_at TEXT NOT NULL)');
     this.#addColumn('items', 'rationale', "TEXT NOT NULL DEFAULT ''");
@@ -138,13 +139,13 @@ export class ContentStore {
     const mode = String(r.publish_mode ?? 'local');
     return {
       voice: String(r.voice), audience: String(r.audience), language: String(r.language), autoDraft: r.auto_draft === 1, autopilot: r.autopilot === 1,
-      niche: String(r.niche), directives: String(r.directives),
+      niche: String(r.niche), directives: String(r.directives), cadence: JSON.parse(String(r.cadence ?? '{}')) as Record<string, number>,
       publishMode: mode === 'assisted' || mode === 'connected' ? mode : 'local',
     };
   }
 
   setProfile(projectId: string, p: Profile): Profile {
-    this.#db.prepare('INSERT OR REPLACE INTO profiles (project_id, voice, audience, language, auto_draft, niche, directives, publish_mode, autopilot) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)').run(projectId, p.voice, p.audience, p.language, p.autoDraft ? 1 : 0, p.niche, p.directives, p.publishMode, p.autopilot ? 1 : 0);
+    this.#db.prepare('INSERT OR REPLACE INTO profiles (project_id, voice, audience, language, auto_draft, niche, directives, publish_mode, autopilot, cadence) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)').run(projectId, p.voice, p.audience, p.language, p.autoDraft ? 1 : 0, p.niche, p.directives, p.publishMode, p.autopilot ? 1 : 0, JSON.stringify(p.cadence ?? {}));
     return p;
   }
 

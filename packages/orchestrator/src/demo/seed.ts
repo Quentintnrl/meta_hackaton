@@ -74,6 +74,7 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     niche: 'a shared workspace for French town halls: projects, calendar, messaging, workflows and training',
     directives: 'Never publish a price. Never name a partner commune without its written consent. At most two posts a week, LinkedIn first. Say "mairie", not "client".',
     publishMode: 'local',
+    cadence: { linkedin: 2, instagram: 1 }, // the standing order says two posts a week, LinkedIn first
   });
 
   // --- roadmap: one goal, two projections (the second corrects the first: the pace is slower than the plan)
