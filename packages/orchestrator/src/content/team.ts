@@ -5,7 +5,8 @@ import { parseAccountCsv } from './service.ts';
 import { loadInstagram, readInstagram, type InstagramConfig } from './instagram.ts';
 import { scoutTools } from './scout-tools.ts';
 import { accountFacts, factsText } from './facts.ts';
-import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction, type Watch } from './types.ts';
+import { CAN, EMPTY_ACTION, ROLE_OF, Reply, actionsFrom, groundFor, routeAgent, type Subject } from './talk.ts';
+import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type ChatMessage, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction, type Watch } from './types.ts';
 
 export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
   { id: 'director', name: 'Director', role: 'Leads the team and sums up its work' },
@@ -57,8 +58,8 @@ export const AccountAnalysis = z.object({
   })).max(3).default([]), // the diagnosis turned into solutions: never a question back to the manager
   readings: z.array(z.object({
     fact: z.enum(['pace', 'trend', 'question', 'length', 'weekday', 'words', 'reach', 'hooks']), // which computed fact this reads
-    meaning: z.string(), // what this fact says about this account, with its number, in one or two sentences
-    action: z.string(), // what to change because of it, one concrete sentence; "nothing" when the fact asks for nothing
+    meaning: z.string(), // what this fact says about this account, one sentence, without restating the numbers the drawing already shows
+    action: z.string(), // what to change because of it, one concrete sentence, shown first; "nothing" when the fact asks for nothing
   })).max(8).default([]), // one reading per computed fact: the drawing shows the number, this says what it means
 });
 export interface FormatStat { format: string; posts: number; avgEngagement: number }
@@ -202,28 +203,6 @@ const behaviour = (svc: ContentService, projectId: string, agent: AgentId) => {
 const Synthesis = z.object({ headline: z.string(), points: z.array(z.string()).min(1).max(4), next: z.string() });
 export type Synthesis = z.infer<typeof Synthesis>;
 
-const AgentName = z.enum(['scout', 'analyst', 'strategist', 'writer']);
-const DirectorReply = z.object({
-  reply: z.string(),
-  talkTo: z.enum(['none', 'scout', 'analyst', 'strategist', 'writer']), // when the manager should speak to an agent directly
-  actions: z.array(z.object({
-    label: z.string(),
-    kind: z.enum(['run', 'configure']),
-    agents: z.array(AgentName), // run: who works, in order
-    brief: z.string(), // run: what they are asked
-    agent: z.enum(['none', 'scout', 'analyst', 'strategist', 'writer']), // configure: whom
-    enabled: z.enum(['on', 'off', 'unchanged']),
-    workers: z.number().int().min(0).max(MAX_WORKERS), // 0 = unchanged
-  })).max(3),
-});
-const AgentReply = z.object({
-  reply: z.string(),
-  newInstructions: z.string(), // '' when nothing should change
-  // Pictures the agent offers to generate for the piece being discussed: '' for none,
-  // the piece id for every missing shot, or `id:index` (0-based) for one shot.
-  generate: z.string(),
-});
-
 // Every angle asks for measured figures with their source: the field page shows numbers, or says none were found.
 const ANGLES = [
   'which formats and post types get the most engagement, with one concrete example each (its link if possible) and the measured figures behind them: average engagement rate, saves, views or reach, each with its source and date',
@@ -234,7 +213,7 @@ const LENSES = ['the dev roadmap: what is about to land and when', 'the project 
 
 // One session per subject: the bare agent thread, or `agent:item:<id>` /
 // `agent:milestone:<id>`. Anything else falls back to the bare agent thread.
-export function chatThread(agent: AgentId, about: string): string {
+export function chatThread(agent: AgentId | 'team', about: string): string {
   return /^(item|milestone):[A-Za-z0-9_-]{1,60}$/.test(about) ? `${agent}:${about}` : agent;
 }
 
@@ -258,20 +237,6 @@ function picturesFor(svc: ContentService, projectId: string, about: string): str
   return urls;
 }
 
-// A generate offer from a chat: only for the piece being discussed, only for
-// shots that exist. Anything else is ignored, never proposed.
-function parseGenerate(generate: string, projectId: string, subjectId: string, svc: ContentService): SuggestedAction | null {
-  const m = /^([A-Za-z0-9_-]{1,60})(?::(\d+))?$/.exec(generate.trim());
-  if (!m || m[1] !== subjectId) return null;
-  const item = svc.store.item(m[1]);
-  if (!item || item.projectId !== projectId || !item.media) return null;
-  const index = m[2] === undefined ? undefined : Number(m[2]);
-  if (index !== undefined && !item.media.slides[index]) return null;
-  const missing = item.media.slides.filter(s => !s.file).length;
-  if (index === undefined && missing === 0) return null;
-  return { kind: 'generate', label: index === undefined ? `Generate ${missing} missing picture${missing === 1 ? '' : 's'}` : `Generate shot ${index + 1}`, itemId: item.id, ...(index === undefined ? {} : { index }) };
-}
-
 // The small communication team. Each agent reads what it needs, writes a report or proposals, and logs what it did.
 export class Team {
   #svc: ContentService;
@@ -292,6 +257,7 @@ export class Team {
     if (!cfg) throw new Error('no Instagram account connected: put INSTAGRAM_USER_ID and INSTAGRAM_ACCESS_TOKEN in .env (see the README), or paste the posts');
     const r = await readInstagram(cfg, this.#fetch);
     this.#store.setAccount(projectId, r.posts, 'instagram');
+    this.#svc.autoMatch(projectId);
     this.#store.snapshot(projectId, { at: this.#svc.now.toISOString(), platform: 'instagram', followers: r.followers, posts: r.posts.length });
     this.#store.log(projectId, 'scout', `Read Instagram @${r.username}: ${r.posts.length} posts, ${r.followers} followers.`, true, this.#svc.now.toISOString());
     return { username: r.username, followers: r.followers, posts: r.posts.length };
@@ -405,7 +371,7 @@ Recent posts:
 ${posts.slice(0, 15).map(p => `- [${p.format}] ${p.text} (${engagement(p)})${p.itemId ? ` — this one came from the studio piece "${this.#store.item(p.itemId)?.title ?? p.itemId}": weigh linked pieces as proven winners in strengths and gaps` : ''}`).join('\n')}
 
 Name the 3 strongest posts in winners and the 3 weakest in losers (by the engagement numbers above), each with a one-line note on why it won or flopped.
-For each block of the computed facts (pace, trend, question, length, weekday, words, reach when present, hooks), give one reading: what it means for this account (with the number, and whether the group is too small to trust) and the one thing to change because of it.
+For each block of the computed facts (pace, trend, question, length, weekday, words, reach when present, hooks), give one reading. The drawing already shows every number: do not repeat them in "meaning". Say in one sentence what the pattern means for this account (and "too few posts to trust" when a group is under eight), then in "action" the one concrete thing to change, said first and short: a kind of post, a day, a length, a line to open with.
 Then turn the diagnosis into up to 3 fixes. Each names the problem with the number that shows it, the fix (a kind of post, a channel, a rhythm, a question to ask the audience, a thing to show), and the first step: the first post or action, described so the Writer could start from it. Never ask the manager what they want: decide, and say it.
 
 What works in the field: ${audit ? JSON.stringify({ whatWorks: audit.whatWorks, hooks: audit.hooks, topics: audit.topics }) : '(the scout has not reported yet)'}
@@ -423,6 +389,7 @@ ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}
     if (exact) {
       if (!exact.length) throw new Error('no post found in that text');
       this.#store.setAccount(projectId, exact.map(p => ({ ...p, platform })), platform);
+      this.#svc.autoMatch(projectId);
       return exact;
     }
     const r = await this.#svc.llm.json(
@@ -433,6 +400,7 @@ ${pasted.slice(0, 12000)}`, AccountParse, 'account_import');
     const posts = r.posts.map(p => ({ ...p, platform, postedAt: /^\d{4}-\d{2}-\d{2}$/.test(p.postedAt) ? p.postedAt : day(this.#svc.now), simulated: false }));
     if (!posts.length) throw new Error('no post found in that text');
     this.#store.setAccount(projectId, posts, platform);
+    this.#svc.autoMatch(projectId);
     return posts;
   }
 
@@ -452,6 +420,9 @@ ${pasted.slice(0, 12000)}`, AccountParse, 'account_import');
     const all = this.#store.items(projectId);
     const rejected = all.filter(i => i.status === 'rejected').slice(-8);
     const live = all.filter(i => i.status !== 'rejected');
+    // What was posted and what it got, against what the pitch promised: the loop between proposing and measuring.
+    const posted = svc.calendar(projectId).filter(i => i.status === 'published' && i.outcome).slice(-8)
+      .map(i => `- ${i.kind} "${i.title}" (${i.outcome!.platform}, ${i.outcome!.postedAt}): ${i.outcome!.likes} likes, ${i.outcome!.comments} comments, ${i.outcome!.shares} shares${i.outcome!.views ? `, ${i.outcome!.views} views` : ''} after ${i.outcome!.daysSince} days${i.pitch?.measure ? `; we said we would count: ${i.pitch.measure}` : ''}`);
 
     const ask = (lens: string, count: string) => svc.llm.json(
       `You are the strategist of a small digital communication team working for a solo developer (the manager).
@@ -480,6 +451,8 @@ ${commits.slice(0, 15).map(c => `- ${c}`).join('\n') || '(none)'}
 
 ALREADY PLANNED:
 ${live.map(i => `- ${i.kind}: ${i.title}`).join('\n') || '(nothing)'}
+POSTED FROM THIS STUDIO, AND WHAT IT GOT (say in the rationale when a piece builds on one that kept its promise, or drops a line that did not):
+${posted.join('\n') || '(nothing measured yet)'}
 REFUSED BY THE MANAGER:
 ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).join('\n') || '(nothing)'}`,
       Proposals, 'proposals');
@@ -502,14 +475,16 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       const onMilestone = p.milestoneId && ids.has(p.milestoneId);
       const date = /^\d{4}-\d{2}-\d{2}$/.test(p.date) && p.date >= today ? p.date : addDays(today, 3);
       const proof = proofFor(p.format, p.evidence, stats, audit?.data);
-      made.push(this.#store.addItem({
+      const item = this.#store.addItem({
         projectId, kind: p.kind, title: p.title, brief: p.brief,
         rationale: `${p.rationale}${p.evidence ? `\nEvidence: ${p.evidence}` : ''}${mark}`,
         ...(proof ? { proof } : {}),
         ...(p.hook || p.channel || p.measure ? { pitch: { hook: p.hook, channel: p.channel, measure: p.measure, context: p.context, audience: p.audience } } : {}),
         source: p.source, origin: 'ai', status: 'idea', createdAt: svc.now.toISOString(),
         ...(onMilestone ? { milestoneId: p.milestoneId, offsetDays: p.offsetDays } : { fixedDate: date }),
-      }));
+      });
+      svc.step(item.id, 'proposed', 'strategist', p.rationale.trim().replace(/\s+/g, ' ').slice(0, 160));
+      made.push(item);
     }
     return made;
   }
@@ -645,98 +620,90 @@ ${waiting.map(i => `- ${i.kind}: ${i.title} (${i.source})`).join('\n') || '(none
     return s;
   }
 
-  #teamState(projectId: string) {
-    const svc = this.#svc;
-    const lines = WORKERS.map(a => {
-      const c = this.#store.agentConfig(projectId, a);
-      const last = this.#store.activity(projectId, 40).find(x => x.agent === a);
-      return `- ${a}: ${c.enabled ? `on, ${c.workers} worker(s)` : 'OFF'}${c.instructions ? `; instructions: "${c.instructions}"` : ''}; last: ${last ? `${last.ok ? '' : 'FAILED, '}${last.summary}` : 'has not worked yet'}`;
-    });
-    const items = this.#store.items(projectId);
-    const ms = svc.milestones(projectId).filter(m => m.status === 'open');
-    return `${lines.join('\n')}
-Proposals waiting: ${items.filter(i => i.status === 'idea').length}. Drafts to review: ${items.filter(i => i.status === 'drafted').length}. Field research: ${this.#store.latestReport(projectId, 'audit') ? 'done' : 'not done'}. Posts loaded: ${this.#store.account(projectId).length}.
-Milestones: ${ms.map(m => `${m.title} (${m.delivered}/${m.scope}${m.atRisk ? `, ${m.slipDays} days late` : ''})`).join('; ') || 'none'}.`;
-  }
-
-  // The manager talks to the director first. It answers, and may suggest actions; nothing runs until the manager confirms.
-  async chatDirector(projectId: string, message: string, context = '') {
+  // The manager talks to the team. The question goes to the agent whose job it is (`agent` forces one), that
+  // agent answers from its own material, and may hand the question to a colleague: then the colleague answers
+  // in the same thread, right after a one-line pass-on. `base` is the thread: 'team' (the studio's conversation)
+  // or an agent's own; `about` narrows it to a piece or a goal. `hint` is the page the manager is on.
+  async ask(projectId: string, o: { message: string; context?: string; about?: string; hint?: string; agent?: AgentId; base?: 'team' | AgentId }) {
+    const base = o.base ?? 'team';
+    const thread = chatThread(base, o.about ?? '');
+    const subject = this.#subject(projectId, o.about ?? '');
     const at = () => this.#svc.now.toISOString();
-    const history = this.#store.chat(projectId, 'director', 8);
-    this.#store.addChat(projectId, 'director', 'user', message, [], at());
-    const r = await this.#svc.llm.json(
-      `You are the director of a small digital communication team (scout, analyst, strategist, writer) working for a solo developer, the manager. You speak with the manager first.
-${CHAT_IDENTITY}
-${BLIND}
-Answer fully but without filler: short sections or a list when the question deserves more than a line. You can suggest actions (the manager confirms each one):
-- run: have some agents work, in this order, with a brief. When you suggest a run, spell out who does what in which order and what the manager gets at the end.
-- configure: switch an agent on or off, or change how many of it work at once (1 to ${MAX_WORKERS}: more workers = wider research or more proposals, at more cost).
-If the manager wants to talk to one agent, or change how an agent behaves, set talkTo to that agent and say so: they will speak to it directly.
-Only suggest what the manager's message calls for.
-${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'director')}
-
-THE TEAM NOW
-${this.#teamState(projectId)}
-
-Conversation so far:
-${history.map(m => `${m.role === 'user' ? 'Manager' : 'You'}: ${m.text}`).join('\n') || '(none)'}
-${context ? `What the manager is looking at right now (they know it, do not repeat it back, just use it to answer):\n${context}\n` : ''}Manager: ${message}`,
-      DirectorReply, 'director_reply');
-    const actions: SuggestedAction[] = r.actions.map(a => a.kind === 'run'
-      ? { kind: 'run' as const, label: a.label, agents: a.agents, brief: a.brief }
-      : { kind: 'configure' as const, label: a.label, agent: a.agent === 'none' ? undefined : a.agent, enabled: a.enabled === 'unchanged' ? undefined : a.enabled === 'on', workers: a.workers || undefined })
-      .filter(a => a.kind === 'run' ? (a.agents?.length ?? 0) > 0 : Boolean(a.agent));
-    if (r.talkTo !== 'none') actions.push({ kind: 'talk', label: `Talk to the ${r.talkTo[0].toUpperCase()}${r.talkTo.slice(1)}`, agent: r.talkTo });
-    this.#store.addChat(projectId, 'director', 'agent', r.reply, actions, at());
-    return this.#store.chat(projectId, 'director');
+    const history = this.#store.chat(projectId, thread, 10);
+    this.#store.addChat(projectId, thread, 'user', o.message, [], at());
+    let who: AgentId = o.agent ?? routeAgent(o.message, subject, o.hint ?? '');
+    for (let hop = 0; ; hop++) {
+      const r = await this.#answer(projectId, who, o.message, o.context ?? '', o.about ?? '', subject, history, Boolean(o.agent));
+      const next = r.reply.handOff !== 'none' && r.reply.handOff !== who ? r.reply.handOff : undefined;
+      if (next && hop === 0 && base === 'team' && !o.agent) {
+        // The pass-on stays visible, then the colleague answers the same question.
+        this.#store.addChat(projectId, thread, 'agent', r.reply.reply.trim() || `This is the ${AGENTS.find(a => a.id === next)!.name}'s call.`, [{ kind: 'talk', label: `Passed to the ${AGENTS.find(a => a.id === next)!.name}`, agent: next, by: who }], at(), { agent: who, basis: [] });
+        who = next;
+        continue;
+      }
+      const actions = actionsFrom(r.reply, who, projectId, subject, this.#svc);
+      // On an agent's own thread the hand-off is a door, not a hop: the manager chooses to walk through it.
+      if (next && (o.agent || base !== 'team')) actions.push({ kind: 'talk', label: `Ask the ${AGENTS.find(a => a.id === next)!.name}`, agent: next, by: who });
+      this.#store.addChat(projectId, thread, 'agent', r.reply.reply, actions, at(), { agent: who, basis: r.basis });
+      break;
+    }
+    return this.#store.chat(projectId, thread);
   }
 
-  // The manager talks to one agent to understand its work or change how it behaves. A behaviour change is proposed, not applied.
-  // Each subject gets its own session: the general chat lives on the bare
-  // agent thread, a chat about a piece or goal on `agent:item:<id>`.
-  async chatAgent(projectId: string, agent: AgentId, message: string, context = '', about = '') {
-    if (agent === 'director') return this.chatDirector(projectId, message, context);
-    const thread = chatThread(agent, about);
+  // The old doors: a conversation with one agent on its own thread.
+  chatDirector(projectId: string, message: string, context = '') { return this.ask(projectId, { message, context, agent: 'director', base: 'director' }); }
+  chatAgent(projectId: string, agent: AgentId, message: string, context = '', about = '') { return this.ask(projectId, { message, context, about, agent, base: agent }); }
+
+  #subject(projectId: string, about: string): Subject {
+    const m = /^(item|milestone):([A-Za-z0-9_-]{1,60})$/.exec(about);
+    if (!m) return null;
+    if (m[1] === 'item') {
+      const item = this.#store.item(m[2]);
+      return item && item.projectId === projectId ? { kind: 'item', item } : null;
+    }
+    const ms = this.#store.milestone(m[2]);
+    return ms && ms.projectId === projectId ? { kind: 'milestone', id: ms.id, title: ms.title, intent: ms.intent, targetDate: ms.targetDate } : null;
+  }
+
+  // One agent answers one question, from its material. The Scout looks the question up on the live web first.
+  async #answer(projectId: string, agent: AgentId, message: string, context: string, about: string, subject: Subject, history: ChatMessage[], locked: boolean) {
+    const info = AGENTS.find(a => a.id === agent)!;
+    const cfg = this.#store.agentConfig(projectId, agent);
+    const ground = groundFor(this.#svc, projectId, agent, subject);
     const images = picturesFor(this.#svc, projectId, about);
-    const subjectId = /^item:([A-Za-z0-9_-]{1,60})$/.exec(about)?.[1] ?? '';
-    // The scout's job is the live web: in a chat it looks things up instead
-    // of asking the manager to do its research. A failed search just means
-    // answering from memory, never an error.
     let research = '';
     if (agent === 'scout' && this.#svc.llm.search) {
       try {
         const r = await this.#svc.llm.search(message.slice(0, 500));
-        research = `Fresh web results for this exact question (quote site names when you use them):\n${r.text}\nSources: ${r.sources.slice(0, 6).join(', ')}`;
+        research = `FRESH WEB RESULTS for this exact question (quote site names when you use them):\n${r.text}\nSources: ${r.sources.slice(0, 6).join(', ')}`;
+        ground.basis.push('a fresh web search');
       } catch { /* answer from the audit instead */ }
     }
-    const at = () => this.#svc.now.toISOString();
-    const info = AGENTS.find(a => a.id === agent)!;
-    const history = this.#store.chat(projectId, thread, 8);
-    this.#store.addChat(projectId, thread, 'user', message, [], at());
-    const cfg = this.#store.agentConfig(projectId, agent);
-    const last = this.#store.activity(projectId, 40).filter(a => a.agent === agent).slice(0, 3);
+    const others = (['director', 'scout', 'analyst', 'strategist', 'writer'] as AgentId[]).filter(a => a !== agent).map(a => ROLE_OF[a]).join('; ');
+    const names = (m: { role: string; agent?: AgentId }) => m.role === 'user' ? 'Manager' : m.agent === agent || !m.agent ? 'You' : AGENTS.find(a => a.id === m.agent)!.name;
     const r = await this.#svc.llm.json(
-      `You are the ${info.name} of a small digital communication team: "${info.role}". You are talking to the manager, who may ask about your work, or want to change how you work.
+      `You are the ${info.name} of a small digital communication team working for the manager, a solo developer. ${ROLE_OF[agent].replace(/^the \w+ /, 'You ')}.
 ${CHAT_IDENTITY}
 ${images.length > 0 ? SIGHTED : BLIND}
-Answer fully but without filler: short sections or a list when the question deserves more than a line. If the manager asks you to behave differently, put the COMPLETE new standing instructions for you in newInstructions (merge the old ones and the new request, short and concrete) and say in the reply what will change. Otherwise newInstructions is an empty string.
+Answer fully but without filler: a direct answer first, then short sections or a list only when the question deserves more than a line. Quote the material below (titles, numbers, dates) instead of generalities. Never say "look at the X page": say what is there.
+${locked ? `The manager chose to talk to you: answer even if a colleague knows more, and set handOff to that colleague only to point the manager to them.` : `Your colleagues: ${others}. If the question is really one of theirs, set handOff to that colleague and make reply ONE short sentence saying you pass it on (no answer). Otherwise handOff is "none" and you answer.`}
+You can offer actions, at most 3, only when the manager's message calls for them (a request, a decision, a change). Nothing happens until the manager clicks: so describe the result in the reply, and put the exact content in the action. Each action: a short label (a verb phrase in the manager's language), a one-line why with the fact behind it. Every field of an action must be present: use "", "none", "unchanged", 0, -1 or [] for the parts that do not apply.
+What you can offer:
+${CAN[agent]}
 ${directives(this.#svc, projectId)}
-
-Your current instructions from the manager: ${cfg.instructions || '(none)'}
+Your standing instructions from the manager: ${cfg.instructions || '(none)'}
 Your settings: ${cfg.enabled ? 'on' : 'off'}, ${cfg.workers} worker(s).
-Your latest work:
-${last.map(a => `- ${a.summary}`).join('\n') || '(none yet)'}
 
+YOUR MATERIAL
+${ground.text || '(nothing loaded yet: say what you would need)'}
+${research ? `\n${research}\n` : ''}
 Conversation so far:
-${history.map(m => `${m.role === 'user' ? 'Manager' : 'You'}: ${m.text}`).join('\n') || '(none)'}
-${context ? `What the manager is looking at right now (they know it, do not repeat it back, just use it to answer):\n${context}\n` : ''}${research ? `${research}\n` : ''}${subjectId ? `The piece being discussed has id "${subjectId}". Pictures are generated by the team on the manager's confirmation (one paid call per shot): when the manager wants pictures for this piece, put "${subjectId}" in generate for every missing shot, or "${subjectId}:N" for shot N only (0-based), and say what will be generated. Videos are filmed by the manager: never promise one.\n` : ''}Manager: ${message}`,
-      AgentReply, 'agent_reply', images.length > 0 ? { images } : undefined);
-    const actions: SuggestedAction[] = r.newInstructions.trim() && r.newInstructions.trim() !== cfg.instructions.trim()
-      ? [{ kind: 'configure', label: 'Apply this new behaviour', agent, instructions: r.newInstructions.trim() }] : [];
-    const shot = parseGenerate(r.generate, projectId, subjectId, this.#svc);
-    if (shot) actions.push(shot);
-    this.#store.addChat(projectId, thread, 'agent', r.reply, actions, at());
-    return this.#store.chat(projectId, thread);
+${history.map(m => `${names(m)}: ${m.text}`).join('\n') || '(none)'}
+${context ? `What the manager is looking at right now (they know it, do not repeat it back, just use it to answer):\n${context}\n` : ''}Manager: ${message}`,
+      Reply, agent === 'director' ? 'director_reply' : 'agent_reply', images.length > 0 ? { images } : undefined);
+    // The model may leave an action half filled: complete it with the empty shape before checking it.
+    const reply = { ...r, actions: r.actions.map(a => ({ ...EMPTY_ACTION, ...a })) };
+    return { reply, basis: ground.basis };
   }
 
   setConfig(projectId: string, agent: AgentId, patch: Partial<AgentConfig>): AgentConfig {
@@ -746,22 +713,57 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
   }
 
   // The manager confirmed a suggestion.
-  async apply(projectId: string, projectName: string, a: SuggestedAction): Promise<{ started?: boolean }> {
+  async apply(projectId: string, projectName: string, a: SuggestedAction): Promise<{ started?: boolean; itemId?: string }> {
+    const svc = this.#svc;
+    const mine = (id?: string) => {
+      const item = id ? this.#store.item(id) : undefined;
+      if (!item || item.projectId !== projectId) throw new Error('unknown piece in this project');
+      return item;
+    };
     if (a.kind === 'run') {
       const agents = (a.agents ?? []).filter(x => (WORKERS as readonly string[]).includes(x) || x === 'director');
       if (!agents.length) throw new Error('no agent to run');
       return { started: this.start(projectId, projectName, agents, a.brief ?? '') };
     }
     if (a.kind === 'generate' && a.itemId) {
-      const item = this.#store.item(a.itemId);
-      if (!item || item.projectId !== projectId) throw new Error('unknown piece in this project');
-      if (a.index === undefined) await this.#svc.generateMissing(a.itemId);
-      else await this.#svc.generateSlide(a.itemId, a.index);
+      mine(a.itemId);
+      if (a.index === undefined) await svc.generateMissing(a.itemId);
+      else await svc.generateSlide(a.itemId, a.index);
       return {};
     }
     if (a.kind === 'configure' && a.agent) {
       this.setConfig(projectId, a.agent, { ...(a.enabled === undefined ? {} : { enabled: a.enabled }), ...(a.workers === undefined ? {} : { workers: a.workers }), ...(a.instructions === undefined ? {} : { instructions: a.instructions }) });
       return {};
+    }
+    if (a.kind === 'revise' && a.itemId && a.instruction?.trim()) {
+      const item = mine(a.itemId);
+      if (!item.draft) throw new Error('nothing written yet to revise');
+      await svc.revise(a.itemId, a.instruction.trim());
+      return { itemId: a.itemId };
+    }
+    if (a.kind === 'rebrief' && a.itemId && a.brief?.trim()) {
+      mine(a.itemId);
+      svc.editItem(a.itemId, { brief: a.brief.trim() });
+      svc.step(a.itemId, 'edited', a.by ?? 'you', `${a.by ? 'Changed the brief in the chat' : 'Changed what it should say'}: ${a.brief.trim().slice(0, 120)}`);
+      return { itemId: a.itemId };
+    }
+    if (a.kind === 'date' && a.itemId && a.date) {
+      mine(a.itemId);
+      svc.editItem(a.itemId, { fixedDate: a.date });
+      svc.step(a.itemId, 'edited', a.by ?? 'you', `Moved to ${a.date}${a.by ? ' from the chat' : ''}`);
+      return { itemId: a.itemId };
+    }
+    if (a.kind === 'propose' && a.title?.trim() && a.brief?.trim()) {
+      const by = a.by && a.by !== 'director' ? a.by : 'strategist';
+      const source = by === 'scout' ? 'trend' : by === 'analyst' ? 'account' : 'roadmap';
+      const item = this.#store.addItem({
+        projectId, kind: a.pieceKind ?? 'social-post', title: a.title.trim(), brief: a.brief.trim(), origin: 'ai', status: 'idea', source,
+        rationale: a.why ?? '', fixedDate: a.date && /^\d{4}-\d{2}-\d{2}$/.test(a.date) ? a.date : addDays(day(svc.now), 7),
+        ...(a.hook || a.channel ? { pitch: { hook: a.hook ?? '', channel: a.channel ?? '', measure: '' } } : {}),
+        createdAt: svc.now.toISOString(),
+      });
+      svc.step(item.id, 'proposed', by, `Proposed in the chat${a.why ? `: ${a.why.slice(0, 140)}` : ''}`);
+      return { itemId: item.id };
     }
     throw new Error('nothing to apply');
   }

@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { contentApi, teamApi, type AccountPost, type AgentId, type ContentItem, type ContentView, type Event, type Find, type Fix, type Player, type Reading, type Strategy, type TeamView } from '../api';
 import { KIND_HUE, KindChip, ago, fmt, useAction } from './shared';
 import { hue } from './Numbers';
-import { Brief, Piece } from './NextView';
 import { Ahead, Compare, Dots, Strip, Timeline, dateIn, followersIn } from './charts';
 import type { View } from './Studio';
 
@@ -34,61 +33,8 @@ export function DutyLine({ team, go }: { team: TeamView; go: (v: View) => void }
 }
 
 // --- Create: proposals to judge, then every accepted piece with the step it is at and the one thing it needs
-export function CreateBoard(p: Common) {
-  const { view, team, reload, open, askAgent } = p;
-  const ideas = view.items.filter(i => i.status === 'idea');
-  const making = view.items.filter(i => ['briefed', 'drafted', 'approved'].includes(i.status)).sort((a, b) => (a.fixedDate ?? a.date ?? '9999').localeCompare(b.fixedDate ?? b.date ?? '9999'));
-  const posted = view.items.filter(i => i.status === 'published').sort((a, b) => (b.fixedDate ?? b.date ?? '').localeCompare(a.fixedDate ?? a.date ?? '')).slice(0, 5);
-  const note = team.synthesis;
-  return (
-    <div className="stack">
-      <Brief pid={p.pid} team={team} reload={reload} />
-      {note && <p className="note-line"><b>Director, {ago(note.at)}:</b> {note.data.headline} <button className="linkish tight" onClick={() => askAgent('director')}>Ask →</button></p>}
-      <section className="card">
-        <div className="head"><h3>Proposed for you {ideas.length > 0 && <span className="count">{ideas.length}</span>}</h3><span className="hint small">Each card says the situation it answers, who it is for, the first line, and what we will count. Yes sends it to the Writer. No teaches the team.</span></div>
-        {ideas.length === 0 ? <p className="hint">Nothing waits for you. Say what you want above, or wait for the next pass.</p>
-          : <div className="idea-grid">{ideas.map(i => <Piece key={i.id} item={i} view={view} reload={reload} open={open} askAgent={askAgent} />)}</div>}
-      </section>
-      <section className="card">
-        <div className="head"><h3>In the making {making.length > 0 && <span className="count">{making.length}</span>}</h3><span className="hint small">Every piece you said yes to. Four steps from yes to posted; the lit one is where it stands, the button is what it needs now.</span></div>
-        {making.length === 0 ? <p className="hint">Nothing in progress. Say yes to a proposal above and it appears here.</p>
-          : <div className="making-list">{making.map(i => <Track key={i.id} item={i} reload={reload} open={open} />)}</div>}
-        {posted.length > 0 && <details className="posted"><summary className="hint small">Posted lately ({posted.length})</summary>
-          <ul className="post-lines">{posted.map(i => <li key={i.id}><span className="hint small">{fmt(i.fixedDate ?? i.date)}</span><button className="linkish" onClick={() => open(i.id)}>{cap(i.title, 80)}</button>{i.pitch?.channel && <Pill name={platformKey(i.pitch.channel)} />}</li>)}</ul></details>}
-      </section>
-    </div>
-  );
-}
-
-const STEPS: Array<[string, string]> = [['briefed', 'Accepted'], ['drafted', 'Written'], ['approved', 'Approved'], ['published', 'Posted']];
-const NEEDS: Record<string, string> = { briefed: 'The Writer has not written it yet.', drafted: 'A draft is ready: read it, change it, then approve.', approved: 'Ready to post: copy the text and the pictures, post it, come back and mark it posted.' };
-
-// One accepted piece: its picture or hook, the four steps with the current one lit, and the one action it needs.
-function Track({ item, reload, open }: { item: ContentItem; reload: () => Promise<void>; open: (id: string) => void }) {
-  const { busy, error, run } = useAction(reload);
-  const [copied, setCopied] = useState(false);
-  const first = item.media?.slides.find(s => s.file);
-  const at = STEPS.findIndex(([s]) => s === item.status);
-  const copy = () => run('copy', async () => { const pack = await contentApi.exportPack(item.id); await navigator.clipboard.writeText(pack.copyText); setCopied(true); setTimeout(() => setCopied(false), 2000); });
-  return (
-    <article className="making" style={{ ['--h' as string]: KIND_HUE[item.kind] }}>
-      <button className="making-pic" onClick={() => open(item.id)} title="Open the piece">{first ? <img src={contentApi.mediaUrl(item.id, first.file!)} alt="" /> : <span className="tile-text">{cap(item.pitch?.hook || item.draft.split('\n')[0] || item.title, 80)}</span>}</button>
-      <div className="making-body">
-        <div className="piece-meta"><KindChip kind={item.kind} />{item.pitch?.channel && <Pill name={platformKey(item.pitch.channel)} />}<span className="hint small">{fmt(item.fixedDate ?? item.date)}{item.media?.slides.some(s => s.file) ? ` · ${item.media.slides.filter(s => s.file).length} picture(s)` : ''}</span></div>
-        <b className="making-title">{item.title}</b>
-        <ol className="stages">{STEPS.map(([s, label], n) => <li key={s} className={n < at ? 'done' : n === at ? 'now' : ''}><i>{n < at ? '✓' : n + 1}</i>{label}</li>)}</ol>
-        <p className="hint small">{NEEDS[item.status]}</p>
-        <div className="row piece-actions">
-          {item.status === 'briefed' && <button className="primary" disabled={busy !== ''} onClick={() => run('draft', () => contentApi.draft(item.id))}>{busy === 'draft' ? 'Writing…' : 'Write it now'}</button>}
-          {item.status === 'drafted' && <><button className="primary" onClick={() => open(item.id)}>Read and edit</button><button disabled={busy !== ''} onClick={() => run('ok', () => contentApi.approve(item.id))}>{busy === 'ok' ? '…' : 'Approve as is'}</button></>}
-          {item.status === 'approved' && <><button className="primary" disabled={busy !== ''} onClick={copy}>{copied ? 'Copied' : 'Copy the post'}</button><button disabled={busy !== ''} onClick={() => run('posted', () => contentApi.publish(item.id))}>Mark as posted</button></>}
-          <button className="linkish" onClick={() => open(item.id)}>Open →</button>
-        </div>
-        {error && <p className="error">{error}</p>}
-      </div>
-    </article>
-  );
-}
+// The Create page is the thread of a post, in Flow.tsx.
+export { FlowBoard as CreateBoard } from './Flow';
 
 // --- Platforms: one card per place you publish, with its real rhythm, and where to feed it
 export function PlatformsBoard({ pid, team, view, reload }: Common) {
@@ -98,7 +44,10 @@ export function PlatformsBoard({ pid, team, view, reload }: Common) {
   return (
     <div className="stack">
       <div className="platforms">{names.map(n => <PlatformCard key={n} pid={pid} name={n} profile={view.profile} working={Boolean(team.working)} connected={n === 'instagram' && team.connected?.instagram} lastRead={team.snapshots.filter(s => platformKey(s.platform) === n).at(-1)?.at} posts={posts.filter(p => platformKey(p.platform ?? 'instagram') === n)} snaps={team.snapshots.filter(s => platformKey(s.platform) === n)} planned={view.items.filter(i => i.status !== 'published' && i.status !== 'rejected' && i.pitch?.channel && platformKey(i.pitch.channel) === n || (i.pitch?.channel ?? '').toLowerCase().includes(n))} reload={reload} />)}</div>
-      <p className="hint small">Pieces leave the studio {view.profile.publishMode === 'connected' ? 'through your Meta app' : view.profile.publishMode === 'assisted' ? 'by hand, via your scheduler' : 'by hand: copy the approved post, publish it, mark it posted'}.</p>
+      <div className="row export-row">
+        <p className="hint small">Pieces leave the studio {view.profile.publishMode === 'connected' ? 'through your Meta app' : view.profile.publishMode === 'assisted' ? 'by hand, via your scheduler' : 'by hand: copy the approved post, publish it, mark it posted'}.</p>
+        {view.items.some(i => i.status === 'approved' && i.draft) && <a className="button" href={contentApi.exportWeekUrl(pid)} download title="One ZIP: posts.csv (date, channel, title, caption, hashtags, media) and a folder per piece with its caption and pictures, ready for Buffer, Later or Business Suite">Export the approved pieces (ZIP) ↓</a>}
+      </div>
     </div>
   );
 }
@@ -191,7 +140,8 @@ export function CommunityBoard({ pid, team, reload, go, askAgent }: Common) {
   const li = f.reach;
   const liHue = PLATFORM_HUE.linkedin;
   const readings = report?.data.readings ?? [];
-  const Read = ({ fact }: { fact: Reading['fact'] }) => { const r = readings.find(x => x.fact === fact); return r ? <p className="reading"><b>Analyst:</b> {r.meaning}{r.action && r.action.toLowerCase() !== 'nothing' ? <> <span className="todo">→ {r.action}</span></> : null}</p> : null; };
+  // The action first, in the accent; the meaning after, short. The numbers stay on the drawing.
+  const Read = ({ fact }: { fact: Reading['fact'] }) => { const r = readings.find(x => x.fact === fact); if (!r) return null; const act = r.action && r.action.toLowerCase() !== 'nothing' ? r.action : ''; return <p className="reading">{act ? <span className="todo">→ {act}</span> : <span className="todo muted">Nothing to change here.</span>}<span className="meaning"><b>Analyst:</b> {r.meaning}</span></p>; };
   const hk = f.hooks;
   const bestHook = [...hk].filter(h => h.n >= 3).sort((a, b) => b.avg - a.avg)[0];
   const HOOK: Record<string, string> = { question: 'a question', number: 'a number', you: '“vous” / you', other: 'a statement' };
@@ -205,7 +155,7 @@ export function CommunityBoard({ pid, team, reload, go, askAgent }: Common) {
           {f.silences.length ? ` ${f.silences.length === 1 ? 'One silence' : `${f.silences.length} silences`} of more than three weeks: ${f.silences.map(s => `${s.days} days from ${fmtY(s.from)}`).join(', ')}. Each one resets what the audience remembers.` : ' No silence longer than three weeks: the account stays in view.'}
           {f.comments === 0 ? ` No one has commented on any post${asked ? `; your last question, ${fmt(asked.postedAt)}, got no answer` : ''}.` : ` ${f.comments} comments in all.`}
         </p>
-        {readings.find(r => r.fact === 'pace') && <p className="reading"><b>Analyst:</b> {readings.find(r => r.fact === 'pace')!.meaning} <span className="todo">→ {readings.find(r => r.fact === 'pace')!.action}</span></p>}
+        <Read fact="pace" />
         {[...new Set(posts.map(p => platformKey(p.platform ?? 'instagram')))].length > 1 && <div className="legend">{[...new Set(posts.map(p => platformKey(p.platform ?? 'instagram')))].map(p => <span key={p}><i style={{ background: `hsl(${pHue(p)} 65% 50%)` }} />{title(p)}</span>)}</div>}
       </section>
 

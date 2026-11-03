@@ -1,7 +1,7 @@
 import { teamApi, type AgentId, type ContentView, type TeamView } from '../api';
 import { AGENT_HUE, ago, useAction } from './shared';
 import { ABOUT, Avatar, agentState } from './Agents';
-import { Chat } from './Chat';
+import { TeamChat, type Subject } from './Chat';
 import type { View } from './Studio';
 
 const UNIT: Record<string, string> = { scout: 'researcher', analyst: 'analyst', strategist: 'strategist', writer: 'writer' };
@@ -68,7 +68,7 @@ export function OrgChart({ pid, team, go, reload, onAsk }: { pid: string; team: 
   );
 }
 
-export function DirectorPage({ pid, team, view, reload, go }: { pid: string; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void }) {
+export function DirectorPage({ pid, team, view, reload, go, subject }: { pid: string; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; subject?: Subject }) {
   const waiting = view.items.filter(i => i.status === 'idea').length;
   const s = team.synthesis;
   return (
@@ -78,8 +78,7 @@ export function DirectorPage({ pid, team, view, reload, go }: { pid: string; tea
         <section className="card">
           <h3>Talk to the Director</h3>
           <p className="hint small">Say what you want. It answers, proposes what to run or change, and sends you to the right agent when you need to talk to them directly.</p>
-          <Chat pid={pid} agent="director" reload={reload} goAgent={a => go(`agent:${a}`)} placeholder="e.g. Prepare the beta, and look deeper at what works…"
-            starters={['What should we do this week?', 'Do a deeper field research', 'Why is the beta late, and what should we post?']} />
+          <TeamChat pid={pid} team={team} view={view} base="director" lock="director" subject={subject} hint="agent:director" reload={reload} onTalk={a => go(`agent:${a}`)} onOpenItem={id => { go('studio'); window.location.hash = `#/projects/${pid}/content/studio/item/${id}`; }} />
         </section>
         <div className="stack">
           <section className="card">

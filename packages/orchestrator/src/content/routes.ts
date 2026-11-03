@@ -118,6 +118,11 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore, team 
   });
   // Pictures of a post: one slide, or every slide that has none yet. Each call is a paid image generation.
   app.post('/items/:id/media/generate', c => guard(c, () => svc.generateMissing(c.req.param('id'))));
+  // The manager's own picture on a slide, sent as base64 (JPEG, PNG or WebP, 8 MB at most). No model call.
+  app.post('/items/:id/media/:index/upload', async c => {
+    const b = await body(c, z.object({ type: z.enum(['image/jpeg', 'image/png', 'image/webp']), data: z.string().min(1).max(12 * 1024 * 1024) }));
+    return isResponse(b) ? b : guard(c, () => svc.uploadSlide(c.req.param('id'), Number(c.req.param('index')), Buffer.from(b.data, 'base64'), b.type));
+  });
   app.post('/items/:id/media/:index/generate', async c => {
     const b = await body(c, z.object({ visual: z.string().max(2000).optional() }));
     return isResponse(b) ? b : guard(c, () => svc.generateSlide(c.req.param('id'), Number(c.req.param('index')), b.visual));
@@ -143,6 +148,18 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore, team 
   });
   // The ready-to-post pack: exact text to paste and media to attach. No Meta app involved.
   app.get('/items/:id/export-pack', c => guard(c, () => svc.exportPack(c.req.param('id'))));
+  // Every approved piece in one ZIP for a scheduler: posts.csv plus a folder per piece with its caption and pictures.
+  app.get('/projects/:pid/export-week', c => {
+    if (!known(c)) return c.json({ error: 'unknown project' }, 404);
+    const pack = svc.weekPack(c.req.param('pid'));
+    if (!pack.count) return c.json({ error: 'nothing approved to export yet' }, 400);
+    return c.body(new Uint8Array(pack.zip), 200, { 'content-type': 'application/zip', 'content-disposition': `attachment; filename="${pack.name}"`, 'cache-control': 'no-store' });
+  });
+  // A posted piece and the real post it became: the manager confirms the match the server offers.
+  app.post('/items/:id/match', async c => {
+    const b = await body(c, z.object({ postId: z.number().int().min(1) }));
+    return isResponse(b) ? b : guard(c, () => svc.confirmMatch(c.req.param('id'), b.postId));
+  });
 
   // Changelog from the repository's own history. A git hook can call this after each merge (see README).
   app.post('/projects/:pid/content/from-git', async c => {
@@ -201,7 +218,7 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore, team 
     return isResponse(b) ? b : guard(c, () => { svc.linkPost(c.req.param('pid'), Number(c.req.param('postId')), b.itemId); return { ok: true }; });
   });
 
-  // The director first, then any agent: a conversation, a configuration, and the manager's confirmation of what was suggested.
+  // The team: its settings, the manager's confirmation of what a chat offered, and the conversation itself (/team/talk).
   const Agent = z.enum(['director', 'scout', 'analyst', 'strategist', 'writer']);
   // The picture a field example's page advertises, fetched once and cached. No model call.
   app.get('/projects/:pid/team/thumb', async c => {
@@ -210,29 +227,38 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore, team 
     const t = await thumbnail(url, svc.thumbDir);
     return t ? c.body(readFileSync(t.path), 200, { 'content-type': t.type, 'cache-control': 'public, max-age=86400' }) : c.json({ error: 'no picture on that page' }, 404);
   });
-  app.get('/projects/:pid/team/chat/:agent', c => {
-    const a = Agent.safeParse(c.req.param('agent'));
-    return known(c) && a.success ? c.json(svc.store.chat(c.req.param('pid'), chatThread(a.data, c.req.query('about') ?? ''))) : c.json({ error: 'unknown project or agent' }, 404);
-  });
-  app.post('/projects/:pid/team/chat/:agent', async c => {
-    const a = Agent.safeParse(c.req.param('agent'));
-    if (!known(c) || !a.success) return c.json({ error: 'unknown project or agent' }, 404);
-    const b = await body(c, z.object({ message: z.string().trim().min(1).max(2000), context: z.string().trim().max(4000).default(''), about: z.string().trim().max(80).default('') }));
-    return isResponse(b) ? b : guard(c, () => team.chatAgent(c.req.param('pid'), a.data, b.message, b.context, b.about));
-  });
   app.patch('/projects/:pid/team/agents/:agent', async c => {
     const a = Agent.safeParse(c.req.param('agent'));
     if (!known(c) || !a.success) return c.json({ error: 'unknown project or agent' }, 404);
     const b = await body(c, z.object({ enabled: z.boolean(), workers: z.number().int().min(1).max(3), instructions: z.string().max(2000) }).partial());
     return isResponse(b) ? b : guard(c, () => team.setConfig(c.req.param('pid'), a.data, b));
   });
+  // What the manager confirmed from a chat: run, configure, generate, revise, rebrief, propose, date.
   app.post('/projects/:pid/team/actions', async c => {
     if (!known(c)) return c.json({ error: 'unknown project' }, 404);
-    const b = await body(c, z.object({ kind: z.enum(['run', 'configure', 'generate']), label: z.string().max(200).default(''), agents: z.array(Agent).max(4).optional(), brief: z.string().max(2000).optional(), agent: Agent.optional(), enabled: z.boolean().optional(), workers: z.number().int().min(1).max(3).optional(), instructions: z.string().max(2000).optional(), itemId: z.string().max(40).optional(), index: z.number().int().min(0).max(20).optional() }));
+    const b = await body(c, z.object({
+      kind: z.enum(['run', 'configure', 'generate', 'revise', 'rebrief', 'propose', 'date']), label: z.string().max(200).default(''), why: z.string().max(400).optional(), by: Agent.optional(),
+      agents: z.array(Agent).max(4).optional(), brief: z.string().max(2000).optional(), agent: Agent.optional(), enabled: z.boolean().optional(), workers: z.number().int().min(1).max(3).optional(), instructions: z.string().max(2000).optional(),
+      itemId: z.string().max(40).optional(), index: z.number().int().min(0).max(20).optional(), instruction: z.string().max(2000).optional(),
+      title: z.string().max(160).optional(), hook: z.string().max(400).optional(), channel: z.string().max(80).optional(), pieceKind: ItemKind.optional(), date: Date_.optional(),
+    }));
     return isResponse(b) ? b : guard(c, () => team.apply(c.req.param('pid'), projects.get(c.req.param('pid'))!.name, b));
   });
 
+  // The team's conversation: one thread for the studio (or per piece / goal), any agent may answer.
+  const Base = z.enum(['team', 'director', 'scout', 'analyst', 'strategist', 'writer']);
+  app.get('/projects/:pid/team/talk', c => {
+    const base = Base.safeParse(c.req.query('base') ?? 'team');
+    return known(c) && base.success ? c.json(svc.store.chat(c.req.param('pid'), chatThread(base.data, c.req.query('about') ?? ''))) : c.json({ error: 'unknown project or thread' }, 404);
+  });
+  app.post('/projects/:pid/team/talk', async c => {
+    if (!known(c)) return c.json({ error: 'unknown project' }, 404);
+    const b = await body(c, z.object({ message: z.string().trim().min(1).max(2000), context: z.string().trim().max(4000).default(''), about: z.string().trim().max(80).default(''), hint: z.string().trim().max(40).default(''), agent: Agent.optional(), base: Base.default('team') }));
+    return isResponse(b) ? b : guard(c, () => team.ask(c.req.param('pid'), b));
+  });
+
   app.post('/items/:id/accept', c => guard(c, () => svc.accept(c.req.param('id'))));
+  app.post('/items/:id/restore', c => guard(c, () => svc.restore(c.req.param('id'))));
   app.post('/items/:id/reject', async c => {
     const b = await body(c, z.object({ reason: z.string().trim().max(500).default('') }));
     return isResponse(b) ? b : guard(c, () => svc.reject(c.req.param('id'), b.reason));

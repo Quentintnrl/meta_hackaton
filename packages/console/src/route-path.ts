@@ -28,6 +28,8 @@ export function appViewToHash(view: AppView): string {
 
 export const STUDIO_PAGES = ['studio', 'platforms', 'community', 'watch', 'agenda', 'settings', 'next', 'today', 'create', 'calendar', 'insights', 'team'];
 export const STUDIO_AGENTS = ['director', 'scout', 'analyst', 'strategist', 'writer'];
+// Who a chat is addressed to: one agent, or the whole team (the question is routed to the right one).
+export const CHAT_TARGETS = [...STUDIO_AGENTS, 'team'];
 
 // Old pages land on their replacement: nothing bookmarked breaks.
 const LEGACY_PAGE: Record<string, string> = { inbox: 'today', roadmap: 'calendar', field: 'insights', account: 'insights', orders: 'team' };
@@ -52,7 +54,7 @@ export function parseStudio(path: string, projectId: string): { page: string; op
   else if (LEGACY_PAGE[tail[0]]) { page = LEGACY_PAGE[tail[0]]; tail = tail.slice(1); }
   const openId = tail[0] === 'item' && tail[1] ? tail[1] : null;
   if (openId) tail = tail.slice(2);
-  const about: About | null = (tail[0] === 'about' && STUDIO_AGENTS.includes(tail[1]))
+  const about: About | null = (tail[0] === 'about' && CHAT_TARGETS.includes(tail[1]))
     ? { agent: tail[1], kind: (tail[2] === 'item' || tail[2] === 'milestone') && tail[3] ? tail[2] : null, id: (tail[2] === 'item' || tail[2] === 'milestone') && tail[3] ? tail[3] : null }
     : null;
   return { page, openId, about };
@@ -61,7 +63,7 @@ export function parseStudio(path: string, projectId: string): { page: string; op
 export function studioToHash(projectId: string, page: string, openId: string | null, about?: About | null): string {
   const seg = page.startsWith('agent:') ? `agent/${page.slice(6)}` : page;
   let h = openId ? `${studioBase(projectId)}/${seg}/item/${openId}` : `${studioBase(projectId)}/${seg}`;
-  if (about && STUDIO_AGENTS.includes(about.agent)) {
+  if (about && CHAT_TARGETS.includes(about.agent)) {
     h += `/about/${about.agent}`;
     if ((about.kind === 'item' || about.kind === 'milestone') && about.id) h += `/${about.kind}/${about.id}`;
   }

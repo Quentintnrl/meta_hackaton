@@ -9,8 +9,10 @@ import type { LLM } from '../adapters/llm.ts';
 
 const now = new Date('2026-11-01T09:00:00Z');
 
-let directorReply: unknown = { reply: 'On it.', talkTo: 'none', actions: [] };
-let agentReply: unknown = { reply: 'Sure.', newInstructions: '', generate: '' };
+// The fake model answers in the team's reply shape: words, a hand-off, actions. `act` fills an action's empty fields.
+const act = (a: Record<string, unknown>) => ({ kind: 'run', label: '', why: '', agents: [], brief: '', agent: 'none', enabled: 'unchanged', workers: 0, instructions: '', instruction: '', newBrief: '', title: '', hook: '', channel: '', pieceKind: 'none', date: '', shot: -1, ...a });
+let directorReply: unknown = { reply: 'On it.', handOff: 'none', actions: [] };
+let agentReply: unknown = { reply: 'Sure.', handOff: 'none', actions: [] };
 
 function setup(over: Partial<LLM> = {}) {
   const prompts: Record<string, string> = {};
@@ -226,17 +228,17 @@ test('the writer offers to generate the missing pictures, and one click does it'
   const { svc, team } = setup();
   const item = svc.store.addItem({ projectId: 'app', origin: 'ai', createdAt: now.toISOString(), kind: 'social-post', title: 'Posters', brief: 'call', status: 'drafted' });
   svc.store.updateItem(item.id, { media: { format: 'image', hashtags: [], slides: [{ kind: 'image', visual: 'a poster', text: 'Hi', seconds: 0 }] } });
-  agentReply = { reply: 'I can generate it.', newInstructions: '', generate: item.id };
+  agentReply = { reply: 'I can generate it.', handOff: 'none', actions: [act({ kind: 'generate', label: 'Make it', shot: -1 })] };
   const msgs = await team.chatAgent('app', 'writer', 'generate the image of the post', 'Piece "Posters" (social-post, drafted).', `item:${item.id}`);
   const offer = msgs.at(-1)!.actions.find(a => a.kind === 'generate');
   assert.ok(offer, 'a generate button is proposed, nothing generated yet');
   assert.ok(!svc.store.item(item.id)!.media!.slides[0].file);
   await team.apply('app', 'App', offer!);
   assert.ok(svc.store.item(item.id)!.media!.slides[0].file, 'the picture was generated on confirmation');
-  agentReply = { reply: 'Nope.', newInstructions: '', generate: 'ffffffff' };
+  agentReply = { reply: 'Nope.', handOff: 'none', actions: [act({ kind: 'generate', label: 'Make it', shot: 7 })] };
   const again = await team.chatAgent('app', 'writer', 'generate it', 'Piece "Posters" (social-post, drafted).', `item:${item.id}`);
-  assert.ok(!again.at(-1)!.actions.some(a => a.kind === 'generate'), 'a forged piece id is ignored');
-  agentReply = { reply: 'Sure.', newInstructions: '', generate: '' };
+  assert.ok(!again.at(-1)!.actions.some(a => a.kind === 'generate'), 'a shot that does not exist is ignored');
+  agentReply = { reply: 'Sure.', handOff: 'none', actions: [] };
 });
 
 test('a refused proposal teaches the next round', async () => {
@@ -332,30 +334,34 @@ test('instructions given to an agent reach its prompt, and only its prompt', asy
 
 test('the director answers first, suggests actions, and nothing runs until they are confirmed', async () => {
   const { svc, team } = setup();
-  directorReply = { reply: 'I would add two scouts.', talkTo: 'scout', actions: [
-    { label: 'Use 2 scouts', kind: 'configure', agents: [], brief: '', agent: 'scout', enabled: 'unchanged', workers: 2 },
-    { label: 'Run the research', kind: 'run', agents: ['scout'], brief: 'beta', agent: 'none', enabled: 'unchanged', workers: 0 },
-    { label: 'Broken', kind: 'configure', agents: [], brief: '', agent: 'none', enabled: 'off', workers: 0 },
+  directorReply = { reply: 'I would add two scouts.', handOff: 'scout', actions: [
+    act({ label: 'Use 2 scouts', kind: 'configure', agent: 'scout', workers: 2, why: 'two angles at once' }),
+    act({ label: 'Run the research', kind: 'run', agents: ['scout'], brief: 'beta' }),
+    act({ label: 'Broken', kind: 'configure', agent: 'director', enabled: 'off' }),
   ] };
   const chat = await team.chatDirector('app', 'Research more deeply');
   assert.deepEqual(chat.map(m => m.role), ['user', 'agent']);
+  assert.equal(chat[1].agent, 'director', 'the message says who answered');
   const a = chat[1].actions;
-  assert.deepEqual(a.map(x => x.kind), ['configure', 'run', 'talk'], 'an action with no target is dropped, the handoff is added');
+  assert.deepEqual(a.map(x => x.kind), ['configure', 'run', 'talk'], 'switching the director off is dropped; on its own thread the hand-off is a door');
   assert.equal(a[2].agent, 'scout');
+  assert.equal(a[0].why, 'two angles at once');
   assert.equal(svc.store.agentConfig('app', 'scout').workers, 1, 'nothing applied yet');
   team.apply('app', 'App', a[0]);
   assert.equal(svc.store.agentConfig('app', 'scout').workers, 2);
+  directorReply = { reply: 'On it.', handOff: 'none', actions: [] };
 });
 
 test('an agent proposes a new behaviour; it is only applied on confirmation', async () => {
   const { svc, team } = setup();
-  agentReply = { reply: 'I will keep it short.', newInstructions: 'Keep every proposal under 10 words.', generate: '' };
+  agentReply = { reply: 'I will keep it short.', handOff: 'none', actions: [act({ kind: 'configure', label: 'Apply', agent: 'writer', instructions: 'Keep every proposal under 10 words.' }), act({ kind: 'configure', label: 'Sneaky', agent: 'scout', instructions: 'Stop searching.' })] };
   const chat = await team.chatAgent('app', 'writer', 'Write shorter');
+  assert.equal(chat.at(-1)!.actions.length, 1, 'an agent only changes its own behaviour');
   assert.equal(chat.at(-1)!.actions[0].instructions, 'Keep every proposal under 10 words.');
   assert.equal(svc.store.agentConfig('app', 'writer').instructions, '');
   team.apply('app', 'App', chat.at(-1)!.actions[0]);
   assert.equal(svc.store.agentConfig('app', 'writer').instructions, 'Keep every proposal under 10 words.');
-  agentReply = { reply: 'Sure.', newInstructions: '', generate: '' };
+  agentReply = { reply: 'Sure.', handOff: 'none', actions: [] };
   assert.deepEqual((await team.chatAgent('app', 'writer', 'thanks')).at(-1)!.actions, []);
   assert.equal(svc.store.chat('app', 'scout').length, 0, 'each agent has its own conversation');
 });
@@ -457,4 +463,74 @@ test('a connected Instagram account is read by the app before the Analyst works,
   assert.deepEqual(svc.store.snapshots('app').map(s => [s.platform, s.followers]), [['instagram', 44]]);
   assert.ok(svc.store.activity('app').some(a => a.agent === 'scout' && /Read Instagram @mairie360: 1 posts, 44 followers/.test(a.summary)));
   assert.ok(svc.store.latestReport('app', 'account'), 'the Analyst then read the fresh posts');
+});
+
+test('a question goes to the agent whose job it is, with no model call for the routing', async () => {
+  const { svc, team, prompts } = setup();
+  team.loadDemoAccount('app', 'App');
+  await team.ask('app', { message: 'Why did my likes drop in October?', hint: 'studio' });
+  const t = svc.store.chat('app', 'team');
+  assert.equal(t.at(-1)!.agent, 'analyst', 'numbers are the Analyst\'s');
+  assert.match(prompts.agent_reply, /THE ACCOUNT \(14 posts, demo data\)/, 'the Analyst reads the real facts');
+  assert.match(prompts.agent_reply, /Best three by engagement/);
+  assert.ok(t.at(-1)!.basis!.includes('your 14 posts'), 'the console can say what it leaned on');
+  await team.ask('app', { message: 'What are the competitors posting about?', hint: 'studio' });
+  assert.equal(svc.store.chat('app', 'team').at(-1)!.agent, 'scout');
+  await team.ask('app', { message: 'Make the first line shorter', hint: 'studio' });
+  assert.equal(svc.store.chat('app', 'team').at(-1)!.agent, 'writer');
+  await team.ask('app', { message: 'Bonjour', hint: 'community' });
+  assert.equal(svc.store.chat('app', 'team').at(-1)!.agent, 'analyst', 'no word: the page decides');
+  await team.ask('app', { message: 'Bonjour', hint: 'watch' });
+  assert.equal(svc.store.chat('app', 'team').at(-1)!.agent, 'scout');
+  await team.ask('app', { message: 'Bonjour' });
+  assert.equal(svc.store.chat('app', 'team').at(-1)!.agent, 'director', 'nothing to go on: the Director');
+});
+
+test('an agent passes a question to a colleague, who answers in the same thread', async () => {
+  const { svc, team } = setup();
+  let n = 0;
+  agentReply = { reply: 'Passing to the Writer.', handOff: 'writer', actions: [] };
+  const llmJson = svc.llm.json.bind(svc.llm);
+  svc.llm.json = async (prompt, schema, name, opts) => {
+    if (name === 'agent_reply' && ++n === 2) return schema.parse({ reply: 'Shorter it is.', handOff: 'strategist', actions: [] });
+    return llmJson(prompt, schema, name, opts);
+  };
+  const t = await team.ask('app', { message: 'Hello', hint: 'community' });
+  assert.deepEqual(t.map(m => [m.role, m.agent ?? '']), [['user', ''], ['agent', 'analyst'], ['agent', 'writer']], 'the Analyst passes, the Writer answers');
+  assert.equal(t[1].actions[0].kind, 'talk', 'the pass-on is written down');
+  assert.deepEqual(t[2].actions, [], 'one hop only: the Writer\'s own hand-off is not followed');
+  agentReply = { reply: 'Sure.', handOff: 'none', actions: [] };
+});
+
+test('the strategist can put a piece on the board from the chat, the writer can revise one; both wait for a click', async () => {
+  const { svc, team } = setup();
+  agentReply = { reply: 'Here is another angle.', handOff: 'none', actions: [
+    act({ kind: 'propose', label: 'Add it', why: 'tutorials save best', title: 'Sunday reset in 12 minutes', newBrief: 'Show the five-dinner plan.', hook: 'Five dinners, twelve minutes.', channel: 'Instagram', pieceKind: 'social-post', date: '2026-11-20' }),
+    act({ kind: 'propose', label: 'Empty', title: '', newBrief: '' }),
+    act({ kind: 'date', label: 'Move', date: '2026-11-20' }),
+  ] };
+  const t = await team.ask('app', { message: 'Give me another angle', hint: 'studio' });
+  const a = t.at(-1)!.actions;
+  assert.deepEqual(a.map(x => x.kind), ['propose'], 'an empty proposal and a date with no piece are dropped');
+  assert.equal(a[0].by, 'strategist');
+  assert.equal(svc.store.items('app').length, 0, 'nothing on the board yet');
+  const r = await team.apply('app', 'App', a[0]);
+  const item = svc.store.item(r.itemId!)!;
+  assert.equal(item.status, 'idea'); assert.equal(item.origin, 'ai'); assert.equal(item.source, 'roadmap'); assert.equal(item.fixedDate, '2026-11-20');
+  assert.equal(item.pitch!.hook, 'Five dinners, twelve minutes.');
+  assert.match(svc.chain(item)[0].text, /Proposed in the chat/);
+
+  svc.store.updateItem(item.id, { status: 'drafted', draft: 'A long first line that goes on.' });
+  agentReply = { reply: 'I would cut the first line.', handOff: 'none', actions: [act({ kind: 'revise', label: 'Cut it', why: 'hooks under 8 words win', instruction: 'Cut the first line to five words.' }), act({ kind: 'rebrief', label: 'Brief', newBrief: 'Lead with the number.' })] };
+  const t2 = await team.ask('app', { message: 'Make the first line shorter', about: `item:${item.id}`, hint: 'studio' });
+  const w = t2.at(-1)!;
+  assert.equal(w.agent, 'writer');
+  assert.deepEqual(w.actions.map(x => x.kind), ['revise', 'rebrief']);
+  assert.equal(svc.store.item(item.id)!.draft, 'A long first line that goes on.', 'nothing changed yet');
+  await team.apply('app', 'App', w.actions[0]);
+  assert.equal(svc.store.item(item.id)!.draft, 'caption (post_revision)', 'the Writer revised on the click');
+  await team.apply('app', 'App', w.actions[1]);
+  assert.equal(svc.store.item(item.id)!.brief, 'Lead with the number.');
+  assert.ok(svc.chain(svc.store.item(item.id)!).some(s => s.kind === 'asked' && s.text.startsWith('To the team')), 'the chat about the piece is in its chain');
+  agentReply = { reply: 'Sure.', handOff: 'none', actions: [] };
 });

@@ -115,12 +115,19 @@ export interface Media { format: MediaFormat; hashtags: string[]; slides: Slide[
 export const SOCIAL_KINDS: ItemKind[] = ['social-post', 'teaser'];
 
 export interface Pitch { hook: string; channel: string; measure: string; context?: string; audience?: string }
+export type StepKind = 'proposed' | 'added' | 'accepted' | 'refused' | 'restored' | 'drafted' | 'revised' | 'edited' | 'picture' | 'approved' | 'posted' | 'matched' | 'reused' | 'asked' | 'answered';
+export interface Step { kind: StepKind; who: AgentId | 'you'; text: string; at: string }
 export interface ContentItem {
   media?: Media; pitch?: Pitch;
   id: string; projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; draft: string; status: ItemStatus;
   offsetDays?: number; fixedDate?: string; origin: 'user' | 'ai' | 'dev'; revisions: number; createdAt: string; exportedPath?: string; rationale: string; proof?: Proof; source: ItemSource; rejectedReason?: string;
   seriesId?: string; date?: string; plannedDate?: string; shiftDays?: number; reusedFrom?: string; versionCount?: number;
+  chain?: Step[]; // how it got here: every step, who did it, when
+  outcome?: Outcome; // posted and tied to the real post: what it got
+  match?: Match; // posted, not tied yet: the real post that looks like it
 }
+export interface Outcome { postId: number; platform: string; text: string; postedAt: string; likes: number; comments: number; shares: number; saves: number; views?: number; daysSince: number }
+export interface Match { postId: number; platform: string; text: string; postedAt: string; why: string }
 export type PublishMode = 'local' | 'assisted' | 'connected';
 export interface Profile { voice: string; audience: string; language: string; autoDraft: boolean; autopilot?: boolean; niche: string; directives: string; publishMode: PublishMode; cadence?: Record<string, number> }
 export interface ExportPack { copyText: string; caption: string; hashtags: string[]; mediaFiles: string[]; exportedPath?: string }
@@ -132,8 +139,11 @@ const send = <T>(method: string, path: string, body?: unknown) => call<T>(path, 
 
 export type AgentId = 'director' | 'scout' | 'analyst' | 'strategist' | 'writer';
 export interface AgentConfig { enabled: boolean; workers: number; instructions: string }
-export interface SuggestedAction { kind: 'run' | 'configure' | 'talk' | 'generate'; label: string; agents?: AgentId[]; brief?: string; agent?: AgentId; enabled?: boolean; workers?: number; instructions?: string; itemId?: string; index?: number }
-export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
+// What an agent offers after a question; nothing happens until the manager clicks. `by` is who offered it, `why` the one-line reason.
+export interface SuggestedAction { kind: 'run' | 'configure' | 'talk' | 'generate' | 'revise' | 'rebrief' | 'propose' | 'date'; label: string; why?: string; by?: AgentId; agents?: AgentId[]; brief?: string; agent?: AgentId; enabled?: boolean; workers?: number; instructions?: string; itemId?: string; index?: number; instruction?: string; title?: string; hook?: string; channel?: string; pieceKind?: ItemKind; date?: string }
+// `agent`: who answered; `basis`: what the answer leaned on, as labels.
+export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string; agent?: AgentId; basis?: string[] }
+export type ChatBase = 'team' | AgentId;
 export interface Synthesis { headline: string; points: string[]; next: string }
 // A measured figure from the field. value 0 and unit '' mean none was found: the page says so.
 export interface Figure { what: string; value: number; unit: string; source: string; period: string }
@@ -186,14 +196,18 @@ export const teamApi = {
   run: (pid: string, agents: AgentId[], brief: string) => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents, brief }),
   setAccount: (pid: string, b: { paste?: string; demo?: boolean; platform?: string; followers?: number }) => send<TeamView>('PUT', `/projects/${pid}/account`, b),
   sync: (pid: string) => send<TeamView>('POST', `/projects/${pid}/account/sync`, {}),
-  chat: (pid: string, agent: AgentId, about?: string) => call<ChatMessage[]>(`/projects/${pid}/team/chat/${agent}${about ? `?about=${encodeURIComponent(about)}` : ''}`),
-  say: (pid: string, agent: AgentId, message: string, context?: string, about?: string) => send<ChatMessage[]>('POST', `/projects/${pid}/team/chat/${agent}`, { message, context, about }),
+  // The team's conversation: one thread per base ('team', or an agent's own) and subject (a piece, a goal).
+  thread: (pid: string, base: ChatBase, about?: string) => call<ChatMessage[]>(`/projects/${pid}/team/talk?base=${base}${about ? `&about=${encodeURIComponent(about)}` : ''}`),
+  // Ask: the question goes to the agent whose job it is (or `agent`, when forced); `hint` is the page.
+  ask: (pid: string, b: { message: string; base: ChatBase; about?: string; context?: string; hint?: string; agent?: AgentId }) => send<ChatMessage[]>('POST', `/projects/${pid}/team/talk`, b),
   configure: (pid: string, agent: AgentId, patch: Partial<AgentConfig>) => send<AgentConfig>('PATCH', `/projects/${pid}/team/agents/${agent}`, patch),
   plan: (pid: string, brief = '') => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents: ['director'], brief }),
   thumbUrl: (pid: string, url: string) => `/api/projects/${pid}/team/thumb?url=${encodeURIComponent(url)}`,
-  apply: (pid: string, a: SuggestedAction) => send<{ started?: boolean }>('POST', `/projects/${pid}/team/actions`, a),
+  apply: (pid: string, a: SuggestedAction) => send<{ started?: boolean; itemId?: string }>('POST', `/projects/${pid}/team/actions`, a),
   accept: (id: string) => send<ContentItem>('POST', `/items/${id}/accept`),
   reject: (id: string, reason: string) => send<ContentItem>('POST', `/items/${id}/reject`, { reason }),
+  restore: (id: string) => send<ContentItem>('POST', `/items/${id}/restore`),
+  confirmMatch: (id: string, postId: number) => send<ContentItem>('POST', `/items/${id}/match`, { postId }),
 };
 
 export const contentApi = {
@@ -215,6 +229,8 @@ export const contentApi = {
   linkPost: (pid: string, postId: number, itemId: string | null) => send<{ ok: true }>('PATCH', `/projects/${pid}/account/${postId}`, { itemId }),
   generateSlide: (id: string, index: number, visual?: string) => send<ContentItem>('POST', `/items/${id}/media/${index}/generate`, { visual }),
   generateMissing: (id: string) => send<ContentItem>('POST', `/items/${id}/media/generate`),
+  uploadSlide: (id: string, index: number, type: string, data: string) => send<ContentItem>('POST', `/items/${id}/media/${index}/upload`, { type, data }),
+  exportWeekUrl: (pid: string) => `/api/projects/${pid}/export-week`,
   renderVideo: (id: string) => send<{ ok: boolean }>('POST', `/items/${id}/video`),
   videoUrl: (id: string, stamp: number) => `/api/items/${id}/video?v=${stamp}`,
   mediaUrl: (id: string, file: string) => `/api/items/${id}/media/${file}`,

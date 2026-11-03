@@ -148,21 +148,38 @@ export interface AgentConfig { enabled: boolean; workers: number; instructions: 
 export const MAX_WORKERS = 3;
 export const defaultAgentConfig: AgentConfig = { enabled: true, workers: 1, instructions: '' };
 
-// What the director (or an agent) suggests the manager does. Nothing happens until the manager confirms.
+// What an agent offers the manager after a question. Nothing happens until the manager clicks.
+// `by` is the agent who offered it; `why` says in one line what it changes.
 export interface SuggestedAction {
-  kind: 'run' | 'configure' | 'talk' | 'generate';
+  kind: 'run' | 'configure' | 'talk' | 'generate' | 'revise' | 'rebrief' | 'propose' | 'date';
   label: string;
+  why?: string;
+  by?: AgentId;
   agents?: AgentId[]; // run
-  brief?: string; // run
+  brief?: string; // run: what they are asked; rebrief, propose: the brief of the piece
   agent?: AgentId; // configure, talk
   enabled?: boolean; // configure
   workers?: number; // configure
   instructions?: string; // configure
-  itemId?: string; // generate: the piece getting pictures
+  itemId?: string; // generate, revise, rebrief, date: the piece concerned
   index?: number; // generate: one shot (0-based), or every missing shot when absent
+  instruction?: string; // revise: the change to make to the text
+  title?: string; // propose
+  hook?: string; // propose
+  channel?: string; // propose
+  pieceKind?: ItemKind; // propose
+  date?: string; // propose, date: YYYY-MM-DD
 }
-export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string }
+// One link of the chain a piece follows: who did what, when, in a few words. 'you' is the manager.
+export type StepKind = 'proposed' | 'added' | 'accepted' | 'refused' | 'restored' | 'drafted' | 'revised' | 'edited' | 'picture' | 'approved' | 'posted' | 'matched' | 'reused' | 'asked' | 'answered';
+export interface Step { kind: StepKind; who: AgentId | 'you'; text: string; at: string }
+// `agent`: who answered (agent messages in a team thread); `basis`: what the answer was grounded in, as labels.
+export interface ChatMessage { id: number; thread: string; role: 'user' | 'agent'; text: string; actions: SuggestedAction[]; at: string; agent?: AgentId; basis?: string[] }
 
+// What a posted piece got once it is tied to the real post: the numbers a week later, against what the pitch promised.
+export interface Outcome { postId: number; platform: string; text: string; postedAt: string; likes: number; comments: number; shares: number; saves: number; views?: number; daysSince: number }
+// A real post that looks like a posted piece, waiting for the manager to confirm the link.
+export interface Match { postId: number; platform: string; text: string; postedAt: string; why: string }
 export interface AccountPost { id?: number; platform?: string; text: string; format: string; likes: number; comments: number; shares: number; saves: number; views?: number; postedAt: string; simulated: boolean; itemId?: string } // views: impressions when the platform shows them (LinkedIn does, Instagram's public page does not) // itemId: the studio piece this post came from, linked by the manager
 export interface Series { id: string; projectId: string; name: string; createdAt: string } // a recurring editorial line: a pillar or a series
 export interface ItemLink { parentId: string; childId: string; kind: 'reuse'; createdAt: string } // a piece derived from another: recycle, decline, retry

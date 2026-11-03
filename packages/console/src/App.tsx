@@ -54,13 +54,15 @@ export function App() {
   }, [path, loaded, projects, showForm, studioId]);
 
   const project = projects.find(p => p.id === studioId);
+  // The studio's own pages are listed in the rail, under the studios: one column for everything.
+  const [rail, setRail] = useState<HTMLDivElement | null>(null);
 
   return (
     <div className="layout wide">
       <a className="skip" href="#main">Skip to content</a>
-      <aside className="side" aria-label="Studios">
+      <aside className="side rail" aria-label="Studios">
         <div className="brand">
-          <svg width="26" height="26" viewBox="0 0 32 32" fill="none" aria-hidden>
+          <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden>
             <circle cx="16" cy="16" r="4" fill="currentColor" />
             <circle cx="16" cy="16" r="9" stroke="currentColor" strokeWidth="2" opacity=".6" />
             <circle cx="16" cy="16" r="14" stroke="currentColor" strokeWidth="2" opacity=".3" />
@@ -71,21 +73,23 @@ export function App() {
           </div>
         </div>
 
-        <h3 className="eyebrow">Studios</h3>
-        {projects.map(p => (
-          <div key={p.id} className="project">
-            <button className={p.id === studioId ? 'item active' : 'item'} onClick={() => writeHashPath(`/projects/${p.id}/content`)}>
+        <div className="studios">
+          <h3 className="eyebrow">Studios</h3>
+          {projects.map(p => (
+            <button key={p.id} className={p.id === studioId ? 'item active' : 'item'} onClick={() => writeHashPath(`/projects/${p.id}/content`)}>
               <b>{p.name}</b>
             </button>
-          </div>
-        ))}
-        <button className="new" onClick={() => writeHashPath('/new')}><span>+</span> New studio</button>
+          ))}
+          <button className="new" onClick={() => writeHashPath('/new')}><span>+</span> New studio</button>
+        </div>
+
+        <div className="rail-nav" ref={setRail} />
         <ThemeSwitch />
       </aside>
 
       <main className="main" id="main" tabIndex={-1}>
         {showForm && <NewStudio first={projects.length === 0} onCreated={p => { refresh(); writeHashPath(`/projects/${p.id}/content`); }} />}
-        {!showForm && project && <Studio key={project.id} project={project} />}
+        {!showForm && project && <Studio key={project.id} project={project} rail={rail} />}
       </main>
     </div>
   );

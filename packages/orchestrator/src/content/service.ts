@@ -1,6 +1,7 @@
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { copyFileSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { crc32 } from 'node:zlib';
 import { join } from 'node:path';
 import type { Publisher } from '@ripple/shared';
 import type { LLM } from '../adapters/llm.ts';
@@ -9,9 +10,10 @@ import { calibration, moved, project } from './forecast.ts';
 import type { ImageGen } from '../adapters/image.ts';
 import { renderVideo } from './video.ts';
 import { draftItem, draftPost, explainForecast, proposeContent, reviseItem, revisePost, type FeatureFacts } from './assistant.ts';
-import { addDays, day, daysBetween, normalizeHashtags, type AccountPost, type ExportPack, type Forecast, type Item, type ItemKind, type Media, type Milestone, type Profile, type PublishMode, type Series } from './types.ts';
+import { addDays, day, daysBetween, normalizeHashtags, type AccountPost, type ExportPack, type Forecast, type Item, type ItemKind, type Match, type Media, type Milestone, type Outcome, type Profile, type PublishMode, type Series, type Step } from './types.ts';
 
 const run = promisify(execFile);
+const cut = (s: string, n = 120) => { const t = s.trim().replace(/\s+/g, ' '); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
 
 // Features that count as delivered: merged into the app.
 const DELIVERED = new Set(['APPLIED', 'FEEDBACK', 'ANNOUNCE_DRAFTED', 'PUBLISHING', 'PUBLISHED']);
@@ -32,6 +34,9 @@ export interface ScheduledItem extends Item {
   shiftDays?: number; // how far the projection moved it
   reusedFrom?: string; // titles of the pieces this one was derived from, if any
   versionCount?: number; // approved snapshots kept for this piece
+  chain: Step[]; // how it got here: every step, who did it, when
+  outcome?: Outcome; // posted pieces tied to the real post: what it got
+  match?: Match; // posted pieces not tied yet: the real post that looks like it, to confirm
 }
 
 export interface MilestoneView extends Milestone {
@@ -160,7 +165,40 @@ export class ContentService {
 
   addItem(i: { projectId: string; milestoneId?: string; featureId?: string; kind: ItemKind; title: string; brief: string; offsetDays?: number; fixedDate?: string; rationale?: string; source?: Item['source']; pitch?: Item['pitch'] }) {
     if (i.milestoneId && this.#need(i.milestoneId).projectId !== i.projectId) throw new Error('this milestone belongs to another project');
-    return this.store.addItem({ ...i, origin: 'user', createdAt: this.#now().toISOString() });
+    const item = this.store.addItem({ ...i, origin: 'user', createdAt: this.#now().toISOString() });
+    this.step(item.id, 'added', 'you', i.brief ? `Added it yourself: ${cut(i.brief)}` : 'Added it yourself');
+    return item;
+  }
+
+  // One link of the chain, written as it happens.
+  step(itemId: string, kind: Step['kind'], who: Step['who'], text: string) {
+    this.store.addStep(itemId, { kind, who, text, at: this.#now().toISOString() });
+  }
+
+  // The chain of a piece: the steps written as they happened, the chat about it, and, for a piece older than the
+  // steps table, what its fields still tell.
+  chain(item: Item): Step[] {
+    const stored = this.store.steps(item.id);
+    const talk: Step[] = this.store.chatAbout(item.id).map(m => m.role === 'user'
+      ? { kind: 'asked', who: 'you', text: `${(m.agent as string) === 'team' ? 'To the team' : `To the ${m.agent}`}: ${cut(m.text, 160)}`, at: m.at }
+      : { kind: 'answered', who: m.agent, text: cut(m.text, 160), at: m.at });
+    const steps = stored.length ? stored : this.#derived(item);
+    return [...steps, ...talk].sort((a, b) => a.at.localeCompare(b.at));
+  }
+
+  #derived(item: Item): Step[] {
+    const out: Step[] = [];
+    const born = item.createdAt;
+    if (item.origin === 'ai') out.push({ kind: 'proposed', who: 'strategist', text: cut(item.rationale.split('\nEvidence: ')[0]) || 'Proposed it', at: born });
+    else out.push({ kind: 'added', who: 'you', text: item.origin === 'dev' ? 'Came from the dev workflow' : 'Added it yourself', at: born });
+    if (item.status === 'rejected') out.push({ kind: 'refused', who: 'you', text: item.rejectedReason ? `Refused: ${item.rejectedReason}` : 'Refused it', at: born });
+    else if (item.status !== 'idea') out.push({ kind: 'accepted', who: 'you', text: 'Said yes', at: born });
+    if (item.revisions > 0) out.push({ kind: 'drafted', who: 'writer', text: item.revisions > 1 ? `Wrote it, ${item.revisions} versions` : 'Wrote the first draft', at: born });
+    for (const s of item.media?.slides ?? []) if (s.file) out.push({ kind: 'picture', who: 'you', text: `Generated a picture: ${cut(s.visual, 80)}`, at: born });
+    for (const v of this.store.versions(item.id)) out.push({ kind: 'approved', who: 'you', text: 'Signed it off', at: v.createdAt });
+    if (item.status === 'approved' && this.store.versions(item.id).length === 0) out.push({ kind: 'approved', who: 'you', text: 'Signed it off', at: born });
+    if (item.status === 'published') out.push({ kind: 'posted', who: 'you', text: 'Posted it', at: item.publishedAt ?? born });
+    return out;
   }
 
   // Asks the AI for a content plan around a milestone. The pieces come back as ideas: the user corrects the briefs before anything is written.
@@ -178,12 +216,25 @@ export class ContentService {
   // The manager's answer to a proposal. Accepting puts it in the calendar; refusing keeps the reason, which the strategist reads next time.
   accept(itemId: string): Item {
     const i = this.#needItem(itemId);
-    return this.store.updateItem(itemId, { status: i.draft ? 'drafted' : 'briefed' });
+    const item = this.store.updateItem(itemId, { status: i.draft ? 'drafted' : 'briefed' });
+    this.step(itemId, 'accepted', 'you', i.draft ? 'Said yes: the draft is back for review' : 'Said yes: the Writer may write it');
+    return item;
   }
 
   reject(itemId: string, reason: string): Item {
     this.#needItem(itemId);
-    return this.store.updateItem(itemId, { status: 'rejected', rejectedReason: reason });
+    const item = this.store.updateItem(itemId, { status: 'rejected', rejectedReason: reason });
+    this.step(itemId, 'refused', 'you', reason.trim() ? `Said no: ${cut(reason)}` : 'Said no');
+    return item;
+  }
+
+  // A refusal is not final: the piece comes back as an idea, its reason kept in the chain.
+  restore(itemId: string): Item {
+    const i = this.#needItem(itemId);
+    if (i.status !== 'rejected') throw new Error('only a refused piece can be taken back');
+    const item = this.store.updateItem(itemId, { status: 'idea', rejectedReason: undefined });
+    this.step(itemId, 'restored', 'you', i.rejectedReason ? `Took it back (had refused: ${cut(i.rejectedReason, 80)})` : 'Took it back');
+    return item;
   }
 
   // Decline a piece into a new one: same line, new round. The child starts as
@@ -196,6 +247,7 @@ export class ContentService {
       origin: 'user', status: 'idea', createdAt: this.#now().toISOString(),
     });
     this.store.linkItems(parent.id, child.id, 'reuse', this.#now().toISOString());
+    this.step(child.id, 'reused', 'you', `Started again from "${parent.title}"`);
     return child;
   }
 
@@ -214,6 +266,57 @@ export class ContentService {
     return this.store.item(itemId)!;
   }
 
+  // The real post a posted piece looks like: same first words, or same platform within three days of the
+  // posting date. The first is certain and linked on its own; the second is offered, the manager confirms.
+  #candidate(item: Item, posts: AccountPost[]): { post: AccountPost; sure: boolean; why: string } | undefined {
+    const head = (t: string) => t.replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 40);
+    const mine = head(item.draft);
+    const when = (item.publishedAt ?? '').slice(0, 10) || item.fixedDate || '';
+    const channel = (item.pitch?.channel ?? '').toLowerCase();
+    const free = posts.filter(p => p.id != null && !p.simulated && (!p.itemId || p.itemId === item.id));
+    const byText = mine.length >= 20 && free.find(p => head(p.text) === mine);
+    if (byText) return { post: byText, sure: true, why: 'same first words' };
+    if (!when) return undefined;
+    const near = free.filter(p => Math.abs(daysBetween(when, p.postedAt)) <= 3 && (!channel || channel.includes((p.platform ?? 'instagram').toLowerCase())))
+      .sort((a, b) => Math.abs(daysBetween(when, a.postedAt)) - Math.abs(daysBetween(when, b.postedAt)));
+    return near[0] ? { post: near[0], sure: false, why: `posted on ${near[0].platform ?? 'instagram'} ${near[0].postedAt === when ? 'the same day' : `${Math.abs(Math.round(daysBetween(when, near[0].postedAt)))} day(s) apart`}` } : undefined;
+  }
+
+  // After the account is read: every posted piece whose text is found as a real post is tied to it, silently.
+  // The rest is left for the manager (see `match` on the calendar).
+  autoMatch(projectId: string): number {
+    const posts = this.store.account(projectId);
+    let n = 0;
+    for (const item of this.store.items(projectId).filter(i => i.status === 'published')) {
+      if (posts.some(p => p.itemId === item.id)) continue;
+      const c = this.#candidate(item, posts);
+      if (!c || !c.sure) continue;
+      this.store.linkPost(c.post.id!, item.id);
+      this.step(item.id, 'matched', 'analyst', `Found it on ${c.post.platform ?? 'instagram'} (${c.why}): ${c.post.likes} likes, ${c.post.comments} comments`);
+      n++;
+    }
+    return n;
+  }
+
+  // The manager says "yes, that is it": the piece and the real post are one.
+  confirmMatch(itemId: string, postId: number): Item {
+    const item = this.#needItem(itemId);
+    const post = this.store.account(item.projectId).find(p => p.id === postId);
+    if (!post) throw new Error('unknown post');
+    this.store.linkPost(postId, itemId);
+    this.step(itemId, 'matched', 'you', `Tied it to the real post on ${post.platform ?? 'instagram'} (${post.postedAt})`);
+    return this.store.item(itemId)!;
+  }
+
+  // What a posted piece got, once tied to its real post; or the post that looks like it, to confirm.
+  #afterPosting(item: Item, posts: AccountPost[]): { outcome?: Outcome; match?: Match } {
+    if (item.status !== 'published') return {};
+    const linked = posts.find(p => p.itemId === item.id);
+    if (linked) return { outcome: { postId: linked.id!, platform: linked.platform ?? 'instagram', text: linked.text, postedAt: linked.postedAt, likes: linked.likes, comments: linked.comments, shares: linked.shares, saves: linked.saves, views: linked.views, daysSince: Math.max(0, Math.round(daysBetween(linked.postedAt, day(this.#now())))) } };
+    const c = this.#candidate(item, posts);
+    return c ? { match: { postId: c.post.id!, platform: c.post.platform ?? 'instagram', text: c.post.text, postedAt: c.post.postedAt, why: c.why } } : {};
+  }
+
   // Tie a posted piece back to the studio item it came from, so the next
   // account analysis can learn from what worked.
   linkPost(projectId: string, postId: number, itemId: string | null): void {
@@ -228,22 +331,28 @@ export class ContentService {
     const milestone = item.milestoneId ? this.store.milestone(item.milestoneId) : undefined;
     const ids = [...(milestone?.featureIds ?? []), ...(item.featureId ? [item.featureId] : [])];
     const ctx = { item, milestone, profile: this.store.profile(item.projectId), features: this.#facts([...new Set(ids)]), commits, guidance };
+    if (guidance) this.step(itemId, 'asked', 'you', `Direction for the Writer: ${cut(guidance)}`);
+    let out: Item;
     if (SOCIAL.includes(item.kind)) {
       const { caption, media } = await draftPost(this.#llm, ctx);
-      return this.store.updateItem(itemId, { draft: caption, media, status: 'drafted', revisions: item.revisions + 1 });
-    }
-    return this.store.updateItem(itemId, { draft: await draftItem(this.#llm, ctx), status: 'drafted', revisions: item.revisions + 1 });
+      out = this.store.updateItem(itemId, { draft: caption, media, status: 'drafted', revisions: item.revisions + 1 });
+    } else out = this.store.updateItem(itemId, { draft: await draftItem(this.#llm, ctx), status: 'drafted', revisions: item.revisions + 1 });
+    this.step(itemId, 'drafted', 'writer', item.revisions === 0 ? `Wrote the first draft: “${cut(out.draft, 90)}”` : `Rewrote it (version ${item.revisions + 1}): “${cut(out.draft, 90)}”`);
+    return out;
   }
 
   async revise(itemId: string, instruction: string): Promise<Item> {
     const item = this.#needItem(itemId);
     if (!item.draft) throw new Error('nothing to revise yet: draft it first');
     const profile = this.store.profile(item.projectId);
+    this.step(itemId, 'asked', 'you', `Asked for a change: ${cut(instruction)}`);
+    let out: Item;
     if (SOCIAL.includes(item.kind)) {
       const { caption, media } = await revisePost(this.#llm, { item, instruction, profile });
-      return this.store.updateItem(itemId, { draft: caption, media, status: 'drafted', revisions: item.revisions + 1 });
-    }
-    return this.store.updateItem(itemId, { draft: await reviseItem(this.#llm, { item, instruction, profile }), status: 'drafted', revisions: item.revisions + 1 });
+      out = this.store.updateItem(itemId, { draft: caption, media, status: 'drafted', revisions: item.revisions + 1 });
+    } else out = this.store.updateItem(itemId, { draft: await reviseItem(this.#llm, { item, instruction, profile }), status: 'drafted', revisions: item.revisions + 1 });
+    this.step(itemId, 'revised', 'writer', `Revised it (version ${item.revisions + 1}): “${cut(out.draft, 90)}”`);
+    return out;
   }
 
   editItem(itemId: string, patch: Partial<Pick<Item, 'title' | 'brief' | 'draft' | 'kind' | 'offsetDays' | 'fixedDate' | 'milestoneId' | 'media'>> & { clearFixedDate?: boolean; seriesId?: string | null }): Item {
@@ -251,7 +360,10 @@ export class ContentService {
     if (patch.media) patch = { ...patch, media: { ...patch.media, hashtags: normalizeHashtags(patch.media.hashtags) } };
     const edited = (patch.draft !== undefined && patch.draft !== item.draft) || (patch.media !== undefined && JSON.stringify(patch.media) !== JSON.stringify(item.media));
     const status = edited ? 'drafted' : item.status === 'idea' && patch.brief?.trim() ? 'briefed' : item.status;
-    return this.store.updateItem(itemId, { ...patch, status });
+    const out = this.store.updateItem(itemId, { ...patch, status });
+    if (patch.draft !== undefined && patch.draft !== item.draft) this.step(itemId, 'edited', 'you', 'Changed the text by hand');
+    else if (patch.brief !== undefined && patch.brief !== item.brief) this.step(itemId, 'edited', 'you', `Changed what it should say: ${cut(patch.brief)}`);
+    return out;
   }
 
   // The user signs it off. Approved text is written to a file, ready to be copied into the project or a post.
@@ -265,7 +377,9 @@ export class ContentService {
     const post = item.media ? this.#exportMedia(item, dir, date) : '';
     writeFileSync(file, `---\ntitle: ${JSON.stringify(item.title)}\nkind: ${item.kind}\ndate: ${date}${item.media ? `\nformat: ${item.media.format}` : ''}\n---\n\n${item.draft}\n${post}`);
     this.store.snapshotVersion(itemId, this.#now().toISOString()); // keep what was signed off: the piece can be declined later
-    return this.store.updateItem(itemId, { status: 'approved', exportedPath: file });
+    const out = this.store.updateItem(itemId, { status: 'approved', exportedPath: file });
+    this.step(itemId, 'approved', 'you', `Signed it off${item.revisions > 1 ? ` after ${item.revisions} versions` : ''}`);
+    return out;
   }
 
   // Hashtags, the shot list or slide list, and the pictures copied next to the text.
@@ -294,7 +408,9 @@ export class ContentService {
       if (!this.#publisher) throw new Error('connected publishing needs a Meta app, which is not set up: post it where your audience lives, then mark it posted by hand instead');
       if (SOCIAL.includes(item.kind)) await this.#publisher.publish({ caption: this.exportPack(itemId).copyText, imagePath: (item.media?.slides[0]?.file && this.mediaPath(item.id, item.media.slides[0].file)) || '' });
     }
-    return this.store.updateItem(itemId, { status: 'published', publishedAt: this.#now().toISOString() });
+    const out = this.store.updateItem(itemId, { status: 'published', publishedAt: this.#now().toISOString() });
+    this.step(itemId, 'posted', 'you', how === 'connected' ? 'Posted through the connected account' : 'Posted it by hand and marked it here');
+    return out;
   }
 
   // The ready-to-post pack: the exact text to paste (caption, then
@@ -328,7 +444,49 @@ export class ContentService {
     const file = `${index + 1}-${Date.now().toString(36)}.jpg`;
     writeFileSync(join(dir, file), buf);
     const slides = media.slides.map((x, i) => i === index ? { ...x, visual: prompt, file } : x);
-    return this.store.updateItem(itemId, { media: { ...media, slides } });
+    const out = this.store.updateItem(itemId, { media: { ...media, slides } });
+    this.step(itemId, 'picture', 'you', `Generated picture ${index + 1}: ${cut(prompt, 80)}`);
+    return out;
+  }
+
+  // The manager's own picture on a slide: a real photo instead of a generated one. No model call.
+  uploadSlide(itemId: string, index: number, data: Buffer, type: string): Item {
+    const item = this.#needItem(itemId);
+    const media = item.media;
+    if (!media || !media.slides[index]) throw new Error('unknown slide');
+    const ext = type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : type === 'image/jpeg' ? 'jpg' : '';
+    if (!ext) throw new Error('use a JPEG, PNG or WebP picture');
+    if (data.length > 8 * 1024 * 1024) throw new Error('picture too big: 8 MB at most');
+    const dir = join(this.#mediaDir, itemId);
+    mkdirSync(dir, { recursive: true });
+    const file = `${index + 1}-${Date.now().toString(36)}.${ext}`;
+    writeFileSync(join(dir, file), data);
+    const slides = media.slides.map((x, i) => i === index ? { ...x, file } : x);
+    const out = this.store.updateItem(itemId, { media: { ...media, slides } });
+    this.step(itemId, 'picture', 'you', `Put your own picture on ${media.format === 'video' ? 'shot' : 'slide'} ${index + 1}`);
+    return out;
+  }
+
+  // Everything approved, ready for a scheduler: one ZIP with a CSV (date, channel, title, caption, hashtags,
+  // media files) and every picture in a folder per piece. Stored entries, no compression: pictures are JPEGs already.
+  weekPack(projectId: string): { name: string; zip: Buffer; count: number } {
+    const items = this.calendar(projectId).filter(i => i.status === 'approved' && i.draft.trim());
+    const files: Array<{ name: string; data: Buffer }> = [];
+    const q = (v: string) => `"${v.replace(/"/g, '""')}"`;
+    const rows = ['date,channel,title,caption,hashtags,media'];
+    for (const i of items) {
+      const slug = i.title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').slice(0, 40) || i.id;
+      const media: string[] = [];
+      for (const s of i.media?.slides ?? []) {
+        const src = s.file && this.mediaPath(i.id, s.file);
+        if (src) { const name = `${slug}/${s.file}`; media.push(name); files.push({ name, data: readFileSync(src) }); }
+      }
+      const tags = (i.media?.hashtags ?? []).join(' ');
+      rows.push([i.date ?? '', i.pitch?.channel ?? '', i.title, i.draft, tags, media.join(' ')].map(q).join(','));
+      files.push({ name: `${slug}/caption.txt`, data: Buffer.from([i.draft, tags].filter(Boolean).join('\n\n'), 'utf8') });
+    }
+    files.unshift({ name: 'posts.csv', data: Buffer.from('\ufeff' + rows.join('\n') + '\n', 'utf8') });
+    return { name: `ripple-${projectId}-${day(this.#now())}.zip`, zip: zipStored(files, this.#now()), count: items.length };
   }
 
   async generateMissing(itemId: string): Promise<Item> {
@@ -359,8 +517,8 @@ export class ContentService {
   }
 
   // --- the calendar: every item with the date it is due now
-  schedule(item: Item): ScheduledItem {
-    const memory = { reusedFrom: this.store.parentsOf(item.id).map(p => p.title).join(', ') || undefined, versionCount: this.store.versions(item.id).length };
+  schedule(item: Item, posts: AccountPost[] = this.store.account(item.projectId)): ScheduledItem {
+    const memory = { reusedFrom: this.store.parentsOf(item.id).map(p => p.title).join(', ') || undefined, versionCount: this.store.versions(item.id).length, chain: this.chain(item), ...this.#afterPosting(item, posts) };
     if (item.fixedDate) return { ...item, ...memory, date: item.fixedDate, plannedDate: item.fixedDate, shiftDays: 0 };
     const m = item.milestoneId ? this.store.milestone(item.milestoneId) : undefined;
     if (!m) return { ...item, ...memory };
@@ -373,7 +531,8 @@ export class ContentService {
   }
 
   calendar(projectId: string): ScheduledItem[] {
-    return this.store.items(projectId).map(i => this.schedule(i)).sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'));
+    const posts = this.store.account(projectId);
+    return this.store.items(projectId).map(i => this.schedule(i, posts)).sort((a, b) => (a.date ?? '9999').localeCompare(b.date ?? '9999'));
   }
 
   // --- dev workflow
@@ -523,4 +682,34 @@ function split(line: string, sep = ','): string[] {
   }
   out.push(cur);
   return out;
+}
+
+// A ZIP with stored entries (no compression), enough for any scheduler or file manager to open.
+function zipStored(files: Array<{ name: string; data: Buffer }>, at: Date): Buffer {
+  const dosTime = ((at.getHours() << 11) | (at.getMinutes() << 5) | (at.getSeconds() >> 1)) & 0xffff;
+  const dosDate = (((at.getFullYear() - 1980) << 9) | ((at.getMonth() + 1) << 5) | at.getDate()) & 0xffff;
+  const locals: Buffer[] = [];
+  const centrals: Buffer[] = [];
+  let offset = 0;
+  for (const f of files) {
+    const name = Buffer.from(f.name, 'utf8');
+    const crc = crc32(f.data) >>> 0;
+    const local = Buffer.alloc(30);
+    local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6); local.writeUInt16LE(0, 8);
+    local.writeUInt16LE(dosTime, 10); local.writeUInt16LE(dosDate, 12); local.writeUInt32LE(crc, 14);
+    local.writeUInt32LE(f.data.length, 18); local.writeUInt32LE(f.data.length, 22); local.writeUInt16LE(name.length, 26); local.writeUInt16LE(0, 28);
+    const central = Buffer.alloc(46);
+    central.writeUInt32LE(0x02014b50, 0); central.writeUInt16LE(20, 4); central.writeUInt16LE(20, 6); central.writeUInt16LE(0x0800, 8); central.writeUInt16LE(0, 10);
+    central.writeUInt16LE(dosTime, 12); central.writeUInt16LE(dosDate, 14); central.writeUInt32LE(crc, 16);
+    central.writeUInt32LE(f.data.length, 20); central.writeUInt32LE(f.data.length, 24); central.writeUInt16LE(name.length, 28);
+    central.writeUInt16LE(0, 30); central.writeUInt16LE(0, 32); central.writeUInt16LE(0, 34); central.writeUInt16LE(0, 36); central.writeUInt32LE(0, 38); central.writeUInt32LE(offset, 42);
+    locals.push(local, name, f.data);
+    centrals.push(central, name);
+    offset += local.length + name.length + f.data.length;
+  }
+  const dirSize = centrals.reduce((a, b) => a + b.length, 0);
+  const end = Buffer.alloc(22);
+  end.writeUInt32LE(0x06054b50, 0); end.writeUInt16LE(0, 4); end.writeUInt16LE(0, 6); end.writeUInt16LE(files.length, 8); end.writeUInt16LE(files.length, 10);
+  end.writeUInt32LE(dirSize, 12); end.writeUInt32LE(offset, 16); end.writeUInt16LE(0, 20);
+  return Buffer.concat([...locals, ...centrals, end]);
 }

@@ -94,16 +94,18 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   s.addReport(P, 'account', { ...REAL.account, stats: formatStats(all), postCount: all.length }, false, at(-0.02)); // the Analyst's real reading of the 32 posts
 
   // --- content, at every stage
-  const add = (i: { kind: ItemKind; title: string; brief: string } & Partial<Omit<Item, 'id' | 'projectId' | 'createdAt' | 'revisions'>>) =>
+  const add = (i: { kind: ItemKind; title: string; brief: string } & Partial<Omit<Item, 'id' | 'projectId' | 'revisions'>>) =>
     s.addItem({ projectId: P, origin: 'user', createdAt: at(-2), ...i });
   const pic = (name: string, itemId: string, file: string) => { mkdirSync(join(o.mediaDir, itemId), { recursive: true }); writeFileSync(join(o.mediaDir, itemId, file), Buffer.from(PICTURES[name], 'base64')); return file; };
   const media = (format: Media['format'], hashtags: string[], slides: Media['slides']): Media => ({ format, hashtags, slides });
 
   // the Strategist's real proposals, hung on the beta or dated
   const stats = formatStats(all);
+  const step = (id: string, n: number, kind: Parameters<typeof s.addStep>[1]['kind'], who: Parameters<typeof s.addStep>[1]['who'], text: string) => s.addStep(id, { kind, who, text, at: at(n) });
   for (const i of REAL.ideas) {
     const { milestoneId, fixedDate, offsetDays, ...rest } = i;
-    add({ ...rest, origin: 'ai', status: 'idea', ...(milestoneId && offsetDays !== undefined ? { milestoneId: pilot.id, offsetDays } : { fixedDate: fixedDate && fixedDate >= today ? fixedDate : d(5) }) });
+    const idea = add({ ...rest, origin: 'ai', status: 'idea', createdAt: at(-0.01), ...(milestoneId && offsetDays !== undefined ? { milestoneId: pilot.id, offsetDays } : { fixedDate: fixedDate && fixedDate >= today ? fixedDate : d(5) }) });
+    step(idea.id, -0.01, 'proposed', 'strategist', i.rationale.split('\nEvidence: ')[0].replace(/\s+/g, ' ').slice(0, 160));
   }
 
   // a carousel, drafted, two pictures generated
@@ -118,11 +120,34 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     ]),
   });
 
+  step(carousel.id, -2, 'proposed', 'strategist', 'The 11 October call for testers got 8 likes and no comment. Showing the first screen gives people something to react to.');
+  step(carousel.id, -1.9, 'asked', 'you', 'To the strategist: Pourquoi un carrousel plutôt qu’un reel ?');
+  step(carousel.id, -1.89, 'answered', 'strategist', 'Un carrousel se garde et se relit : c’est le format que le terrain enregistre le plus. Le reel vient après, quand la bêta aura des visages.');
+  step(carousel.id, -1.8, 'accepted', 'you', 'Said yes: the Writer may write it');
+  step(carousel.id, -1.7, 'drafted', 'writer', 'Wrote the first draft: “Dans trois semaines, les premiers bêta testeurs ouvrent Mairie360. Première chose à l’écran…”');
+  step(carousel.id, -1.2, 'asked', 'you', 'Asked for a change: plus court, une seule scène par slide, pas de liste de fonctions');
+  step(carousel.id, -1.19, 'revised', 'writer', 'Revised it (version 2): “Dans trois semaines, les premiers bêta testeurs ouvrent Mairie360.”');
+  step(carousel.id, -0.9, 'picture', 'you', 'Generated picture 1: meeting room of a small town hall in the morning');
+  step(carousel.id, -0.88, 'picture', 'you', 'Generated picture 2: hands of a clerk at the front desk holding a phone');
+
   // an approved single image and a published devlog
   const single = add({ kind: 'social-post', title: 'Le tiroir de notifications est arrivé', brief: 'Short, one scene, no feature list.', status: 'approved', fixedDate: d(1), pitch: { hook: 'Une tâche assignée, une réunion déplacée, un message reçu : tout arrive au même endroit.', channel: 'Instagram', measure: 'Whether anyone asks how to get it: that is the question to answer in comments' }, rationale: 'The notification drawer is merged, the first finished feature since the beta call. One scene, no feature list.', source: 'roadmap' });
   s.updateItem(single.id, { draft: 'Une tâche assignée, une réunion déplacée, un message reçu : tout arrive au même endroit, quel que soit le module ouvert.\n\nPlus de tour des onglets le matin.\n\nLe tiroir de notifications, maintenant dans Mairie360.', revisions: 1, media: media('image', ['#mairie', '#collectivités', '#civictech'], [{ kind: 'image', visual: 'A village square at the end of the afternoon, the stone facade of the mairie with its flag, soft golden light', text: 'Tout arrive au même endroit', seconds: 0, file: pic('square', single.id, '1-demo.jpg') }]) });
-  add({ kind: 'devlog', title: 'Semaine 6 : ce que l’accueil nous a appris', brief: 'x', status: 'published', fixedDate: d(-6), draft: 'Une matinée derrière le comptoir de notre commune partenaire. Sept logiciels ouverts, un agenda papier, un fax qui marche encore. Voici ce que nous avons retiré de l’écran Projets en rentrant.' });
-  add({ kind: 'newsletter', title: 'Lettre aux bêta testeurs : le programme, concrètement', brief: 'Tell the people who signed up what the beta contains, when it starts, and how feedback is collected.', status: 'briefed', milestoneId: pilot.id, offsetDays: -7, pitch: { hook: 'Vous vous êtes inscrit à la bêta de Mairie360. Voici ce qui se passe maintenant.', channel: 'Email to the sign-ups', measure: 'Replies to the email, and how many open their access the first week' }, rationale: 'The people who signed up through the form have heard nothing since. One email before the beta keeps them.', source: 'roadmap' });
+  step(single.id, -2, 'proposed', 'strategist', 'The notification drawer is merged, the first finished feature since the beta call. One scene, no feature list.');
+  step(single.id, -1.8, 'accepted', 'you', 'Said yes: the Writer may write it');
+  step(single.id, -1.6, 'drafted', 'writer', 'Wrote the first draft: “Une tâche assignée, une réunion déplacée, un message reçu : tout arrive au même endroit…”');
+  step(single.id, -1.1, 'edited', 'you', 'Changed the text by hand');
+  step(single.id, -1.0, 'picture', 'you', 'Generated picture 1: a village square at the end of the afternoon');
+  step(single.id, -0.5, 'approved', 'you', 'Signed it off');
+  s.snapshotVersion(single.id, at(-0.5));
+  const devlog = add({ kind: 'devlog', title: 'Semaine 6 : ce que l’accueil nous a appris', brief: 'x', status: 'published', fixedDate: d(-6), publishedAt: at(-6), createdAt: at(-9), draft: 'Une matinée derrière le comptoir de notre commune partenaire. Sept logiciels ouverts, un agenda papier, un fax qui marche encore. Voici ce que nous avons retiré de l’écran Projets en rentrant.' });
+  step(devlog.id, -9, 'added', 'you', 'Added it yourself: une matinée à l’accueil, ce qu’on en retire');
+  step(devlog.id, -8.5, 'drafted', 'writer', 'Wrote the first draft: “Une matinée derrière le comptoir de notre commune partenaire…”');
+  step(devlog.id, -7, 'approved', 'you', 'Signed it off');
+  step(devlog.id, -6, 'posted', 'you', 'Posted it by hand and marked it here');
+  const letter = add({ kind: 'newsletter', title: 'Lettre aux bêta testeurs : le programme, concrètement', brief: 'Tell the people who signed up what the beta contains, when it starts, and how feedback is collected.', status: 'briefed', milestoneId: pilot.id, offsetDays: -7, pitch: { hook: 'Vous vous êtes inscrit à la bêta de Mairie360. Voici ce qui se passe maintenant.', channel: 'Email to the sign-ups', measure: 'Replies to the email, and how many open their access the first week' }, rationale: 'The people who signed up through the form have heard nothing since. One email before the beta keeps them.', source: 'roadmap' });
+  step(letter.id, -2, 'proposed', 'strategist', 'The people who signed up through the form have heard nothing since. One email before the beta keeps them.');
+  step(letter.id, -0.2, 'accepted', 'you', 'Said yes: the Writer may write it');
 
   // --- what the team did, as it said it: the log lines of the real pass, then its plan and its note
   REAL.activity.forEach((l, n) => s.log(P, l.agent, l.summary, l.ok, at(-0.03 + n * 0.004)));

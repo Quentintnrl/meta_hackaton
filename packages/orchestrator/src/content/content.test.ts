@@ -257,7 +257,24 @@ test('routes: roadmap to published, with errors mapped', async () => {
   assert.equal((await send('POST', `/items/${id}/draft`, {})).status, 200);
   assert.equal((await send('POST', `/items/${id}/approve`)).status, 200);
   assert.equal((await send('POST', `/items/${id}/publish`)).status, 200);
+  // the chain of the piece: every step in order, with who did it
+  const after = await (await send('GET', '/projects/app/content')).json();
+  const chain = after.items.find((i: { id: string }) => i.id === id).chain as Array<{ kind: string; who: string }>;
+  assert.deepEqual(chain.map(c => `${c.who}:${c.kind}`), ['writer:drafted', 'you:approved', 'you:posted']);
   assert.equal((await send('POST', '/items/ghost/draft', {})).status, 404);
+  // a refusal can be taken back; the week pack is a ZIP of what is approved; a match needs a real post
+  const other = view.items[1].id;
+  assert.equal((await send('POST', `/items/${other}/restore`)).status, 400, 'not refused: nothing to take back');
+  assert.equal((await send('POST', `/items/${other}/reject`, { reason: 'later' })).status, 200);
+  assert.equal((await (await send('POST', `/items/${other}/restore`)).json()).status, 'idea');
+  assert.equal((await send('GET', '/projects/app/export-week')).status, 400, 'nothing approved: the published one left the approved lane');
+  assert.equal((await send('POST', `/items/${other}/draft`, {})).status, 200);
+  assert.equal((await send('POST', `/items/${other}/approve`)).status, 200);
+  const zip = await send('GET', '/projects/app/export-week');
+  assert.equal(zip.status, 200);
+  assert.equal(zip.headers.get('content-type'), 'application/zip');
+  assert.equal((await send('POST', `/items/${id}/match`, { postId: 99 })).status, 404, 'no such post');
+  assert.equal((await send('POST', `/items/${id}/media/0/upload`, { type: 'image/gif', data: 'AAAA' })).status, 400);
   assert.equal((await send('PUT', '/projects/app/profile', { voice: 'v', audience: 'a', language: 'French', autoDraft: true, niche: '', directives: '' })).status, 200);
   assert.equal((await send('POST', '/projects/app/content/from-git', { since: '1 week ago; rm -rf' })).status, 400);
   assert.equal((await send('DELETE', `/milestones/${m.id}`)).status, 200);
@@ -361,4 +378,57 @@ test('a pasted CSV table is read exactly, with no model call', () => {
   ]);
   assert.equal(parseAccountCsv('just some free text', '2026-11-01'), undefined, 'free text still goes to the model');
   assert.equal(parseAccountCsv('text\nonly a header', '2026-11-01'), undefined);
+});
+
+test('a refused piece can be taken back: it is an idea again and the chain keeps both decisions', () => {
+  const { svc } = setup();
+  const i = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Hello', brief: 'b' });
+  svc.reject(i.id, 'too early');
+  assert.equal(svc.store.item(i.id)!.status, 'rejected');
+  const back = svc.restore(i.id);
+  assert.equal(back.status, 'idea');
+  assert.equal(back.rejectedReason, undefined);
+  assert.deepEqual(svc.chain(back).map(s => s.kind), ['added', 'refused', 'restored']);
+  assert.throws(() => svc.restore(i.id), /only a refused piece/);
+});
+
+test('a posted piece finds its real post by its first words, or offers the nearest one for the manager to confirm', async () => {
+  const { svc } = setup();
+  const sure = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Sure one', brief: 'b', fixedDate: '2026-11-01' });
+  svc.store.updateItem(sure.id, { draft: 'Une matinée derrière le comptoir de notre commune partenaire. Sept logiciels ouverts.', status: 'approved' });
+  await svc.publish(sure.id);
+  const maybe = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Maybe', brief: 'b', pitch: { hook: '', channel: 'LinkedIn', measure: 'replies from DGS' } });
+  svc.store.updateItem(maybe.id, { draft: 'Totally different text that no post starts with.', status: 'approved' });
+  await svc.publish(maybe.id);
+  svc.store.setAccount('app', [
+    { platform: 'instagram', text: 'Une matinée derrière le comptoir de notre commune partenaire. Sept logiciels ouverts, un fax.', format: 'story', likes: 12, comments: 1, shares: 0, saves: 2, postedAt: '2026-11-01', simulated: false },
+    { platform: 'linkedin', text: 'Something else entirely', format: 'post', likes: 5, comments: 0, shares: 1, saves: 0, views: 300, postedAt: '2026-11-02', simulated: false },
+  ]);
+  assert.equal(svc.autoMatch('app'), 1);
+  const cal = svc.calendar('app');
+  const s = cal.find(i => i.id === sure.id)!;
+  assert.equal(s.outcome?.likes, 12);
+  assert.equal(s.match, undefined);
+  const m = cal.find(i => i.id === maybe.id)!;
+  assert.equal(m.outcome, undefined);
+  assert.equal(m.match?.platform, 'linkedin');
+  svc.confirmMatch(maybe.id, m.match!.postId);
+  const after = svc.calendar('app').find(i => i.id === maybe.id)!;
+  assert.equal(after.outcome?.views, 300);
+  assert.ok(svc.chain(after).some(st => st.kind === 'matched' && st.who === 'you'));
+});
+
+test('the week pack is a ZIP with posts.csv and a caption per approved piece', () => {
+  const { svc } = setup();
+  const a = svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Ready one', brief: 'b', fixedDate: '2026-11-05', pitch: { hook: '', channel: 'LinkedIn', measure: '' } });
+  svc.store.updateItem(a.id, { draft: 'Say "hello"', status: 'approved', media: { format: 'image', hashtags: ['#mairie'], slides: [{ kind: 'image', visual: 'x', text: '', seconds: 0 }] } });
+  svc.addItem({ projectId: 'app', kind: 'social-post', title: 'Not ready', brief: 'b' });
+  const pack = svc.weekPack('app');
+  assert.equal(pack.count, 1);
+  assert.equal(pack.zip.readUInt32LE(0), 0x04034b50);
+  const text = pack.zip.toString('utf8');
+  assert.ok(text.includes('posts.csv'));
+  assert.ok(text.includes('ready-one/caption.txt'));
+  assert.ok(text.includes('"2026-11-05","LinkedIn","Ready one","Say ""hello""","#mairie",""'));
+  assert.equal(pack.zip.readUInt32LE(pack.zip.length - 22), 0x06054b50);
 });

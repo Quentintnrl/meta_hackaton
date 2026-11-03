@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { contentApi, teamApi, type AgentId, type ContentView, type Feature, type Project, type TeamView } from '../api';
 import { useHashPath, writeHashPath } from '../route';
 import { parseStudio as parseStudioPath, studioToHash, type About } from '../route-path.ts';
 import { CalendarView } from './CalendarView';
 import { RoadmapView } from './RoadmapView';
 import { DirectorPage } from './DirectorPage';
-import { ABOUT, AgentPage } from './AgentPage';
-import { ChatDrawer } from './Chat';
+import { AgentPage } from './AgentPage';
+import { TeamDock, type Subject } from './Chat';
 import { ItemEditor } from './ItemEditor';
+import { IdeaRoom } from './IdeaRoom';
 import { TodayView } from './TodayView';
 import { CreateView } from './CreateView';
 import { TeamView as TeamPage } from './TeamView';
@@ -42,7 +44,8 @@ const parseStudio = (path: string, projectId: string): { page: View; openId: str
   return { page: page as View, openId, about };
 };
 
-export function Studio({ project }: { project: Project }) {
+// The page list lives in the rail (App's left column) when it is given one.
+export function Studio({ project, rail }: { project: Project; rail?: HTMLElement | null }) {
   const hashPath = useHashPath();
   const { page, openId, about } = parseStudio(hashPath, project.id);
   // The drawer lives next to the page: navigating keeps it, closing drops it.
@@ -51,6 +54,9 @@ export function Studio({ project }: { project: Project }) {
   const clearAbout = () => writeHashPath(studioToHash(project.id, page, openId));
   const [view, setView] = useState<ContentView | null>(null);
   const [team, setTeam] = useState<TeamView | null>(null);
+  // When the manager last opened this studio, in this browser: proposals that arrived after it are marked new.
+  const [since] = useState(() => { try { return localStorage.getItem(`seen:${project.id}`) ?? ''; } catch { return ''; } });
+  useEffect(() => { const mark = () => { try { localStorage.setItem(`seen:${project.id}`, new Date().toISOString()); } catch { /* private window */ } }; mark(); window.addEventListener('beforeunload', mark); return () => { mark(); window.removeEventListener('beforeunload', mark); }; }, [project.id]);
   const [loadError, setLoadError] = useState('');
 
   const reload = useCallback(async () => {
@@ -73,6 +79,13 @@ export function Studio({ project }: { project: Project }) {
     const timer = setInterval(() => void reload().catch(() => {}), 2000);
     return () => clearInterval(timer);
   }, [team?.working, reload]);
+
+  // The tab says what waits, so a manager who left the team working sees it from another tab.
+  const waitingNow = view ? view.items.filter(i => i.status === 'idea' || i.status === 'drafted' || i.status === 'approved').length : 0;
+  useEffect(() => {
+    document.title = `${waitingNow ? `(${waitingNow}) ` : ''}${team?.working ? `${team.agents.find(a => a.id === team.working!.agent)?.name ?? 'Team'} working · ` : ''}${project.name} · Ripple_handoff`;
+    return () => { document.title = 'Ripple_handoff'; };
+  }, [waitingNow, team?.working, project.name]);
 
   if (!view || !team) return <section className="card" role="status">{loadError ? <><p className="error">The studio did not load: {loadError}</p><p><button className="primary" onClick={() => reload().catch(e => setLoadError((e as Error).message))}>Retry</button></p></> : <p className="hint pulse-text">Loading your studio…</p>}</section>;
 
@@ -97,44 +110,46 @@ export function Studio({ project }: { project: Project }) {
   const agentInfo = agentId && team.agents.find(a => a.id === agentId);
   const info = agentInfo ? { title: agentInfo.name, about: agentInfo.role + '.' } : PAGES[page as keyof typeof PAGES];
   // What a chat is about, resolved for the prompt; nothing is shown except its title.
-  const resolveAbout = (a: About): { agent: AgentId; kind: 'item' | 'milestone' | null; id: string | null; label: string; context: string } | null => {
-    if (!( ['director', 'scout', 'analyst', 'strategist', 'writer'] as string[] ).includes(a.agent)) return null;
-    if (a.kind === 'item' && a.id) {
-      const i = view.items.find(x => x.id === a.id);
-      if (!i) return null;
+  const subjectOf = (kind: 'item' | 'milestone' | null, id: string | null): Subject | undefined => {
+    if (kind === 'item' && id) {
+      const i = view.items.find(x => x.id === id);
+      if (!i) return undefined;
       const media = i.media ? ` Media: ${i.media.format} with ${i.media.slides.length} shot(s): ${i.media.slides.map((s, n) => `${n + 1}. made from "${s.visual}"${s.text ? `, on it: "${s.text}"` : ''} (${s.file ? 'picture generated' : 'no picture yet'})`).join('; ')}` : '';
-      return { agent: a.agent as AgentId, kind: 'item', id: a.id, label: i.title, context: `Piece "${i.title}" (${i.kind}, ${i.status}). Brief: ${i.brief || '(none)'}${i.rationale ? ` Why it was suggested: ${i.rationale}` : ''}${i.draft ? ` Current text (may be long): ${i.draft.slice(0, 600)}` : ''}${media}` };
+      return { key: `item:${i.id}`, label: i.title, item: i, context: `Piece "${i.title}" (${i.kind}, ${i.status}). Brief: ${i.brief || '(none)'}${i.rationale ? ` Why it was suggested: ${i.rationale}` : ''}${i.draft ? ` Current text (may be long): ${i.draft.slice(0, 600)}` : ''}${media}` };
     }
-    if (a.kind === 'milestone' && a.id) {
-      const m = view.milestones.find(x => x.id === a.id);
-      if (!m) return null;
-      return { agent: a.agent as AgentId, kind: 'milestone', id: a.id, label: m.title, context: `Goal "${m.title}": ${m.intent || '(no description)'}. Wanted by ${m.targetDate}.` };
+    if (kind === 'milestone' && id) {
+      const m = view.milestones.find(x => x.id === id);
+      return m ? { key: `milestone:${m.id}`, label: m.title, context: `Goal "${m.title}": ${m.intent || '(no description)'}. Wanted by ${m.targetDate}.` } : undefined;
     }
-    return { agent: a.agent as AgentId, kind: null, id: null, label: '', context: '' };
+    return undefined;
   };
-  const resolved = about ? resolveAbout(about) : null;
-  // On the agent's own page the chat is the page: feed it there. Anywhere
-  // else the same context opens the side drawer instead.
-  const onOwnPage = resolved ? page === `agent:${resolved.agent}` : false;
-  const aboutKey = (r: { kind: 'item' | 'milestone' | null; id: string | null }) => r.kind && r.id ? `${r.kind}:${r.id}` : undefined;
-  const pageCtx = onOwnPage && resolved ? { label: resolved.label, context: resolved.context || undefined, about: aboutKey(resolved) } : null;
-  const drawerCtx = !onOwnPage ? resolved : null;
+  const lockOf = (a: About | null): AgentId | undefined => a && (['director', 'scout', 'analyst', 'strategist', 'writer'] as string[]).includes(a.agent) ? a.agent as AgentId : undefined;
+  // On the agent's own page the chat is the page: feed it there. Anywhere else the dock opens at the foot of the page.
+  const onOwnPage = about ? page === `agent:${about.agent}` : false;
+  const pageCtx = onOwnPage && about ? subjectOf(about.kind, about.id) : undefined;
+  const dockOpen = Boolean(about) && !onOwnPage;
+  const dockSubject = about && !onOwnPage ? subjectOf(about.kind, about.id) : (open && open.status !== 'idea' ? subjectOf('item', open.id) : undefined);
+  const openDock = () => writeHashPath(studioToHash(project.id, page, openId, { agent: 'team', kind: open && open.status !== 'idea' ? 'item' : null, id: open && open.status !== 'idea' ? open.id : null }));
+  const setLock = (a: AgentId | undefined) => writeHashPath(studioToHash(project.id, page, openId, { agent: a ?? 'team', kind: about?.kind ?? null, id: about?.id ?? null }));
+  const hint = page;
 
   return (
     <div className="studio">
-      <nav className="subnav" aria-label="Studio">
-        <span className="eyebrow">{project.name}</span>
-        {nav.map(([id, label, n, tone]) => (
-          <button key={id} className={page === id || (id === 'team' && page.startsWith('agent:')) ? 'navitem on' : 'navitem'} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>
-            <span className="navlabelrow">{label}</span>{n ? <span className={`count ${tone ?? ''}`}>{n}</span> : null}
-          </button>
-        ))}
-        <TeamPulse team={team} onOpen={() => setPage('agent:director')} />
-      </nav>
+      {createPortal(
+        <nav className="subnav" aria-label="Studio">
+          {nav.map(([id, label, n, tone]) => (
+            <button key={id} className={page === id || (id === 'team' && page.startsWith('agent:')) ? 'navitem on' : 'navitem'} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>
+              <span className="navlabelrow">{label}</span>{n ? <span className={`count ${tone ?? ''}`}>{n}</span> : null}
+            </button>
+          ))}
+          <TeamPulse team={team} onOpen={() => setPage('agent:director')} />
+        </nav>,
+        rail ?? document.body,
+      )}
 
       <div className="studio-main">
         <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p><DutyLine team={team} go={setPage} /></header>
-        {page === 'studio' && <CreateBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
+        {page === 'studio' && <CreateBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} since={since} />}
         {page === 'platforms' && <PlatformsBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'community' && <CommunityBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'watch' && <WatchBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
@@ -146,11 +161,12 @@ export function Studio({ project }: { project: Project }) {
         {page === 'calendar' && <div className="stack"><RoadmapView view={view} project={project} features={[]} reload={reload} go={setPage} askAgent={askAgent} /><CalendarView view={view} openId={openId} open={setOpenId} /></div>}
         {page === 'insights' && <InsightsView pid={project.id} team={team} view={view} reload={reload} go={setPage} askAgent={askAgent} />}
         {page === 'team' && <TeamPage pid={project.id} team={team} view={view} reload={reload} go={setPage} askAgent={askAgent} />}
-        {page === 'agent:director' && <DirectorPage pid={project.id} team={team} view={view} reload={reload} go={setPage} />}
-        {agentId && agentId !== 'director' && <AgentPage key={agentId} pid={project.id} agent={agentId} team={team} view={view} reload={reload} go={setPage} aboutCtx={pageCtx} onClearAbout={clearAbout} />}
+        {page === 'agent:director' && <DirectorPage pid={project.id} team={team} view={view} reload={reload} go={setPage} subject={pageCtx} />}
+        {agentId && agentId !== 'director' && <AgentPage key={agentId} pid={project.id} agent={agentId} team={team} view={view} reload={reload} go={setPage} subject={pageCtx} onClearAbout={clearAbout} />}
       </div>
-      {open && <ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('studio'); setOpenId(id); }} askAgent={askAgent} />}
-      {drawerCtx && <ChatDrawer pid={project.id} agent={drawerCtx.agent} role={team.agents.find(a => a.id === drawerCtx.agent)?.role ?? ''} team={team} starters={drawerCtx.agent === 'director' ? [] : ABOUT[drawerCtx.agent].starters} context={drawerCtx.context || undefined} about={aboutKey(drawerCtx)} aboutLabel={drawerCtx.label || undefined} onClose={clearAbout} reload={reload} goAgent={a => writeHashPath(studioToHash(project.id, `agent:${a}`, openId, { agent: a, kind: drawerCtx.kind, id: drawerCtx.id }))} />}
+      {open && open.status === 'idea' && <IdeaRoom pid={project.id} item={open} view={view} team={team} reload={reload} onClose={() => setOpenId(null)} askAgent={askAgent} />}
+      {open && open.status !== 'idea' && <div className="room-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setOpenId(null); }}><ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('studio'); setOpenId(id); }} askAgent={askAgent} /></div>}
+      {!(open && open.status === 'idea') && <TeamDock pid={project.id} team={team} view={view} hint={hint} subject={dockSubject} lock={lockOf(about)} open={dockOpen} onOpen={openDock} onClose={clearAbout} onLock={setLock} reload={reload} onOpenItem={id => { setPage('studio'); writeHashPath(studioToHash(project.id, 'studio', id)); }} />}
     </div>
   );
 }

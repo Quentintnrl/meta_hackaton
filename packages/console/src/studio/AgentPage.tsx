@@ -3,12 +3,12 @@ import { teamApi, type AgentId, type ContentView, type TeamView } from '../api';
 import { AGENT_HUE, ago, useAction } from './shared';
 import { ABOUT, Avatar, agentState } from './Agents';
 export { ABOUT };
-import { Chat } from './Chat';
+import { TeamChat, type Subject } from './Chat';
 import { Switch, Workers } from './DirectorPage';
 import type { View } from './Studio';
 
 
-export function AgentPage({ pid, agent, team, view, reload, go, aboutCtx, onClearAbout }: { pid: string; agent: Exclude<AgentId, 'director'>; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; aboutCtx?: { label: string; context?: string; about?: string } | null; onClearAbout?: () => void }) {
+export function AgentPage({ pid, agent, team, view, reload, go, subject, onClearAbout }: { pid: string; agent: Exclude<AgentId, 'director'>; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; subject?: Subject; onClearAbout?: () => void }) {
   const info = team.agents.find(a => a.id === agent)!;
   const about = ABOUT[agent];
   const cfg = team.config[agent];
@@ -60,7 +60,8 @@ export function AgentPage({ pid, agent, team, view, reload, go, aboutCtx, onClea
 
       <section className="card">
         <h3>Talk to the {info.name}</h3>
-        <Chat pid={pid} agent={agent} reload={reload} goAgent={a => go(`agent:${a}`)} placeholder={aboutCtx ? `Ask about “${aboutCtx.label}”…` : `Ask the ${info.name}, or tell it how to work…`} starters={about.starters} context={aboutCtx?.context} about={aboutCtx?.about} aboutLabel={aboutCtx?.label} onClearAbout={onClearAbout} />
+        {subject && <p className="hint small">About “{subject.label}” — it already sees it, just ask. <button className="linkish tight" onClick={onClearAbout}>Clear</button></p>}
+        <TeamChat pid={pid} team={team} view={view} base={agent} lock={agent} subject={subject} hint={`agent:${agent}`} reload={reload} onTalk={a => go(`agent:${a}`)} onOpenItem={id => { go('studio'); window.location.hash = `#/projects/${pid}/content/studio/item/${id}`; }} />
       </section>
 
       {mine.length > 0 && <section className="card"><h3>Recent work</h3><ul className="feed">{mine.slice(0, 6).map(a => <li key={a.id}><i className="dot" /><span className={a.ok ? '' : 'error'}>{a.summary}</span><time>{ago(a.at)}</time></li>)}</ul></section>}

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { contentApi, type ContentItem, type Media, type MediaFormat, type Slide } from '../api';
 import { useAction } from './shared';
 
@@ -43,6 +43,19 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
     setMedia({ ...media, format, slides });
   };
   const missing = media.slides.filter(x => !x.file && x.visual.trim()).length;
+  // The manager's own photo on a slide: read in the browser, sent as base64, kept like a generated one.
+  const pick = useRef<HTMLInputElement | null>(null);
+  const [picking, setPicking] = useState<number | null>(null);
+  const choose = (i: number) => { setPicking(i); pick.current?.click(); };
+  const onFile = (f: File | undefined) => {
+    const i = picking; setPicking(null);
+    if (!f || i == null) return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) { alert('Use a JPEG, PNG or WebP picture.'); return; }
+    if (f.size > 8 * 1024 * 1024) { alert('8 MB at most.'); return; }
+    const r = new FileReader();
+    r.onload = () => { const data = String(r.result).split(',')[1] ?? ''; void run(`up${i}`, () => contentApi.uploadSlide(item.id, i, f.type, data)); };
+    r.readAsDataURL(f);
+  };
 
   return (
     <div className="post">
@@ -55,6 +68,7 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
           <div key={i} className="slide">
             <div className={`frame ${video ? 'tall' : ''}`}>
               {x.file ? <img src={contentApi.mediaUrl(item.id, x.file)} alt={`${video ? 'Shot' : 'Slide'} ${i + 1}`} /> : <span>{video ? 'Keyframe' : 'Picture'} not generated</span>}
+              {x.file && x.text && <i className="pv-text">{x.text}</i>}
               <em>{i + 1}</em>
             </div>
             <label>{video ? 'What we see' : 'Picture to generate'}<textarea rows={3} value={x.visual} onChange={e => setSlide(i, { visual: e.target.value })} /></label>
@@ -62,10 +76,12 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
             <div className="row">
               {video && <label className="inline sec"><span>Seconds</span><input type="number" min={1} max={90} value={x.seconds} onChange={e => setSlide(i, { seconds: Number(e.target.value) })} /></label>}
               <button disabled={b || dirty || !x.visual.trim()} title={dirty ? 'Save your changes first' : !x.visual.trim() ? 'Describe the picture first' : ''} onClick={() => run(`gen${i}`, () => contentApi.generateSlide(item.id, i))}>{busy === `gen${i}` ? 'Drawing…' : x.file ? 'Redraw' : video ? 'Generate keyframe' : 'Generate picture'}</button>
+              <button className="linkish" disabled={b || dirty} title={dirty ? 'Save your changes first' : 'Your own photo instead of a generated one: no model call'} onClick={() => choose(i)}>{busy === `up${i}` ? 'Uploading…' : 'Use my photo'}</button>
               {media.slides.length > (media.format === 'image' ? 1 : 2) && <button className="linkish" onClick={() => setMedia({ ...media, slides: media.slides.filter((_, j) => j !== i) })}>Remove</button>}
             </div>
           </div>
         ))}
+        <input ref={pick} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={e => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
         {media.format !== 'image' && media.slides.length < 10 && <button className="slide add-slide" onClick={() => setMedia({ ...media, slides: [...media.slides, blank(video)] })}>+ {video ? 'Add a shot' : 'Add a slide'}</button>}
       </div>
       {video && (

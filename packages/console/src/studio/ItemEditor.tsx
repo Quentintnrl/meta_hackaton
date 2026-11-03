@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { contentApi, SOCIAL_KINDS, type AgentId, type ContentItem, type Milestone, type Series } from '../api';
 import { PostBuilder, PostPreview } from './PostBuilder';
 import { KindChip, credit, fmt, useAction } from './shared';
+import { ChainLog, Checkpoints } from './Chain';
 
 // The working surface of one piece: say what you want, let the Writer draft, ask for changes, sign off.
 export function ItemEditor({ item, milestones, series, reload, onClose, goItem, askAgent }: { item: ContentItem; milestones: Milestone[]; series: Series[]; reload: () => Promise<void>; onClose: () => void; goItem: (id: string) => void; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void }) {
@@ -61,6 +62,11 @@ export function ItemEditor({ item, milestones, series, reload, onClose, goItem, 
       <div className="head"><KindChip kind={item.kind} /><span className={`badge ${item.status === 'published' || item.status === 'approved' ? 'done' : item.status === 'drafted' ? 'work' : 'wait'}`}><i />{item.status}</span><button className="x" onClick={onClose} aria-label="Close">×</button></div>
       <h3>{item.title}</h3>
       <p className="hint small">{fmt(item.date)}{ms ? ` · ${ms.title}` : ''}{item.shiftDays ? ` · moved ${item.shiftDays > 0 ? '+' : ''}${item.shiftDays} d by the projection` : ''} · {credit(item)}</p>
+      <Checkpoints item={item} />
+      <details className="tcard-chain editor-chain" open>
+        <summary>How it got here</summary>
+        <ChainLog item={item} />
+      </details>
       {item.rationale && <p className="why"><b>Why</b> {item.rationale}</p>}
       {item.reusedFrom && <p className="hint small">Reused from {item.reusedFrom}</p>}
       {!!item.versionCount && <p className="hint small">{item.versionCount} approved version{item.versionCount > 1 ? 's' : ''} kept</p>}

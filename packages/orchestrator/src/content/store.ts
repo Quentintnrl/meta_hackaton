@@ -3,7 +3,7 @@ import type { Snapshot } from './types.ts';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { defaultAgentConfig, defaultProfile, type AccountPost, type Activity, type AgentConfig, type AgentId, type ChatMessage, type SuggestedAction, type Report, type Forecast, type Item, type ItemLink, type Milestone, type Profile, type Series } from './types.ts';
+import { defaultAgentConfig, defaultProfile, type AccountPost, type Activity, type AgentConfig, type AgentId, type ChatMessage, type SuggestedAction, type Report, type Forecast, type Item, type ItemLink, type Milestone, type Profile, type Series, type Step } from './types.ts';
 
 type Row = Record<string, string | number | null>;
 
@@ -29,6 +29,7 @@ export class ContentStore {
       CREATE TABLE IF NOT EXISTS chat (id INTEGER PRIMARY KEY AUTOINCREMENT, project_id TEXT NOT NULL, thread TEXT NOT NULL, role TEXT NOT NULL, text TEXT NOT NULL, actions TEXT NOT NULL, made_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS series (id TEXT PRIMARY KEY, project_id TEXT NOT NULL, name TEXT NOT NULL, created_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS item_links (parent_id TEXT NOT NULL, child_id TEXT NOT NULL, kind TEXT NOT NULL, created_at TEXT NOT NULL, PRIMARY KEY (parent_id, child_id));
+      CREATE TABLE IF NOT EXISTS item_steps (id INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT NOT NULL, kind TEXT NOT NULL, who TEXT NOT NULL, text TEXT NOT NULL, made_at TEXT NOT NULL);
       CREATE TABLE IF NOT EXISTS item_versions (id INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT NOT NULL, draft TEXT NOT NULL, media TEXT, created_at TEXT NOT NULL);
     `);
     // Databases created before the team existed.
@@ -48,6 +49,8 @@ export class ContentStore {
     this.#addColumn('items', 'pitch', 'TEXT');
     this.#addColumn('account_posts', 'item_id', 'TEXT');
     this.#addColumn('account_posts', 'views', 'INTEGER');
+    this.#addColumn('chat', 'agent', "TEXT NOT NULL DEFAULT ''");
+    this.#addColumn('chat', 'basis', "TEXT NOT NULL DEFAULT '[]'");
   }
 
   #addColumn(table: string, col: string, def: string) {
@@ -94,13 +97,16 @@ export class ContentStore {
     return n;
   }
 
-  addChat(projectId: string, thread: string, role: ChatMessage['role'], text: string, actions: SuggestedAction[], at: string) {
-    this.#db.prepare('INSERT INTO chat (project_id, thread, role, text, actions, made_at) VALUES (?, ?, ?, ?, ?, ?)').run(projectId, thread, role, text, JSON.stringify(actions), at);
+  addChat(projectId: string, thread: string, role: ChatMessage['role'], text: string, actions: SuggestedAction[], at: string, extra: { agent?: AgentId; basis?: string[] } = {}) {
+    this.#db.prepare('INSERT INTO chat (project_id, thread, role, text, actions, made_at, agent, basis) VALUES (?, ?, ?, ?, ?, ?, ?, ?)').run(projectId, thread, role, text, JSON.stringify(actions), at, extra.agent ?? '', JSON.stringify(extra.basis ?? []));
   }
-
+  #chatRow(r: Row): ChatMessage {
+    const agent = String(r.agent ?? '');
+    return { id: Number(r.id), thread: String(r.thread), role: r.role as ChatMessage['role'], text: String(r.text), actions: JSON.parse(String(r.actions)) as SuggestedAction[], at: String(r.made_at), ...(agent ? { agent: agent as AgentId } : {}), basis: JSON.parse(String(r.basis ?? '[]')) as string[] };
+  }
   chat(projectId: string, thread: string, limit = 40): ChatMessage[] {
     const rows = this.#db.prepare('SELECT * FROM chat WHERE project_id = ? AND thread = ? ORDER BY id DESC LIMIT ?').all(projectId, thread, limit) as Row[];
-    return rows.reverse().map(r => ({ id: Number(r.id), thread, role: r.role as ChatMessage['role'], text: String(r.text), actions: JSON.parse(String(r.actions)) as SuggestedAction[], at: String(r.made_at) }));
+    return rows.reverse().map(r => this.#chatRow(r));
   }
 
   // Replaces the posts of one platform (or all of them when no platform is given); links to studio pieces survive.
@@ -253,6 +259,7 @@ export class ContentStore {
     this.#db.prepare('DELETE FROM items WHERE id = ?').run(id);
     this.#db.prepare('DELETE FROM item_links WHERE parent_id = ? OR child_id = ?').run(id, id);
     this.#db.prepare('DELETE FROM item_versions WHERE item_id = ?').run(id);
+    this.#db.prepare('DELETE FROM item_steps WHERE item_id = ?').run(id);
   }
 
   // --- editorial memory: series, derivations, versions
@@ -284,6 +291,22 @@ export class ContentStore {
   parentsOf(childId: string): Item[] {
     const rows = this.#db.prepare('SELECT i.* FROM items i JOIN item_links l ON l.parent_id = i.id WHERE l.child_id = ? ORDER BY l.created_at').all(childId) as Row[];
     return rows.map(r => this.#item(r));
+  }
+
+  // The chain of a piece: every step written as it happened.
+  addStep(itemId: string, s: Step) {
+    this.#db.prepare('INSERT INTO item_steps (item_id, kind, who, text, made_at) VALUES (?, ?, ?, ?, ?)').run(itemId, s.kind, s.who, s.text, s.at);
+  }
+
+  steps(itemId: string): Step[] {
+    return (this.#db.prepare('SELECT * FROM item_steps WHERE item_id = ? ORDER BY made_at, id').all(itemId) as Row[]).map(r => ({ kind: r.kind as Step['kind'], who: r.who as Step['who'], text: String(r.text), at: String(r.made_at) }));
+  }
+
+  // Chat messages that were about this piece, whichever agent was asked.
+  chatAbout(itemId: string): Array<ChatMessage & { agent: AgentId }> {
+    const rows = this.#db.prepare("SELECT * FROM chat WHERE thread LIKE ? ORDER BY id").all(`%:item:${itemId}`) as Row[];
+    // Who answered: the agent column in a team thread, the thread's owner in an agent's own thread.
+    return rows.map(r => ({ ...this.#chatRow(r), agent: (String(r.agent ?? '') || String(r.thread).split(':')[0]) as AgentId }));
   }
 
   snapshotVersion(itemId: string, at: string) {
