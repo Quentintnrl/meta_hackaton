@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { contentApi, teamApi, type AgentId, type ContentItem, type ContentView, type ItemStatus, type TeamView } from '../api';
 import { KIND_HUE, KindChip, ago, fmt, useAction } from './shared';
 import { Brief } from './NextView';
@@ -16,6 +16,7 @@ const STAGES: Array<{ status: ItemStatus; title: string; who: string; empty: str
   { status: 'published', title: 'Posted', who: 'Done, counted on Platforms', empty: 'Nothing posted from here yet.' },
 ];
 
+type Sort = 'date' | 'newest' | 'channel';
 const cap = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 const byDate = (a: ContentItem, b: ContentItem) => (a.fixedDate ?? a.date ?? '9999').localeCompare(b.fixedDate ?? b.date ?? '9999');
 
@@ -23,7 +24,20 @@ export function FlowBoard({ pid, team, view, reload, open, askAgent, since = '' 
   const note = team.synthesis;
   const { busy, run } = useAction(reload);
   const fresh = view.items.filter(i => i.status === 'idea' && i.createdAt > since).length;
-  const lanes = STAGES.map(s => ({ ...s, items: view.items.filter(i => i.status === s.status).sort(s.status === 'published' ? (a, b) => byDate(b, a) : byDate) }));
+  // How the board is read: by date (the default), newest first, or grouped by channel; narrowed to one kind or one channel.
+  const [sort, setSort] = useState<Sort>(() => { try { return (localStorage.getItem('flow:sort') as Sort) || 'date'; } catch { return 'date'; } });
+  const [kind, setKind] = useState('');
+  const [channel, setChannel] = useState('');
+  useEffect(() => { try { localStorage.setItem('flow:sort', sort); } catch { /* private window */ } }, [sort]);
+  const kinds = [...new Set(view.items.filter(i => i.status !== 'rejected').map(i => i.kind))];
+  const channels = [...new Set(view.items.filter(i => i.status !== 'rejected').map(i => i.pitch?.channel ?? '').filter(Boolean))].sort();
+  const keep = (i: ContentItem) => (!kind || i.kind === kind) && (!channel || (i.pitch?.channel ?? '') === channel);
+  const order = (status: ItemStatus) => (a: ContentItem, b: ContentItem) =>
+    sort === 'newest' ? b.createdAt.localeCompare(a.createdAt)
+      : sort === 'channel' ? ((a.pitch?.channel ?? '~').localeCompare(b.pitch?.channel ?? '~') || byDate(a, b))
+        : status === 'published' ? byDate(b, a) : byDate(a, b);
+  const lanes = STAGES.map(s => ({ ...s, items: view.items.filter(i => i.status === s.status && keep(i)).sort(order(s.status)) }));
+  const hidden = view.items.filter(i => i.status !== 'rejected' && !keep(i)).length;
   const refused = view.items.filter(i => i.status === 'rejected');
   const writing = team.working?.agent === 'writer';
   return (
@@ -31,6 +45,12 @@ export function FlowBoard({ pid, team, view, reload, open, askAgent, since = '' 
       <Brief pid={pid} team={team} reload={reload} />
       {note && <p className="note-line"><b>Director, {ago(note.at)}:</b> {note.data.headline}{fresh > 0 && <span className="since">{fresh} new proposal{fresh > 1 ? 's' : ''} since your last visit</span>} <button className="linkish tight" onClick={() => askAgent('director')}>Ask →</button></p>}
 
+      <div className="board-tools" role="toolbar" aria-label="Sort and filter">
+        <label>Sort <select value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="date">by date</option><option value="newest">newest first</option><option value="channel">by channel</option></select></label>
+        <label>Kind <select value={kind} onChange={e => setKind(e.target.value)}><option value="">all</option>{kinds.map(k => <option key={k} value={k}>{k.replace('-', ' ')}</option>)}</select></label>
+        {channels.length > 0 && <label>Channel <select value={channel} onChange={e => setChannel(e.target.value)}><option value="">all</option>{channels.map(c => <option key={c} value={c}>{c}</option>)}</select></label>}
+        {hidden > 0 && <span className="hint small">{hidden} hidden · <button className="linkish tight" onClick={() => { setKind(''); setChannel(''); }}>show all</button></span>}
+      </div>
       <ol className="thread" aria-label="The thread of a post">
         {lanes.map((lane, n) => (
           <li key={lane.status} className={`stage ${lane.status}${lane.items.length ? '' : ' bare'}`}>

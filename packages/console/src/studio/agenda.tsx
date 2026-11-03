@@ -26,6 +26,9 @@ export function AgendaBoard({ pid, team, view, reload, open, go }: Props) {
     const at = addDays(e.at, -5) > today ? addDays(e.at, -5) : today;
     await contentApi.addItem(pid, { kind: 'social-post', title: `Before ${e.name.length > 50 ? e.name.slice(0, 49) + '…' : e.name}`, brief: e.post || `A post for ${e.name} (${e.at}): ${e.why}`, fixedDate: at, rationale: `${e.name}, ${e.at}: ${e.why}`, source: 'trend', pitch: { hook: '', channel: '', measure: '', context: `${e.name}, ${e.at}. ${e.why}` } });
   });
+  // A piece dragged onto another day: its date is locked there. Posted pieces stay where they were posted.
+  const [over, setOver] = useState<string | null>(null);
+  const move = (id: string, to: string) => { setOver(null); const p = pieces.find(x => x.id === id); if (!p || p.status === 'published' || (p.fixedDate ?? p.date) === to) return; void run('move:' + id, () => contentApi.patchItem(id, { fixedDate: to })); };
   const uncovered = events.filter(e => e.at >= today && !pieces.some(p => { const d = p.fixedDate ?? p.date!; return d >= addDays(e.at, -14) && d <= addDays(e.at, 3); }));
   return (
     <div className="stack">
@@ -37,16 +40,17 @@ export function AgendaBoard({ pid, team, view, reload, open, go }: Props) {
         {uncovered.length > 0 && <ul className="uncovered">{uncovered.map(e => <li key={e.name}><b>{fmtDay(e.at)}</b> {e.name} <span className="hint small">{e.post || e.why}</span> <button className="linkish tight" disabled={busy !== ''} onClick={() => plan(e)}>{busy === 'plan:' + e.name ? '…' : 'Plan a post five days before →'}</button></li>)}</ul>}
         {events.length === 0 && <p className="hint">No dates from the Scout yet: the calendar shows your pieces alone. <button className="linkish tight" onClick={() => go('watch')}>Watch the field →</button></p>}
         {error && <p className="error">{error}</p>}
+        <p className="hint small">Drag a piece onto another day to lock its date there. Click a piece to open it, a date to plan a post before it.</p>
         <div className="legend agenda-legend"><span><i className="ev" />audience date</span><span><i className="ms" />goal</span>{(['idea', 'briefed', 'drafted', 'approved', 'published'] as const).map(s => <span key={s}><i className={`pc ${s}`} />{STATUS[s]}</span>)}</div>
       </section>
-      {months.map(m => <Month key={m} month={m} today={today} events={events} pieces={pieces} milestones={milestones} open={open} plan={plan} busy={busy} />)}
+      {months.map(m => <Month key={m} month={m} today={today} events={events} pieces={pieces} milestones={milestones} open={open} plan={plan} busy={busy} over={over} setOver={setOver} move={move} />)}
     </div>
   );
 }
 
 const fmtDay = (s: string) => new Date(s + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
 
-function Month({ month, today, events, pieces, milestones, open, plan, busy }: { month: string; today: string; events: Array<{ name: string; at: string; why: string; post?: string }>; pieces: ContentItem[]; milestones: Array<{ title: string; at: string }>; open: (id: string) => void; plan: (e: { name: string; at: string; why: string; post?: string }) => void; busy: string }) {
+function Month({ month, today, events, pieces, milestones, open, plan, busy, over, setOver, move }: { month: string; today: string; events: Array<{ name: string; at: string; why: string; post?: string }>; pieces: ContentItem[]; milestones: Array<{ title: string; at: string }>; open: (id: string) => void; plan: (e: { name: string; at: string; why: string; post?: string }) => void; busy: string; over: string | null; setOver: (d: string | null) => void; move: (id: string, to: string) => void }) {
   const first = new Date(month + '-01T00:00:00Z');
   const lead = (first.getUTCDay() + 6) % 7; // Monday first
   const days = new Date(Date.UTC(first.getUTCFullYear(), first.getUTCMonth() + 1, 0)).getUTCDate();
@@ -60,11 +64,14 @@ function Month({ month, today, events, pieces, milestones, open, plan, busy }: {
         {cells.map((d, i) => {
           if (!d) return <span key={i} className="day empty" />;
           const ev = events.filter(e => e.at === d), pc = pieces.filter(p => (p.fixedDate ?? p.date) === d), ms = milestones.filter(m => m.at.slice(0, 10) === d);
-          return <div key={d} className={`day${d === today ? ' today' : ''}${d < today ? ' past' : ''}`}>
+          return <div key={d} className={`day${d === today ? ' today' : ''}${d < today ? ' past' : ''}${over === d ? ' over' : ''}`}
+            onDragOver={e => { if (e.dataTransfer.types.includes('text/plain')) { e.preventDefault(); if (over !== d) setOver(d); } }}
+            onDragLeave={() => { if (over === d) setOver(null); }}
+            onDrop={e => { e.preventDefault(); move(e.dataTransfer.getData('text/plain'), d); }}>
             <span className="num">{Number(d.slice(8))}</span>
             {ev.map(e => <button key={e.name} className="ev-chip" title={`${e.name}\n${e.why}${e.post ? `\nTo post: ${e.post}` : ''}\nClick to plan a post five days before.`} disabled={busy !== ''} onClick={() => plan(e)}>{e.name}</button>)}
             {ms.map(m => <span key={m.title} className="ms-chip" title={`Goal: ${m.title}`}>◆ {m.title}</span>)}
-            {pc.map(p => <button key={p.id} className={`pc-chip ${p.status}`} style={{ ['--h' as string]: KIND_HUE[p.kind] }} title={`${p.title} — ${STATUS[p.status]}${p.pitch?.channel ? `, ${p.pitch.channel}` : ''}`} onClick={() => open(p.id)}>{p.title}</button>)}
+            {pc.map(p => <button key={p.id} className={`pc-chip ${p.status}${busy === 'move:' + p.id ? ' moving' : ''}`} style={{ ['--h' as string]: KIND_HUE[p.kind] }} draggable={p.status !== 'published'} onDragStart={e => { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move'; }} title={`${p.title} — ${STATUS[p.status]}${p.pitch?.channel ? `, ${p.pitch.channel}` : ''}${p.status !== 'published' ? '\nDrag to another day to lock its date.' : ''}`} onClick={() => open(p.id)}>{p.title}</button>)}
           </div>;
         })}
       </div>

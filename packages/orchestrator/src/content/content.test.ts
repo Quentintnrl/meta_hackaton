@@ -275,6 +275,7 @@ test('routes: roadmap to published, with errors mapped', async () => {
   assert.equal(zip.headers.get('content-type'), 'application/zip');
   assert.equal((await send('POST', `/items/${id}/match`, { postId: 99 })).status, 404, 'no such post');
   assert.equal((await send('POST', `/items/${id}/media/0/upload`, { type: 'image/gif', data: 'AAAA' })).status, 400);
+  assert.deepEqual(await (await send('POST', '/projects/app/team/stop')).json(), { ok: true, stopped: false }, 'nothing running: nothing stopped');
   assert.equal((await send('PUT', '/projects/app/profile', { voice: 'v', audience: 'a', language: 'French', autoDraft: true, niche: '', directives: '' })).status, 200);
   assert.equal((await send('POST', '/projects/app/content/from-git', { since: '1 week ago; rm -rf' })).status, 400);
   assert.equal((await send('DELETE', `/milestones/${m.id}`)).status, 200);

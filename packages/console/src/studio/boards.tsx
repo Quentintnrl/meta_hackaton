@@ -18,14 +18,17 @@ const title = (s: string) => s[0].toUpperCase() + s.slice(1);
 const words = (platform: string) => platformKey(platform) === 'linkedin' ? { like: 'reactions', share: 'reposts' } : { like: 'likes', share: 'shares' };
 
 // The team on duty, in one line: what it did last, and when it comes back.
-export function DutyLine({ team, go }: { team: TeamView; go: (v: View) => void }) {
+export function DutyLine({ pid, team, go, reload }: { pid: string; team: TeamView; go: (v: View) => void; reload?: () => Promise<void> }) {
   const w = team.working;
   const last = team.duty.lastPass;
   const next = last ? Math.max(0, 24 - (Date.now() - Date.parse(last)) / 3_600_000) : 0;
+  const [stopping, setStopping] = useState(false);
+  useEffect(() => { if (!w) setStopping(false); }, [w]);
+  const stop = async () => { setStopping(true); try { await teamApi.stop(pid); await reload?.(); } catch { setStopping(false); } };
   return (
     <p className="duty">
       <span className={`dot ${w ? 'on' : team.duty.autopilot ? 'idle' : 'off'}`} />
-      {w ? <>{team.agents.find(a => a.id === w.agent)?.name ?? w.agent} is working, since {ago(w.since)}.</>
+      {w ? <>{team.agents.find(a => a.id === w.agent)?.name ?? w.agent} is working, since {ago(w.since)}. <button className="linkish tight stop" disabled={stopping} title="Aborts the call in flight and skips the rest of the pass. What was already saved stays." onClick={() => void stop()}>{stopping ? 'Stopping…' : 'Stop ■'}</button></>
         : team.duty.autopilot ? <>Team on duty. Last pass {last ? ago(last) : 'never'}, next in about {next < 1 ? 'an hour' : `${Math.round(next)} h`}.</>
         : <>Team off duty: it only works when you ask. <button className="linkish tight" onClick={() => go('settings')}>Put it on duty →</button></>}
     </p>

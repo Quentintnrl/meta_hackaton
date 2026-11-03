@@ -10,7 +10,15 @@ export const ABOUT: Record<Exclude<AgentId, 'director'>, { does: string; workers
 };
 
 
-const GLYPH: Record<AgentId, string> = { director: 'M12 2l2.9 6.3 6.9.8-5.1 4.7 1.4 6.8L12 17l-6.1 3.6 1.4-6.8L2.2 9.1l6.9-.8L12 2Z', scout: 'M11 4a7 7 0 1 0 4.2 12.6l4.1 4.1 1.4-1.4-4.1-4.1A7 7 0 0 0 11 4Zm0 2a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z', analyst: 'M4 20V10h3v10H4Zm6.5 0V4h3v16h-3ZM17 20v-7h3v7h-3Z', strategist: 'M12 2 3 7v2h18V7l-9-5Zm-7 9v7H3v2h18v-2h-2v-7h-2v7h-3v-7h-2v7h-2v-7H9v7H7v-7H5Z', writer: 'M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25ZM20.7 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83Z' };
+// One trade, one sign: a star for the Director, a magnifier for the Scout, a rising curve for the Analyst,
+// a compass for the Strategist, a pen for the Writer. Drawn as strokes so they stay readable at 26 px.
+const GLYPH: Record<AgentId, { d: string; fill?: boolean }> = {
+  director: { d: 'M12 3l2.7 5.6 6.1.8-4.5 4.3 1.1 6.1L12 17l-5.4 2.8 1.1-6.1L3.2 9.4l6.1-.8L12 3Z', fill: true },
+  scout: { d: 'M10.5 4.5a6 6 0 1 1 0 12 6 6 0 0 1 0-12Zm4.3 10.3L20 20' },
+  analyst: { d: 'M4 19h16M5 15l4.5-5 3.5 3 6-7M16 6h3v3' },
+  strategist: { d: 'M12 3.5a8.5 8.5 0 1 1 0 17 8.5 8.5 0 0 1 0-17Zm3.6 4.9-2.1 5.3-5.1 2.4 2.1-5.3 5.1-2.4Z' },
+  writer: { d: 'M4 20l1-4L16 5l3 3L8 19l-4 1Zm9-12 3 3M4 20h6' },
+};
 
 export type AgentState = 'working' | 'failed' | 'idle';
 export const agentState = (team: TeamView, id: AgentId): AgentState => {
@@ -22,7 +30,7 @@ export const agentState = (team: TeamView, id: AgentId): AgentState => {
 export function Avatar({ id, state, size = 40 }: { id: AgentId; state: AgentState; size?: number }) {
   return (
     <div className={`avatar ${state}`} style={{ ['--h' as string]: AGENT_HUE[id], width: size, height: size }}>
-      <svg viewBox="0 0 24 24" width={size / 2} height={size / 2} aria-hidden><path d={GLYPH[id]} fill="currentColor" /></svg><i />
+      <svg viewBox="0 0 24 24" width={Math.round(size * 0.6)} height={Math.round(size * 0.6)} aria-hidden fill={GLYPH[id].fill ? 'currentColor' : 'none'} stroke={GLYPH[id].fill ? 'none' : 'currentColor'} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round"><path d={GLYPH[id].d} /></svg><i />
     </div>
   );
 }

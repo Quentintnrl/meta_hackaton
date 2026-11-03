@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { z } from 'zod';
+import { isAbort, type AgentOpts, type LLM, type Tool } from '../adapters/llm.ts';
 import type { ContentService } from './service.ts';
 import { parseAccountCsv } from './service.ts';
 import { loadInstagram, readInstagram, type InstagramConfig } from './instagram.ts';
@@ -241,6 +242,9 @@ function picturesFor(svc: ContentService, projectId: string, about: string): str
 export class Team {
   #svc: ContentService;
   #working = new Map<string, { agent: AgentId; since: string }>();
+  // One controller per pass: Stop aborts the call in flight and the agents still to come are skipped.
+  #runs = new Map<string, AbortController>();
+  #stopping = new Set<string>();
 
   #instagram: () => InstagramConfig | null;
   #fetch?: Parameters<typeof readInstagram>[1];
@@ -265,11 +269,32 @@ export class Team {
 
   working(projectId: string) { return this.#working.get(projectId); }
 
+  // The manager presses Stop: the model call in flight is aborted, the rest of the pass is skipped, nothing already saved is lost.
+  stop(projectId: string): boolean {
+    const c = this.#runs.get(projectId);
+    if (!c) return false;
+    this.#stopping.add(projectId);
+    c.abort();
+    return true;
+  }
+
+  // The model, with the Stop signal of the pass in progress attached to every call (none outside a pass).
+  #llm(projectId: string): LLM {
+    const base = this.#svc.llm;
+    const signal = this.#runs.get(projectId)?.signal;
+    if (!signal) return base;
+    return {
+      json: (p, sc, n, o) => base.json(p, sc, n, { ...o, signal }),
+      ...(base.search ? { search: (p: string, o?: { signal?: AbortSignal }) => base.search!(p, { ...o, signal }) } : {}),
+      ...(base.agent ? { agent: <T extends z.ZodType>(p: string, t: Tool[], sc: T, n: string, o?: AgentOpts) => base.agent!(p, t, sc, n, { ...o, signal }) } : {}),
+    };
+  }
+
   get #store() { return this.#svc.store; }
 
   // --- the Scout: what works in the field, from the web
   async scout(projectId: string, projectName: string, brief = ''): Promise<Audit> {
-    const llm = this.#svc.llm;
+    const llm = this.#llm(projectId);
     if (!llm.search) throw new Error('this model backend cannot search the web');
     const profile = this.#svc.profile(projectId);
     const field = profile.niche || profile.audience || projectName;
@@ -297,7 +322,7 @@ Fill misses with the formats and angles that fall flat, each with a concrete exa
   // page, a LinkedIn page, a programme) and checks a figure or a rhythm before reporting it, as many steps as it
   // decides within a budget; every step is kept as its trail. Otherwise two searches and one condensation.
   async watch(projectId: string, projectName: string): Promise<Watch> {
-    const llm = this.#svc.llm;
+    const llm = this.#llm(projectId);
     if (!llm.search) throw new Error('this model backend cannot search the web');
     const profile = this.#svc.profile(projectId);
     const field = profile.niche || projectName;
@@ -358,7 +383,7 @@ ${rules}${behaviour(this.#svc, projectId, 'scout')}`, tools, WatchSchema, 'watch
     if (!posts.length) throw new Error('give the team your account first: paste your recent posts with their numbers, or load the demo account');
     const stats = formatStats(posts);
     const audit = this.#store.latestReport<Audit>(projectId, 'audit')?.data;
-    const a = await this.#svc.llm.json(
+    const a = await this.#llm(projectId).json(
       `Today is ${day(this.#svc.now)}: a date before it is past, never propose to prepare for it. You compare a project's social account with what works in its field. Be concrete and honest; if the data is thin, say so. When posts get a handful of likes each and no comments, say plainly that formats cannot be told apart on these numbers, name what can still be read (the best and worst posts, the pace, the silence), and do not rank formats.
 Engagement = likes + 2*comments + 3*shares + 3*saves. Quote the post texts and engagement numbers below exactly as given: never invent or round them.
 
@@ -392,7 +417,7 @@ ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}
       this.#svc.autoMatch(projectId);
       return exact;
     }
-    const r = await this.#svc.llm.json(
+    const r = await this.#llm(projectId).json(
       `Extract the posts from this text, exactly as given. Do not invent posts or numbers: use 0 for a figure that is missing.
 format is a short label for the kind of post (tutorial, behind-the-scenes, release, announcement, meme, tip, story…). postedAt is YYYY-MM-DD, or "${day(this.#svc.now)}" when unknown.
 
@@ -424,7 +449,7 @@ ${pasted.slice(0, 12000)}`, AccountParse, 'account_import');
     const posted = svc.calendar(projectId).filter(i => i.status === 'published' && i.outcome).slice(-8)
       .map(i => `- ${i.kind} "${i.title}" (${i.outcome!.platform}, ${i.outcome!.postedAt}): ${i.outcome!.likes} likes, ${i.outcome!.comments} comments, ${i.outcome!.shares} shares${i.outcome!.views ? `, ${i.outcome!.views} views` : ''} after ${i.outcome!.daysSince} days${i.pitch?.measure ? `; we said we would count: ${i.pitch.measure}` : ''}`);
 
-    const ask = (lens: string, count: string) => svc.llm.json(
+    const ask = (lens: string, count: string) => this.#llm(projectId).json(
       `You are the strategist of a small digital communication team working for a solo developer (the manager).
 Today is ${today}. Propose ${count} pieces of content for the coming weeks.${lens ? ` Look at the situation mainly through ${lens}.` : ''} Every piece must be justified by evidence you can see below: a trend from the audit, a gap or strength in the account, or something in the dev roadmap (a feature about to land, a milestone date). Say which in "rationale", in plain words a busy person reads once, naming the one fact it rests on (a named post with its number and date, a feature, a date, an example from the field). Put the hard numbers behind it in "evidence" (formats with their scores, named winning or flopping posts, never invented figures). When the account's numbers are too small to tell formats apart (a few likes each, no comments), say so in the rationale instead of ranking formats, and rest the piece on something else: what is being built, who the audience really is, where they are, one concrete example from the field.
 Write "hook" as the real first line of the post, in the project's language and voice. Name the "channel" where the audience actually is (the account's own network, or another one when the audience is elsewhere: say why in the rationale). In "measure", say what the manager will count a week later to know it worked, something concrete (sign-ups, replies, a specific kind of person reacting), not engagement in general. In "format", name the content format the piece uses with the same word as in the account stats or the field research (tutorial, meme, behind-the-scenes…), or leave it empty.
@@ -504,6 +529,8 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
   start(projectId: string, projectName: string, agents: AgentId[], brief = ''): boolean {
     if (this.#working.has(projectId)) return false;
     this.#working.set(projectId, { agent: agents[0], since: this.#svc.now.toISOString() }); // the console sees the team busy from the first instant
+    this.#runs.set(projectId, new AbortController());
+    this.#stopping.delete(projectId);
     void this.#run(projectId, projectName, agents, brief);
     return true;
   }
@@ -523,10 +550,14 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
     const step = async (agent: AgentId, fn: () => Promise<string>) => {
       if (!agents.includes(agent)) return;
       if (!store.agentConfig(projectId, agent).enabled) { store.log(projectId, agent, 'Skipped: switched off by you.', true, nowIso()); return; }
+      if (this.#stopping.has(projectId)) { store.log(projectId, agent, 'Skipped: you stopped the pass.', true, nowIso()); return; }
       this.#working.set(projectId, { agent, since: nowIso() });
       ran++;
       try { store.log(projectId, agent, await fn(), true, nowIso()); }
-      catch (e) { failed++; store.log(projectId, agent, (e as Error).message, false, nowIso()); }
+      catch (e) {
+        if (this.#stopping.has(projectId) || isAbort(e)) { store.log(projectId, agent, 'Stopped by you before it finished; what was already saved stays.', true, nowIso()); return; }
+        failed++; store.log(projectId, agent, (e as Error).message, false, nowIso());
+      }
     };
     try {
       // A connected Instagram account is read first, so the Analyst works on today's numbers. Its failure is logged, not fatal.
@@ -545,7 +576,9 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       await step('analyst', async () => { const a = await this.analyse(projectId); return `Compared ${a.postCount} posts with the field. ${a.summary}`; });
       await step('strategist', async () => { const n = await this.strategize(projectId, brief); return `Proposed ${n.length} piece(s) of content.${n.length ? ' Waiting for your decision.' : ' Nothing new beyond what is planned.'}`; });
       await step('writer', async () => { const n = await this.write(projectId); return n.length ? `Drafted ${n.length} accepted piece(s).` : 'Nothing accepted is waiting for a draft.'; });
-      const director = store.agentConfig(projectId, 'director').enabled;
+      const stopped = this.#stopping.has(projectId);
+      const director = store.agentConfig(projectId, 'director').enabled && !stopped;
+      if (stopped) store.log(projectId, 'director', 'Pass stopped by you. The team waits for your next brief.', true, nowIso());
       // New research, numbers or proposals change the plan: the director rewrites it. Asked alone, it only plans.
       const replan = agents.includes('director') || (['scout', 'analyst', 'strategist'] as AgentId[]).some(a => agents.includes(a) && store.agentConfig(projectId, a).enabled);
       if (director && replan && (ran > failed || agents.includes('director'))) {
@@ -559,6 +592,8 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       }
     } finally {
       this.#working.delete(projectId);
+      this.#runs.delete(projectId);
+      this.#stopping.delete(projectId);
     }
   }
 
@@ -570,7 +605,7 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
     const stats = account?.data.stats ?? [];
     const ms = svc.milestones(projectId).filter(m => m.status === 'open') as Array<Milestone & { forecast?: { predictedDate: string } }>;
     const fig = (f: Figure) => hasFigure(f) ? `${f.value}${f.unit.startsWith('%') ? '' : ' '}${f.unit} ${f.what} (${f.source || 'no source'})` : 'no figure found';
-    const p = await svc.llm.json(
+    const p = await this.#llm(projectId).json(
       `You are the director of a small digital communication team working for a solo developer (the manager). Write the communication plan for the coming weeks: a format mix, each line with how many pieces and why, in plain words.
 Ground every line in the numbers below: this account's average score per format, and the measured field figures. Use the format names exactly as they appear below. Levers: double-down = it scores high here, do more; fill-gap = the field shows it works and this account has little or none; test = try it with one or two pieces; keep = steady baseline. Respect the standing orders (cadence, forbidden topics). No jargon, no filler.
 ${directives(svc, projectId)}${behaviour(svc, projectId, 'director')}
@@ -602,7 +637,7 @@ ${ms.map(m => `- ${m.title}: wanted ${m.targetDate}${m.forecast ? `, projected $
   async synthesize(projectId: string, brief = ''): Promise<Synthesis> {
     const recent = this.#store.activity(projectId, 8).reverse();
     const waiting = this.#store.items(projectId).filter(i => i.status === 'idea');
-    const s = await this.#svc.llm.json(
+    const s = await this.#llm(projectId).json(
       `You are the director of a small digital communication team. You sum up for the manager what your team just did, in plain words.
 A short headline, then 2 to 4 points (what was found or decided, what needs the manager), then the one thing they should do next. No jargon, no filler.
 ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'director')}
@@ -672,16 +707,17 @@ ${waiting.map(i => `- ${i.kind}: ${i.title} (${i.source})`).join('\n') || '(none
     const ground = groundFor(this.#svc, projectId, agent, subject);
     const images = picturesFor(this.#svc, projectId, about);
     let research = '';
-    if (agent === 'scout' && this.#svc.llm.search) {
+    const llm = this.#llm(projectId);
+    if (agent === 'scout' && llm.search) {
       try {
-        const r = await this.#svc.llm.search(message.slice(0, 500));
+        const r = await llm.search(message.slice(0, 500));
         research = `FRESH WEB RESULTS for this exact question (quote site names when you use them):\n${r.text}\nSources: ${r.sources.slice(0, 6).join(', ')}`;
         ground.basis.push('a fresh web search');
       } catch { /* answer from the audit instead */ }
     }
     const others = (['director', 'scout', 'analyst', 'strategist', 'writer'] as AgentId[]).filter(a => a !== agent).map(a => ROLE_OF[a]).join('; ');
     const names = (m: { role: string; agent?: AgentId }) => m.role === 'user' ? 'Manager' : m.agent === agent || !m.agent ? 'You' : AGENTS.find(a => a.id === m.agent)!.name;
-    const r = await this.#svc.llm.json(
+    const r = await this.#llm(projectId).json(
       `You are the ${info.name} of a small digital communication team working for the manager, a solo developer. ${ROLE_OF[agent].replace(/^the \w+ /, 'You ')}.
 ${CHAT_IDENTITY}
 ${images.length > 0 ? SIGHTED : BLIND}

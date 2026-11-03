@@ -194,6 +194,7 @@ export interface TeamView {
 export const teamApi = {
   view: (pid: string) => call<TeamView>(`/projects/${pid}/team`),
   run: (pid: string, agents: AgentId[], brief: string) => send<{ ok: true }>('POST', `/projects/${pid}/team/run`, { agents, brief }),
+  stop: (pid: string) => send<{ ok: true; stopped: boolean }>('POST', `/projects/${pid}/team/stop`),
   setAccount: (pid: string, b: { paste?: string; demo?: boolean; platform?: string; followers?: number }) => send<TeamView>('PUT', `/projects/${pid}/account`, b),
   sync: (pid: string) => send<TeamView>('POST', `/projects/${pid}/account/sync`, {}),
   // The team's conversation: one thread per base ('team', or an agent's own) and subject (a piece, a goal).

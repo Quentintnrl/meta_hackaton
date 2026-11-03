@@ -179,6 +179,9 @@ export function contentRoutes(svc: ContentService, projects: ProjectStore, team 
     return team.start(c.req.param('pid'), projects.get(c.req.param('pid'))!.name, b.agents, b.brief) ? c.json({ ok: true }, 202) : c.json({ error: 'the team is already working' }, 409);
   });
 
+  // Stop the pass in progress: the call in flight is aborted, the rest is skipped, what was saved stays.
+  app.post('/projects/:pid/team/stop', c => known(c) ? c.json({ ok: true, stopped: team.stop(c.req.param('pid')) }) : c.json({ error: 'unknown project' }, 404));
+
   // The account the analyst compares with the field: pasted by the manager, or fictional demo data.
   app.put('/projects/:pid/account', async c => {
     if (!known(c)) return c.json({ error: 'unknown project' }, 404);

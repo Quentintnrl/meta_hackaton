@@ -3,9 +3,10 @@ import { z } from 'zod';
 export interface LLM {
   // Asks for JSON matching `schema`; the reply is validated, never trusted.
   // `images` are data URLs the model really sees (vision input, paid tokens).
-  json<T extends z.ZodType>(prompt: string, schema: T, name: string, opts?: { images?: string[] }): Promise<z.infer<T>>;
+  // `signal` aborts the call (the manager pressed Stop): the promise rejects with an AbortError.
+  json<T extends z.ZodType>(prompt: string, schema: T, name: string, opts?: { images?: string[]; signal?: AbortSignal }): Promise<z.infer<T>>;
   // Looks things up on the web and answers in prose, with the pages it relied on. Optional: not every backend can.
-  search?(prompt: string): Promise<{ text: string; sources: string[] }>;
+  search?(prompt: string, opts?: { signal?: AbortSignal }): Promise<{ text: string; sources: string[] }>;
   // Works as an agent: the model calls `tools` as many times as it decides (searching, opening pages, counting),
   // then answers in JSON matching `schema`. Optional: a backend without function calling does not offer it.
   agent?<T extends z.ZodType>(prompt: string, tools: Tool[], schema: T, name: string, opts?: AgentOpts): Promise<z.infer<T>>;
@@ -13,7 +14,8 @@ export interface LLM {
 
 // A tool the model may call: its arguments are validated before `run`, and whatever `run` returns is what the model reads.
 export interface Tool { name: string; description: string; args: z.ZodObject<z.ZodRawShape>; run(args: Record<string, unknown>): Promise<string> }
-export interface AgentOpts { maxSteps?: number; webSearch?: boolean; onStep?: (step: { tool: string; args: Record<string, unknown>; result: string }) => void }
+export interface AgentOpts { maxSteps?: number; webSearch?: boolean; signal?: AbortSignal; onStep?: (step: { tool: string; args: Record<string, unknown>; result: string }) => void }
+export const isAbort = (e: unknown) => (e as { name?: string })?.name === 'AbortError';
 const MAX_STEPS = 16;
 
 const BASE = 'https://api.meta.ai/v1';
@@ -28,11 +30,12 @@ export class MetaLLM implements LLM {
     this.#model = model;
   }
 
-  async search(prompt: string) {
+  async search(prompt: string, opts: { signal?: AbortSignal } = {}) {
     const res = await fetch(`${BASE}/responses`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.#key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ model: this.#model, input: prompt, tools: [{ type: 'web_search' }] }),
+      signal: opts.signal,
     });
     if (!res.ok) throw new Error(`Meta API ${res.status}: ${(await res.text()).slice(0, 300)}`);
     const body = (await res.json()) as { output?: Array<{ type: string; content?: Array<{ text?: string; annotations?: Array<{ type: string; url?: string }> }> }> };
@@ -54,10 +57,11 @@ export class MetaLLM implements LLM {
     // The built-in web search runs on Meta's side and reports what it did (a search, a page opened) as
     // `web_search_call` items: they are steps too, so the trail shows them.
     const builtIn = (out: Item[]) => { for (const i of out) if (i.type === 'web_search_call' && i.action) opts.onStep?.({ tool: 'web_search', args: i.action, result: '' }); };
-    let res = await this.#post({ model: this.#model, input: prompt, tools: defs, tool_choice: 'auto' });
+    let res = await this.#post({ model: this.#model, input: prompt, tools: defs, tool_choice: 'auto' }, opts.signal);
     let steps = 0;
     let pending: Array<{ type: string; call_id?: string; output: string }> = [];
     while (true) {
+      if (opts.signal?.aborted) throw new DOMException('stopped by the manager', 'AbortError');
       builtIn(res.output ?? []);
       const calls = (res.output ?? []).filter((i: Item) => i.type === 'function_call');
       if (!calls.length) break;
@@ -79,29 +83,30 @@ export class MetaLLM implements LLM {
         return { type: 'function_call_output', call_id: c.call_id, output: result.slice(0, 20_000) };
       }));
       steps += calls.length;
-      res = await this.#post({ model: this.#model, previous_response_id: res.id, input: outputs, tools: defs, tool_choice: 'auto' });
+      res = await this.#post({ model: this.#model, previous_response_id: res.id, input: outputs, tools: defs, tool_choice: 'auto' }, opts.signal);
     }
     const final = await this.#post({
       model: this.#model, previous_response_id: res.id,
       input: [...pending, { role: 'user', content: 'Now write the final answer from everything you found, in the requested JSON. Keep only what the pages and results support.' }],
       text: { format: { type: 'json_schema', name, strict: true, schema: z.toJSONSchema(schema) } },
-    });
+    }, opts.signal);
     return schema.parse(JSON.parse(messageText(final)));
   }
 
-  async #post(body: Record<string, unknown>) {
-    const res = await fetch(`${BASE}/responses`, { method: 'POST', headers: { Authorization: `Bearer ${this.#key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  async #post(body: Record<string, unknown>, signal?: AbortSignal) {
+    const res = await fetch(`${BASE}/responses`, { method: 'POST', headers: { Authorization: `Bearer ${this.#key}`, 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
     if (!res.ok) throw new Error(`Meta API ${res.status}: ${(await res.text()).slice(0, 300)}`);
     return (await res.json()) as { id: string; output?: Array<{ type: string; call_id?: string; name?: string; arguments?: string; action?: Record<string, unknown>; content?: Array<{ type: string; text?: string }> }> };
   }
 
-  async json<T extends z.ZodType>(prompt: string, schema: T, name: string, opts: { images?: string[] } = {}): Promise<z.infer<T>> {
+  async json<T extends z.ZodType>(prompt: string, schema: T, name: string, opts: { images?: string[]; signal?: AbortSignal } = {}): Promise<z.infer<T>> {
     // Plain text stays a string; with pictures the input becomes one user
     // message with `input_image` parts (Responses API vision input).
     const parts = [{ type: 'input_text', text: prompt }, ...(opts.images ?? []).map(image_url => ({ type: 'input_image', image_url }))];
     const res = await fetch(`${BASE}/responses`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${this.#key}`, 'Content-Type': 'application/json' },
+      signal: opts.signal,
       body: JSON.stringify({
         model: this.#model,
         input: parts.length > 1 ? [{ role: 'user', content: parts }] : prompt,

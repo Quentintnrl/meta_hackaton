@@ -1067,3 +1067,12 @@ a.button { display: inline-block; padding: 8px 14px; border: 1px solid var(--lin
 /* ---- the editor: its final actions stay in reach at the foot, the chain folded by default ---- */
 .editor-actions { position: sticky; bottom: -1px; margin: 6px -4px -4px; padding: 10px 4px 4px; background: var(--panel); border-top: 1px solid var(--line); z-index: 2; }
 .cost { font-size: 12.5px; color: var(--muted); white-space: nowrap; }
+
+/* ---- stop, board tools, calendar drag, clearer agent signs ---- */
+.duty .stop { color: var(--bad); font-weight: 600; }
+.board-tools { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--muted); }
+.board-tools label { display: inline-flex; gap: 6px; align-items: center; } .board-tools select { font: inherit; font-size: 13px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--ink); }
+.day.over { background: var(--accent-soft); border-color: var(--accent); }
+.pc-chip[draggable="true"] { cursor: grab; } .pc-chip.moving { opacity: .5; }
+.stack-av .avatar svg { width: 16px; height: 16px; }
+.avatar { background: hsl(var(--h) 80% 50% / .2); }

@@ -534,3 +534,21 @@ test('the strategist can put a piece on the board from the chat, the writer can 
   assert.ok(svc.chain(svc.store.item(item.id)!).some(s => s.kind === 'asked' && s.text.startsWith('To the team')), 'the chat about the piece is in its chain');
   agentReply = { reply: 'Sure.', handOff: 'none', actions: [] };
 });
+
+test('Stop aborts the call in flight, skips the agents still to come, and says so in the log', async () => {
+  // A model that never answers until the Stop signal aborts it.
+  const { svc, team } = setup({ json: (_p, _s, _n, o) => new Promise((_, rej) => o?.signal?.addEventListener('abort', () => rej(new DOMException('stopped', 'AbortError')))) });
+  svc.store.setAccount('app', [{ platform: 'instagram', text: 'hello', format: 'tip', likes: 3, comments: 0, shares: 0, saves: 0, postedAt: '2026-10-20', simulated: false }]);
+  assert.equal(team.stop('app'), false, 'nothing to stop yet');
+  assert.ok(team.start('app', 'App', ['analyst', 'strategist'], ''));
+  await new Promise(r => setTimeout(r, 20));
+  assert.equal(team.working('app')?.agent, 'analyst');
+  assert.equal(team.stop('app'), true);
+  for (let i = 0; i < 50 && team.working('app'); i++) await new Promise(r => setTimeout(r, 10));
+  assert.equal(team.working('app'), undefined, 'the pass is over');
+  const log = svc.store.activity('app', 10).map(a => `${a.agent}:${a.summary}`);
+  assert.ok(log.some(l => l.startsWith('analyst:Stopped by you')), log.join(' | '));
+  assert.ok(log.some(l => l.startsWith('strategist:Skipped: you stopped')), log.join(' | '));
+  assert.ok(log.some(l => l.startsWith('director:Pass stopped by you')), log.join(' | '));
+  assert.ok(log.every(l => !l.includes('Could not')), 'no failure logged for a stop');
+});

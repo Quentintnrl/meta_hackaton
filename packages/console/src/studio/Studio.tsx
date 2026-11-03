@@ -148,7 +148,7 @@ export function Studio({ project, rail }: { project: Project; rail?: HTMLElement
       )}
 
       <div className="studio-main">
-        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p><DutyLine team={team} go={setPage} /></header>
+        <header className="page-head"><h2>{info.title}</h2><p className="hint">{info.about}</p><DutyLine pid={project.id} team={team} go={setPage} reload={reload} /></header>
         {page === 'studio' && <CreateBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} since={since} />}
         {page === 'platforms' && <PlatformsBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
         {page === 'community' && <CommunityBoard pid={project.id} team={team} view={view} reload={reload} go={setPage} open={setOpenId} askAgent={askAgent} />}
