@@ -81,10 +81,10 @@ export function IdeaRoom({ pid, item, view, team, reload, onClose }: { pid: stri
             </div>
           ) : (
             <>
-              <button className="primary big" disabled={b} onClick={() => run('yes', async () => { saveBrief(); await teamApi.accept(item.id); await contentApi.draft(item.id); })}>{busy === 'yes' ? 'The Writer is on it…' : 'Yes, write it'}</button>
+              <button className="primary big" disabled={b} title="The Writer writes it now: about 30 seconds, one model call" onClick={() => run('yes', async () => { saveBrief(); await teamApi.accept(item.id); await contentApi.draft(item.id); })}>{busy === 'yes' ? 'The Writer is on it…' : 'Yes, write it'}</button>
               <button disabled={b} onClick={() => run('keep', async () => { await teamApi.accept(item.id); onClose(); })}>Keep for later</button>
               <button disabled={b} onClick={() => setRefusing(true)}>No</button>
-              <span className="hint small room-foot-hint">Yes sends it to the Writer with your words above. Later keeps it accepted without writing. No teaches the team.</span>
+              <span className="hint small room-foot-hint">Yes sends it to the Writer with your words above (about 30 seconds). Later keeps it accepted without writing. No teaches the team.</span>
             </>
           )}
           {error && <p className="error">{error}</p>}

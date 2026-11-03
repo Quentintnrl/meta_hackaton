@@ -88,7 +88,7 @@ function ThreadCard({ item, view, reload, open, askAgent, writing, fresh }: { it
       ) : (
         <div className="tcard-actions" onClick={e => e.stopPropagation()}>
           {item.status === 'idea' && <>
-            <button className="primary" disabled={busy !== ''} onClick={() => run('yes', async () => { await teamApi.accept(item.id); await contentApi.draft(item.id); })}>{busy === 'yes' ? 'Writing…' : 'Yes, write it'}</button>
+            <button className="primary" disabled={busy !== ''} title="The Writer writes it now: about 30 seconds, one model call" onClick={() => run('yes', async () => { await teamApi.accept(item.id); await contentApi.draft(item.id); })}>{busy === 'yes' ? 'Writing…' : 'Yes, write it'}</button>
             <button disabled={busy !== ''} onClick={() => setRefusing(true)}>No</button>
             <button className="linkish" disabled={busy !== ''} onClick={() => run('keep', () => teamApi.accept(item.id))}>Later</button>
             <button className="linkish" onClick={() => askAgent('strategist', 'item', item.id)}>Ask why</button>

@@ -41,7 +41,8 @@ export function Brief({ pid, team, reload }: { pid: string; team: TeamView; relo
       <h3>What do you want to say, and to whom?</h3>
       <textarea rows={2} value={brief} onChange={e => setBrief(e.target.value)} placeholder="e.g. Get more beta testers before the end of the month. Or leave empty: the team starts from your account and your roadmap." onKeyDown={e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') send(); }} />
       <div className="row brief-row">
-        <button className="primary" disabled={busy !== '' || Boolean(working)} onClick={send}>{working ? 'The team is working…' : busy === 'send' ? 'Sending…' : 'Propose'}</button>
+        <button className="primary" disabled={busy !== '' || Boolean(working)} title={research ? 'Scout on the web, then Analyst and Strategist: a few minutes' : 'Analyst and Strategist: a minute or two'} onClick={send}>{working ? 'The team is working…' : busy === 'send' ? 'Sending…' : 'Propose'}</button>
+        {!working && <span className="cost">{research ? 'a few minutes' : 'a minute or two'}</span>}
         <label className="hint small"><input type="checkbox" checked={research} onChange={e => setResearch(e.target.checked)} /> also refresh the field research (slower, searches the web)</label>
         {working && <span className="hint small">{team.agents.find(a => a.id === working.agent)?.name ?? working.agent} since {ago(working.since)}. Proposals appear here when it is done.</span>}
       </div>

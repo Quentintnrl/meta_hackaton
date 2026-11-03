@@ -93,6 +93,7 @@ function PlatformCard({ pid, name, posts, snaps, planned, reload, connected, las
         <div className="row">
           <label className="hint small">Aim <input type="number" min={0} max={30} value={aimText} onChange={e => setAimText(e.target.value)} onBlur={() => { const n = Number(aimText) || 0; if (n !== aim) void run('aim', () => contentApi.setProfile(pid, { ...profile, cadence: { ...(profile.cadence ?? {}), [name]: n } })); }} style={{ width: 56 }} /> posts a week</label>
           {aim > 0 && missing > 0 && <button className="primary" disabled={busy !== '' || working} onClick={() => run('fill', () => teamApi.run(pid, ['strategist'], `${missing} piece${missing > 1 ? 's' : ''} for ${title(name)} to post before ${fmt(sunday)}, for the audience that is on ${title(name)}.`))}>{busy === 'fill' ? 'Asking…' : working ? 'Team busy…' : `Fill ${missing > 1 ? 'the slots' : 'the slot'}`}</button>}
+          {aim > 0 && missing > 0 && !working && <span className="cost">Strategist, about a minute</span>}
         </div>
       </div>
       <div className="pnext"><b>Planned here</b>{planned.length === 0 ? <span className="hint small"> nothing yet</span> : <ul>{planned.slice(0, 4).map(i => <li key={i.id}>{fmt(i.fixedDate ?? i.date)} · {cap(i.title, 48)} <span className="hint small">{i.status}</span></li>)}</ul>}</div>
@@ -241,7 +242,7 @@ export function WatchBoard({ pid, team, view, reload, go }: Common) {
   const { busy, error, run } = useAction(reload);
   const w = team.watch;
   const today = new Date().toISOString().slice(0, 10);
-  const again = <button className="primary" disabled={busy !== '' || Boolean(team.working)} onClick={() => run('watch', () => teamApi.run(pid, ['scout'], ''))}>{busy ? 'Sending…' : team.working ? 'Team busy…' : w ? 'Watch again' : 'Watch the field'}</button>;
+  const again = <span className="row nomargin"><button className="primary" disabled={busy !== '' || Boolean(team.working)} title="The Scout searches and opens pages: a few minutes, up to 14 tool calls" onClick={() => run('watch', () => teamApi.run(pid, ['scout'], ''))}>{busy ? 'Sending…' : team.working ? 'Team busy…' : w ? 'Watch again' : 'Watch the field'}</button>{!team.working && <span className="cost">a few minutes</span>}</span>;
   if (!w) return <section className="card"><h3>Nobody watched yet</h3><p className="hint">The Scout searches the web for who else talks to your audience, how each one communicates (rhythm, formats, subjects, tone, who speaks, what they ask), what they leave you, and the dates your audience gathers around. A few minutes.</p>{again}{error && <p className="error">{error}</p>}</section>;
   const d = w.data;
   const key = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, '');

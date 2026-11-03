@@ -75,7 +75,7 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
             <label>{video ? 'Voiceover / on-screen text' : 'Text over the picture'}<input value={x.text} onChange={e => setSlide(i, { text: e.target.value })} /></label>
             <div className="row">
               {video && <label className="inline sec"><span>Seconds</span><input type="number" min={1} max={90} value={x.seconds} onChange={e => setSlide(i, { seconds: Number(e.target.value) })} /></label>}
-              <button disabled={b || dirty || !x.visual.trim()} title={dirty ? 'Save your changes first' : !x.visual.trim() ? 'Describe the picture first' : ''} onClick={() => run(`gen${i}`, () => contentApi.generateSlide(item.id, i))}>{busy === `gen${i}` ? 'Drawing…' : x.file ? 'Redraw' : video ? 'Generate keyframe' : 'Generate picture'}</button>
+              <button disabled={b || dirty || !x.visual.trim()} title={dirty ? 'Save your changes first' : !x.visual.trim() ? 'Describe the picture first' : 'One paid image generation, about 20 seconds'} onClick={() => run(`gen${i}`, () => contentApi.generateSlide(item.id, i))}>{busy === `gen${i}` ? 'Drawing…' : x.file ? 'Redraw' : video ? 'Generate keyframe' : 'Generate picture'}</button>
               <button className="linkish" disabled={b || dirty} title={dirty ? 'Save your changes first' : 'Your own photo instead of a generated one: no model call'} onClick={() => choose(i)}>{busy === `up${i}` ? 'Uploading…' : 'Use my photo'}</button>
               {media.slides.length > (media.format === 'image' ? 1 : 2) && <button className="linkish" onClick={() => setMedia({ ...media, slides: media.slides.filter((_, j) => j !== i) })}>Remove</button>}
             </div>

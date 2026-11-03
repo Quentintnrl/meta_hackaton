@@ -63,7 +63,7 @@ export function ItemEditor({ item, milestones, series, reload, onClose, goItem, 
       <h3>{item.title}</h3>
       <p className="hint small">{fmt(item.date)}{ms ? ` · ${ms.title}` : ''}{item.shiftDays ? ` · moved ${item.shiftDays > 0 ? '+' : ''}${item.shiftDays} d by the projection` : ''} · {credit(item)}</p>
       <Checkpoints item={item} />
-      <details className="tcard-chain editor-chain" open>
+      <details className="tcard-chain editor-chain">
         <summary>How it got here</summary>
         <ChainLog item={item} />
       </details>
@@ -75,7 +75,7 @@ export function ItemEditor({ item, milestones, series, reload, onClose, goItem, 
       <label>What it should say<textarea rows={2} value={brief} onChange={e => queueBriefSave(e.target.value)} onBlur={() => { if (briefTimer.current) clearTimeout(briefTimer.current); if (brief !== item.brief) void run('brief', () => contentApi.patchItem(item.id, { brief })); }} /></label>
       <div className="row">
         <button className="linkish" onClick={() => askAgent('writer', 'item', item.id)}>Ask the Writer →</button>
-        <button className="primary" disabled={b} onClick={() => run('draft', () => contentApi.draft(item.id, ask.trim() || undefined))}>{busy === 'draft' ? 'The Writer is on it…' : item.draft ? 'Rewrite' : 'Have it written'}</button>
+        <button className="primary" disabled={b} title="The Writer writes it now: about 30 seconds, one model call" onClick={() => run('draft', () => contentApi.draft(item.id, ask.trim() || undefined))}>{busy === 'draft' ? 'The Writer is on it…' : item.draft ? 'Rewrite' : 'Have it written'}</button>
         <input value={ask} onChange={e => setAsk(e.target.value)} placeholder={item.draft ? 'Ask for a change: shorter, funnier…' : 'Direction (optional)'} onKeyDown={e => e.key === 'Enter' && item.draft && ask.trim() && run('revise', async () => { await contentApi.revise(item.id, ask.trim()); setAsk(''); })} />
         {item.draft && <button disabled={b || !ask.trim()} onClick={() => run('revise', async () => { await contentApi.revise(item.id, ask.trim()); setAsk(''); })}>{busy === 'revise' ? 'Revising…' : 'Revise'}</button>}
       </div>
@@ -85,7 +85,7 @@ export function ItemEditor({ item, milestones, series, reload, onClose, goItem, 
         {dirtyDraft && !saving && <span className="row"><button disabled={b} onClick={() => { if (draftTimer.current) clearTimeout(draftTimer.current); void run('save', () => contentApi.patchItem(item.id, { draft })); }}>Save now</button></span>}
       </label>}
       {SOCIAL_KINDS.includes(item.kind) && <PostBuilder item={item} reload={reload} />}
-      <div className="row">
+      <div className="row editor-actions">
         <button disabled={b || !canApprove} title={approveHint} onClick={approveNow}>{busy === 'approve' ? 'Approving…' : dirtyDraft || dirtyBrief ? 'Save & approve' : 'Approve'}</button>
         {!!copyText && <button disabled={b} title="Copy the caption and hashtags to paste where your audience lives" onClick={() => void copyNow()}>{copied ? 'Copied' : 'Copy caption'}</button>}
         <button disabled={b || item.status !== 'approved'} title="Post it where your audience lives first, then record it here" onClick={() => run('publish', () => contentApi.publish(item.id))}>Mark posted</button>

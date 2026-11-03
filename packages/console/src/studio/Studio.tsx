@@ -166,7 +166,7 @@ export function Studio({ project, rail }: { project: Project; rail?: HTMLElement
       </div>
       {open && open.status === 'idea' && <IdeaRoom pid={project.id} item={open} view={view} team={team} reload={reload} onClose={() => setOpenId(null)} askAgent={askAgent} />}
       {open && open.status !== 'idea' && <div className="room-backdrop" onMouseDown={e => { if (e.target === e.currentTarget) setOpenId(null); }}><ItemEditor item={open} milestones={view.milestones} series={view.series} reload={reload} onClose={() => setOpenId(null)} goItem={id => { setPage('studio'); setOpenId(id); }} askAgent={askAgent} /></div>}
-      {!(open && open.status === 'idea') && <TeamDock pid={project.id} team={team} view={view} hint={hint} subject={dockSubject} lock={lockOf(about)} open={dockOpen} onOpen={openDock} onClose={clearAbout} onLock={setLock} reload={reload} onOpenItem={id => { setPage('studio'); writeHashPath(studioToHash(project.id, 'studio', id)); }} />}
+      {!(open && open.status === 'idea') && ((!agentId && !open) || dockOpen) && <TeamDock pid={project.id} team={team} view={view} hint={hint} subject={dockSubject} lock={lockOf(about)} open={dockOpen} onOpen={openDock} onClose={clearAbout} onLock={setLock} reload={reload} onOpenItem={id => { setPage('studio'); writeHashPath(studioToHash(project.id, 'studio', id)); }} />}
     </div>
   );
 }
