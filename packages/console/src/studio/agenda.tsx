@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { contentApi, type ContentItem, type ContentView, type TeamView } from '../api';
 import { KIND_HUE, useAction } from './shared';
 import { dateIn } from './charts';
+import { locale, t, t2 } from '../i18n';
 import type { View } from './Studio';
 
 // The calendar: the dates your audience lives by (from the Scout) and your pieces (proposed, accepted, written,
@@ -11,7 +12,8 @@ type Props = { pid: string; team: TeamView; view: ContentView; reload: () => Pro
 const DAY = 86_400_000;
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 const addDays = (s: string, n: number) => iso(new Date(Date.parse(s) + n * DAY));
-const STATUS: Record<string, string> = { idea: 'proposed', briefed: 'accepted', drafted: 'written', approved: 'ready', published: 'posted', rejected: 'refused' };
+const STATUS: Record<string, string> = { idea: t('proposed'), briefed: t('accepted'), drafted: t('written'), approved: t('ready'), published: t('posted'), rejected: t('refused') };
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => t(d));
 
 export function AgendaBoard({ pid, team, view, reload, open, go }: Props) {
   const today = iso(new Date());
@@ -34,21 +36,21 @@ export function AgendaBoard({ pid, team, view, reload, open, go }: Props) {
     <div className="stack">
       <section className="card">
         <div className="head">
-          <h3>{uncovered.length ? `${uncovered.length} date${uncovered.length > 1 ? 's' : ''} ahead with nothing planned around ${uncovered.length > 1 ? 'them' : 'it'}` : 'Every date ahead has a piece near it'}</h3>
-          <span className="row"><button className="linkish" onClick={() => shift(-1)}>‹ earlier</button><button className="linkish" onClick={() => setStart(today.slice(0, 7))}>this month</button><button className="linkish" onClick={() => shift(1)}>later ›</button></span>
+          <h3>{uncovered.length ? t2(uncovered.length, '{n} date ahead with nothing planned around it', '{n} dates ahead with nothing planned around them') : t('Every date ahead has a piece near it')}</h3>
+          <span className="row"><button className="linkish" onClick={() => shift(-1)}>{t('‹ earlier')}</button><button className="linkish" onClick={() => setStart(today.slice(0, 7))}>{t('this month')}</button><button className="linkish" onClick={() => shift(1)}>{t('later ›')}</button></span>
         </div>
-        {uncovered.length > 0 && <ul className="uncovered">{uncovered.map(e => <li key={e.name}><b>{fmtDay(e.at)}</b> {e.name} <span className="hint small">{e.post || e.why}</span> <button className="linkish tight" disabled={busy !== ''} onClick={() => plan(e)}>{busy === 'plan:' + e.name ? '…' : 'Plan a post five days before →'}</button></li>)}</ul>}
-        {events.length === 0 && <p className="hint">No dates from the Scout yet: the calendar shows your pieces alone. <button className="linkish tight" onClick={() => go('watch')}>Watch the field →</button></p>}
+        {uncovered.length > 0 && <ul className="uncovered">{uncovered.map(e => <li key={e.name}><b>{fmtDay(e.at)}</b> {e.name} <span className="hint small">{e.post || e.why}</span> <button className="linkish tight" disabled={busy !== ''} onClick={() => plan(e)}>{busy === 'plan:' + e.name ? '…' : t('Plan a post five days before →')}</button></li>)}</ul>}
+        {events.length === 0 && <p className="hint">{t('No dates from the Scout yet: the calendar shows your pieces alone.')} <button className="linkish tight" onClick={() => go('watch')}>{t('Watch the field →')}</button></p>}
         {error && <p className="error">{error}</p>}
-        <p className="hint small">Drag a piece onto another day to lock its date there. Click a piece to open it, a date to plan a post before it.</p>
-        <div className="legend agenda-legend"><span><i className="ev" />audience date</span><span><i className="ms" />goal</span>{(['idea', 'briefed', 'drafted', 'approved', 'published'] as const).map(s => <span key={s}><i className={`pc ${s}`} />{STATUS[s]}</span>)}</div>
+        <p className="hint small">{t('Drag a piece onto another day to lock its date there. Click a piece to open it, a date to plan a post before it.')}</p>
+        <div className="legend agenda-legend"><span><i className="ev" />{t('audience date')}</span><span><i className="ms" />{t('goal')}</span>{(['idea', 'briefed', 'drafted', 'approved', 'published'] as const).map(s => <span key={s}><i className={`pc ${s}`} />{STATUS[s]}</span>)}</div>
       </section>
       {months.map(m => <Month key={m} month={m} today={today} events={events} pieces={pieces} milestones={milestones} open={open} plan={plan} busy={busy} over={over} setOver={setOver} move={move} />)}
     </div>
   );
 }
 
-const fmtDay = (s: string) => new Date(s + 'T00:00:00Z').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
+const fmtDay = (s: string) => new Date(s + 'T00:00:00Z').toLocaleDateString(locale, { weekday: 'short', day: 'numeric', month: 'short', timeZone: 'UTC' });
 
 function Month({ month, today, events, pieces, milestones, open, plan, busy, over, setOver, move }: { month: string; today: string; events: Array<{ name: string; at: string; why: string; post?: string }>; pieces: ContentItem[]; milestones: Array<{ title: string; at: string }>; open: (id: string) => void; plan: (e: { name: string; at: string; why: string; post?: string }) => void; busy: string; over: string | null; setOver: (d: string | null) => void; move: (id: string, to: string) => void }) {
   const first = new Date(month + '-01T00:00:00Z');
@@ -58,9 +60,9 @@ function Month({ month, today, events, pieces, milestones, open, plan, busy, ove
   while (cells.length % 7) cells.push(null);
   return (
     <section className="card month">
-      <h3>{first.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</h3>
+      <h3>{first.toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</h3>
       <div className="month-grid">
-        {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => <span key={d} className="dow">{d}</span>)}
+        {DOW.map(d => <span key={d} className="dow">{d}</span>)}
         {cells.map((d, i) => {
           if (!d) return <span key={i} className="day empty" />;
           const ev = events.filter(e => e.at === d), pc = pieces.filter(p => (p.fixedDate ?? p.date) === d), ms = milestones.filter(m => m.at.slice(0, 10) === d);
@@ -69,9 +71,9 @@ function Month({ month, today, events, pieces, milestones, open, plan, busy, ove
             onDragLeave={() => { if (over === d) setOver(null); }}
             onDrop={e => { e.preventDefault(); move(e.dataTransfer.getData('text/plain'), d); }}>
             <span className="num">{Number(d.slice(8))}</span>
-            {ev.map(e => <button key={e.name} className="ev-chip" title={`${e.name}\n${e.why}${e.post ? `\nTo post: ${e.post}` : ''}\nClick to plan a post five days before.`} disabled={busy !== ''} onClick={() => plan(e)}>{e.name}</button>)}
-            {ms.map(m => <span key={m.title} className="ms-chip" title={`Goal: ${m.title}`}>◆ {m.title}</span>)}
-            {pc.map(p => <button key={p.id} className={`pc-chip ${p.status}${busy === 'move:' + p.id ? ' moving' : ''}`} style={{ ['--h' as string]: KIND_HUE[p.kind] }} draggable={p.status !== 'published'} onDragStart={e => { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move'; }} title={`${p.title} — ${STATUS[p.status]}${p.pitch?.channel ? `, ${p.pitch.channel}` : ''}${p.status !== 'published' ? '\nDrag to another day to lock its date.' : ''}`} onClick={() => open(p.id)}>{p.title}</button>)}
+            {ev.map(e => <button key={e.name} className="ev-chip" title={`${e.name}\n${e.why}${e.post ? '\n' + t('To post: {post}', { post: e.post }) : ''}\n${t('Click to plan a post five days before.')}`} disabled={busy !== ''} onClick={() => plan(e)}>{e.name}</button>)}
+            {ms.map(m => <span key={m.title} className="ms-chip" title={t('Goal: {title}', { title: m.title })}>◆ {m.title}</span>)}
+            {pc.map(p => <button key={p.id} className={`pc-chip ${p.status}${busy === 'move:' + p.id ? ' moving' : ''}`} style={{ ['--h' as string]: KIND_HUE[p.kind] }} draggable={p.status !== 'published'} onDragStart={e => { e.dataTransfer.setData('text/plain', p.id); e.dataTransfer.effectAllowed = 'move'; }} title={`${p.title} — ${STATUS[p.status]}${p.pitch?.channel ? `, ${p.pitch.channel}` : ''}${p.status !== 'published' ? '\n' + t('Drag to another day to lock its date.') : ''}`} onClick={() => open(p.id)}>{p.title}</button>)}
           </div>;
         })}
       </div>

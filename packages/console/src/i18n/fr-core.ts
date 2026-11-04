@@ -1,0 +1,61 @@
+// App shell, the new-studio form and the shared helpers.
+export const fr: Record<string, string> = {
+  // App
+  'Skip to content': 'Aller au contenu',
+  Studios: 'Studios',
+  Connected: 'Connecté',
+  Offline: 'Hors ligne',
+  'New studio': 'Nouveau studio',
+  Theme: 'Thème',
+  Light: 'Clair',
+  Dark: 'Sombre',
+  System: 'Système',
+  Language: 'Langue',
+  // NewStudio
+  'Start your first studio': 'Crée ton premier studio',
+  'A studio is where your content gets planned, written and published.': 'Un studio, c’est là où ton contenu se planifie, s’écrit et se publie.',
+  Name: 'Nom',
+  'What is it about?': 'De quoi ça parle ?',
+  'Weekly meal planning': 'Planning de repas de la semaine',
+  'Who is it for?': 'Pour qui ?',
+  'Busy home cooks': 'Des gens pressés qui cuisinent',
+  'Creating…': 'Création…',
+  'Create studio': 'Créer le studio',
+  // shared
+  'From the dev workflow': 'Venu du flux de dev',
+  'Suggested by the Strategist': 'Proposé par le Strategist',
+  'Added by you': 'Ajouté par toi',
+  'Accepted — waiting for the Writer': 'Accepté, en attente du Writer',
+  'Drafted by the Writer': 'Rédigé par le Writer',
+  'Edited by hand': 'Modifié à la main',
+  'no date': 'sans date',
+  'just now': 'à l’instant',
+  '{n} min ago': 'il y a {n} min',
+  '{n} h ago': 'il y a {n} h',
+  '{n} d ago': 'il y a {n} j',
+  Trend: 'Tendance',
+  'Seen working in your field': 'Vu marcher dans ton domaine',
+  'Your account': 'Ton compte',
+  'Based on your own numbers': 'D’après tes propres chiffres',
+  Roadmap: 'Feuille de route',
+  'Tied to what you are building': 'Lié à ce que tu construis',
+  'Your brief': 'Ton brief',
+  'You asked for it': 'Tu l’as demandé',
+  'How the {who} worked: {summary}': 'Comment le {who} a travaillé : {summary}',
+  '{n} steps, each one a fact the server counted, nothing invented': '{n} étapes, chacune un fait compté par le serveur, rien d’inventé',
+};
+Object.assign(fr, {
+  'the Scout saw it work in the field': 'le Scout l’a vu marcher sur le terrain',
+  'the Analyst spotted it in your numbers': 'l’Analyst l’a repéré dans tes chiffres',
+  'the Strategist tied it to what you are building': 'le Strategist l’a lié à ce que tu construis',
+  'you asked for it': 'tu l’as demandé',
+});
+// Agent roles (sent by the server in English) and piece statuses shown as data.
+Object.assign(fr, {
+  'Leads the team and sums up its work': 'Mène l’équipe et résume son travail',
+  'Watches what works in your field': 'Veille ce qui marche dans ton domaine',
+  'Compares it with your account': 'Le compare avec ton compte',
+  'Reads your roadmap, proposes content': 'Lit ta feuille de route, propose du contenu',
+  'Drafts what you accept': 'Rédige ce que tu acceptes',
+  idea: 'proposée', briefed: 'acceptée', drafted: 'écrite', approved: 'prête', published: 'postée', rejected: 'refusée',
+});

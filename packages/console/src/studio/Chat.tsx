@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { teamApi, type AgentId, type ChatBase, type ChatMessage, type ContentItem, type ContentView, type SuggestedAction, type TeamView } from '../api';
 import { Avatar, agentState } from './Agents';
+import { t, t2 } from '../i18n';
 import { KindChip, ago, fmt } from './shared';
 
 // The team's conversation. The manager asks; the question goes to the agent whose job it is (or to the one
@@ -10,7 +11,9 @@ import { KindChip, ago, fmt } from './shared';
 
 export const NAME: Record<AgentId, string> = { director: 'Director', scout: 'Scout', analyst: 'Analyst', strategist: 'Strategist', writer: 'Writer' };
 const AGENTS: AgentId[] = ['director', 'scout', 'analyst', 'strategist', 'writer'];
-const KNOWS: Record<AgentId, string> = { director: 'the whole team, the plan', scout: 'the field, competitors, dates', analyst: 'your posts and their numbers', strategist: 'the board, the roadmap, angles', writer: 'the text, first lines, pictures' };
+const KNOWS: Record<AgentId, string> = { director: t('the whole team, the plan'), scout: t('the field, competitors, dates'), analyst: t('your posts and their numbers'), strategist: t('the board, the roadmap, angles'), writer: t('the text, first lines, pictures') };
+// "Ask the Scout": one line per agent so the article agrees in every language.
+const ASK: Record<AgentId, string> = { director: t('Ask the Director'), scout: t('Ask the Scout'), analyst: t('Ask the Analyst'), strategist: t('Ask the Strategist'), writer: t('Ask the Writer') };
 const cut = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 
 export type Subject = { key: string; label: string; context: string; item?: ContentItem };
@@ -22,9 +25,9 @@ export function startersFor(team: TeamView, view: ContentView, subject?: Subject
   const out: Starter[] = [];
   const i = subject?.item;
   if (i) {
-    if (i.status === 'idea') out.push({ agent: 'strategist', text: 'Why this angle and not another?' }, { agent: 'strategist', text: 'Give me two other angles on the same idea' }, { agent: 'writer', text: 'What would the first line be?' }, { agent: 'analyst', text: 'Did something like this work for us before?' });
-    else if (i.draft) out.push({ agent: 'writer', text: 'Make the first line punchier' }, { agent: 'writer', text: 'Cut it by a third, same idea' }, { agent: 'analyst', text: 'Compare it with our best post' }, { agent: 'strategist', text: 'Is the date right for it?' });
-    else out.push({ agent: 'writer', text: 'How would you open it?' }, { agent: 'strategist', text: 'When should it go out, and why?' }, { agent: 'analyst', text: 'What do our numbers say about this kind of post?' });
+    if (i.status === 'idea') out.push({ agent: 'strategist', text: t('Why this angle and not another?') }, { agent: 'strategist', text: t('Give me two other angles on the same idea') }, { agent: 'writer', text: t('What would the first line be?') }, { agent: 'analyst', text: t('Did something like this work for us before?') });
+    else if (i.draft) out.push({ agent: 'writer', text: t('Make the first line punchier') }, { agent: 'writer', text: t('Cut it by a third, same idea') }, { agent: 'analyst', text: t('Compare it with our best post') }, { agent: 'strategist', text: t('Is the date right for it?') });
+    else out.push({ agent: 'writer', text: t('How would you open it?') }, { agent: 'strategist', text: t('When should it go out, and why?') }, { agent: 'analyst', text: t('What do our numbers say about this kind of post?') });
     return out.slice(0, 4);
   }
   const f = team.facts;
@@ -32,17 +35,17 @@ export function startersFor(team: TeamView, view: ContentView, subject?: Subject
   const ev = team.watch?.data.events[0];
   const player = team.watch?.data.players[0];
   const analyst: Starter[] = [];
-  if (f?.silences.length) { const s = [...f.silences].sort((a, b) => b.days - a.days)[0]; analyst.push({ agent: 'analyst', text: `What happened during the ${s.days}-day silence?` }); }
-  if (f?.trend.direction === 'down') analyst.push({ agent: 'analyst', text: 'Why are the likes going down?' });
-  else if (f?.trend.direction === 'up') analyst.push({ agent: 'analyst', text: 'What is pulling the likes up?' });
-  if (f?.best.text) analyst.push({ agent: 'analyst', text: `Why did “${cut(f.best.text, 38)}” work so well?` });
-  if (!f) analyst.push({ agent: 'analyst', text: 'What do you need from me to read the account?' });
+  if (f?.silences.length) { const s = [...f.silences].sort((a, b) => b.days - a.days)[0]; analyst.push({ agent: 'analyst', text: t('What happened during the {n}-day silence?', { n: s.days }) }); }
+  if (f?.trend.direction === 'down') analyst.push({ agent: 'analyst', text: t('Why are the likes going down?') });
+  else if (f?.trend.direction === 'up') analyst.push({ agent: 'analyst', text: t('What is pulling the likes up?') });
+  if (f?.best.text) analyst.push({ agent: 'analyst', text: t('Why did “{text}” work so well?', { text: cut(f.best.text, 38) }) });
+  if (!f) analyst.push({ agent: 'analyst', text: t('What do you need from me to read the account?') });
   const scout: Starter[] = [];
-  if (ev) scout.push({ agent: 'scout', text: `What should we post before ${cut(ev.name, 40)}?` });
-  if (player) scout.push({ agent: 'scout', text: `What does ${cut(player.name, 30)} do that we do not?` });
-  scout.push({ agent: 'scout', text: team.audit ? 'What works in our field right now?' : 'What do comparable accounts post?' });
-  const strategist: Starter[] = [waiting > 1 ? { agent: 'strategist', text: `Which of the ${waiting} proposals should go first?` } : { agent: 'strategist', text: 'What should we post next week?' }];
-  const director: Starter[] = [team.plan ? { agent: 'director', text: 'Are we on the plan?' } : { agent: 'director', text: 'What should we do this week?' }];
+  if (ev) scout.push({ agent: 'scout', text: t('What should we post before {event}?', { event: cut(ev.name, 40) }) });
+  if (player) scout.push({ agent: 'scout', text: t('What does {player} do that we do not?', { player: cut(player.name, 30) }) });
+  scout.push({ agent: 'scout', text: team.audit ? t('What works in our field right now?') : t('What do comparable accounts post?') });
+  const strategist: Starter[] = [waiting > 1 ? { agent: 'strategist', text: t('Which of the {n} proposals should go first?', { n: waiting }) } : { agent: 'strategist', text: t('What should we post next week?') }];
+  const director: Starter[] = [team.plan ? { agent: 'director', text: t('Are we on the plan?') } : { agent: 'director', text: t('What should we do this week?') }];
   const order = hint === 'community' || hint === 'platforms' ? [analyst, scout, strategist, director]
     : hint === 'watch' || hint === 'agenda' ? [scout, strategist, analyst, director]
     : hint === 'settings' || hint === 'team' || hint === 'insights' ? [director, strategist, analyst, scout]
@@ -55,15 +58,15 @@ export function startersFor(team: TeamView, view: ContentView, subject?: Subject
 // What the team can see right now, as labels: shown before the first question so the manager knows what to expect.
 export function knowsFor(team: TeamView, view: ContentView, subject?: Subject): string[] {
   const k: string[] = [];
-  if (subject) k.push(`the ${subject.key.startsWith('milestone') ? 'goal' : 'piece'} “${cut(subject.label, 36)}”`);
-  if (team.accountPosts) k.push(`your ${team.accountPosts} posts`);
-  if (team.audit) k.push(`the field research of ${fmt(team.audit.at.slice(0, 10))}`);
-  if (team.watch) k.push(`the competitor watch of ${fmt(team.watch.at.slice(0, 10))}`);
-  if (team.plan) k.push('the plan');
+  if (subject) k.push(subject.key.startsWith('milestone') ? t('the goal “{label}”', { label: cut(subject.label, 36) }) : t('the piece “{label}”', { label: cut(subject.label, 36) }));
+  if (team.accountPosts) k.push(t2(team.accountPosts, 'your {n} post', 'your {n} posts'));
+  if (team.audit) k.push(t('the field research of {date}', { date: fmt(team.audit.at.slice(0, 10)) }));
+  if (team.watch) k.push(t('the competitor watch of {date}', { date: fmt(team.watch.at.slice(0, 10)) }));
+  if (team.plan) k.push(t('the plan'));
   const waiting = view.items.filter(x => x.status === 'idea').length;
-  if (waiting) k.push(`${waiting} proposal${waiting === 1 ? '' : 's'} waiting`);
+  if (waiting) k.push(t2(waiting, '{n} proposal waiting', '{n} proposals waiting'));
   const goals = view.milestones.filter(m => m.status === 'open').length;
-  if (goals) k.push(`${goals} goal${goals === 1 ? '' : 's'} on the roadmap`);
+  if (goals) k.push(t2(goals, '{n} goal on the roadmap', '{n} goals on the roadmap'));
   return k;
 }
 
@@ -79,7 +82,7 @@ function Text({ text }: { text: string }) {
   })}</>;
 }
 
-const VERB: Record<SuggestedAction['kind'], string> = { run: 'Run it', configure: 'Apply', generate: 'Generate', revise: 'Make the change', rebrief: 'Change the brief', propose: 'Put it on the board', date: 'Move it', talk: 'Ask' };
+const VERB: Record<SuggestedAction['kind'], string> = { run: t('Run it'), configure: t('Apply'), generate: t('Generate'), revise: t('Make the change'), rebrief: t('Change the brief'), propose: t('Put it on the board'), date: t('Move it'), talk: t('Ask') };
 
 // One offer: what it does, why, exactly what will change, and the click. Done once, then a way to the result.
 function ActionCard({ a, state, onApply, onOpen, onTalk }: { a: SuggestedAction; state?: 'busy' | { itemId?: string }; onApply: () => void; onOpen?: (id: string) => void; onTalk?: (agent: AgentId) => void }) {
@@ -90,8 +93,8 @@ function ActionCard({ a, state, onApply, onOpen, onTalk }: { a: SuggestedAction;
     : a.kind === 'propose' ? <span className="acard-piece">{a.pieceKind && <KindChip kind={a.pieceKind} />}<b>{a.title}</b>{a.hook && <em>“{a.hook}”</em>}<small>{[a.channel, a.date && fmt(a.date)].filter(Boolean).join(' · ')}</small></span>
     : a.kind === 'date' ? <span>→ {a.date && fmt(a.date)}</span>
     : a.kind === 'run' ? <span>{(a.agents ?? []).map(x => NAME[x]).join(' → ')}{a.brief ? <>: <q>{a.brief}</q></> : null}</span>
-    : a.kind === 'configure' ? <span>{[a.agent && NAME[a.agent], a.enabled === undefined ? '' : a.enabled ? 'on' : 'off', a.workers ? `${a.workers} at once` : ''].filter(Boolean).join(' · ')}{a.instructions && <q>{a.instructions}</q>}</span>
-    : a.kind === 'generate' ? <span>One paid image call per picture.</span> : null;
+    : a.kind === 'configure' ? <span>{[a.agent && NAME[a.agent], a.enabled === undefined ? '' : a.enabled ? t('on') : t('off'), a.workers ? t('{n} at once', { n: a.workers }) : ''].filter(Boolean).join(' · ')}{a.instructions && <q>{a.instructions}</q>}</span>
+    : a.kind === 'generate' ? <span>{t('One paid image call per picture.')}</span> : null;
   if (a.kind === 'talk') return <button className="acard door" onClick={() => a.agent && onTalk?.(a.agent)}>{a.agent && <Avatar id={a.agent} state="idle" size={22} />}<b>{a.label} →</b></button>;
   return (
     <div className={`acard ${a.kind}${done ? ' done' : ''}`}>
@@ -101,7 +104,7 @@ function ActionCard({ a, state, onApply, onOpen, onTalk }: { a: SuggestedAction;
         {detail && <div className="detail">{detail}</div>}
       </div>
       {done
-        ? <span className="acard-done">✓ Done{itemId && onOpen && a.kind !== 'generate' && <button className="linkish tight" onClick={() => onOpen(itemId)}>Open the piece →</button>}</span>
+        ? <span className="acard-done">✓ {t('Done')}{itemId && onOpen && a.kind !== 'generate' && <button className="linkish tight" onClick={() => onOpen(itemId)}>{t('Open the piece')} →</button>}</span>
         : <button className="primary" disabled={state === 'busy'} onClick={onApply}>{state === 'busy' ? '…' : VERB[a.kind]}</button>}
     </div>
   );
@@ -153,16 +156,16 @@ export function TeamChat({ pid, team, view, base, subject, lock, hint, reload, o
   return (
     <div className={`tchat${tall ? ' tall' : ''}`}>
       {onLock && (
-        <div className="whoa" role="radiogroup" aria-label="Who answers">
-          <button role="radio" aria-checked={!lock} className={`whob${lock ? '' : ' on'}`} onClick={() => onLock(undefined)} title="The question goes to the agent whose job it is"><span className="stack-av">{AGENTS.slice(1).map(a => <Avatar key={a} id={a} state="idle" size={18} />)}</span>Whoever knows</button>
+        <div className="whoa" role="radiogroup" aria-label={t('Who answers')}>
+          <button role="radio" aria-checked={!lock} className={`whob${lock ? '' : ' on'}`} onClick={() => onLock(undefined)} title={t('The question goes to the agent whose job it is')}><span className="stack-av">{AGENTS.slice(1).map(a => <Avatar key={a} id={a} state="idle" size={18} />)}</span>{t('Whoever knows')}</button>
           {AGENTS.map(a => <button key={a} role="radio" aria-checked={lock === a} className={`whob${lock === a ? ' on' : ''}${last === a ? ' last' : ''}`} onClick={() => onLock(a)} title={KNOWS[a]}><Avatar id={a} state={agentState(team, a)} size={18} />{NAME[a]}</button>)}
         </div>
       )}
       <div className="msgs" role="log" aria-live="polite">
         {messages.length === 0 && !pending && (
           <div className="chat-empty">
-            {knows.length > 0 && <p className="knows"><b>On the table:</b> {knows.join(' · ')}.</p>}
-            <p className="hint small">{lock ? `${NAME[lock]} knows ${KNOWS[lock]}. Ask, or tell it how to work.` : 'Ask anything: the question goes to whoever knows. Try one of these:'}</p>
+            {knows.length > 0 && <p className="knows"><b>{t('On the table:')}</b> {knows.join(' · ')}.</p>}
+            <p className="hint small">{lock ? t('{name} knows {what}. Ask, or tell it how to work.', { name: NAME[lock], what: KNOWS[lock] }) : t('Ask anything: the question goes to whoever knows. Try one of these:')}</p>
             <div className="starters">{starters.filter(s => !lock || s.agent === lock).map(s => <button key={s.text} className="starter" onClick={() => send(s.text, lock ?? s.agent)}><Avatar id={s.agent} state="idle" size={20} /><span>{s.text}</span></button>)}</div>
           </div>
         )}
@@ -176,7 +179,7 @@ export function TeamChat({ pid, team, view, base, subject, lock, hint, reload, o
                 {m.role === 'agent' && <div className="tname"><b>{NAME[m.agent ?? (base === 'team' ? 'director' : base)]}</b>{m.id > 0 && <time>{ago(m.at)}</time>}</div>}
                 <div className="bubble"><Text text={m.text} /></div>
                 {m.actions.length > 0 && <div className="offers">{m.actions.map((a, j) => { const key = `${m.id}-${j}`; return <ActionCard key={key} a={a} state={states[key]} onApply={() => apply(key, a)} onOpen={onOpenItem} onTalk={onTalk ?? onLock} />; })}</div>}
-                {m.role === 'agent' && (m.basis?.length ?? 0) > 0 && <p className="basis">From {m.basis!.join(' · ')}</p>}
+                {m.role === 'agent' && (m.basis?.length ?? 0) > 0 && <p className="basis">{t('From {basis}', { basis: m.basis!.join(' · ') })}</p>}
                 {m.role === 'user' && m.id > 0 && <time>{ago(m.at)}</time>}
               </div>
             </div>
@@ -184,15 +187,15 @@ export function TeamChat({ pid, team, view, base, subject, lock, hint, reload, o
         })}
         {pending && <>
           <div className="tmsg user"><div className="tbody"><div className="bubble">{pending.text}</div></div></div>
-          <div className="tmsg agent thinking">{answering ? <Avatar id={answering} state="working" size={30} /> : <span className="stack-av">{AGENTS.slice(1).map(a => <Avatar key={a} id={a} state="working" size={22} />)}</span>}<div className="tbody"><div className="tname"><b>{answering ? `${NAME[answering]} is reading ${KNOWS[answering]}` : 'Finding who knows'}</b></div><div className="bubble typing"><i /><i /><i /></div></div></div>
+          <div className="tmsg agent thinking">{answering ? <Avatar id={answering} state="working" size={30} /> : <span className="stack-av">{AGENTS.slice(1).map(a => <Avatar key={a} id={a} state="working" size={22} />)}</span>}<div className="tbody"><div className="tname"><b>{answering ? t('{name} is reading {what}', { name: NAME[answering], what: KNOWS[answering] }) : t('Finding who knows')}</b></div><div className="bubble typing"><i /><i /><i /></div></div></div>
         </>}
         <div ref={end} />
       </div>
       {error && <p className="error">{error}</p>}
       <form className="composer" onSubmit={e => { e.preventDefault(); void send(text, lock); }}>
         <textarea ref={box} rows={1} value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(text, lock); } }}
-          placeholder={subject ? `Ask about “${cut(subject.label, 40)}”…` : lock ? `Ask the ${NAME[lock]}, or tell it how to work…` : 'Ask the team: a number, a competitor, an angle, a line…'} aria-label="Your question" />
-        <button className="primary" disabled={Boolean(pending) || !text.trim()}>{lock ? `Ask the ${NAME[lock]}` : 'Ask'}</button>
+          placeholder={subject ? t('Ask about “{label}”…', { label: cut(subject.label, 40) }) : lock ? t('{name} is listening: ask, or tell it how to work…', { name: NAME[lock] }) : t('Ask the team: a number, a competitor, an angle, a line…')} aria-label={t('Your question')} />
+        <button className="primary" disabled={Boolean(pending) || !text.trim()}>{lock ? ASK[lock] : t('Ask')}</button>
       </form>
     </div>
   );
@@ -211,18 +214,18 @@ export function TeamDock({ pid, team, view, hint, subject, lock, open, onOpen, o
   if (!open) {
     const starter = startersFor(team, view, subject, hint)[0];
     return (
-      <button className="dock folded" onClick={onOpen} aria-label="Open the team's conversation">
+      <button className="dock folded" onClick={onOpen} aria-label={t("Open the team's conversation")}>
         <span className="stack-av">{AGENTS.map(a => <Avatar key={a} id={a} state={agentState(team, a)} size={26} />)}</span>
-        <span className="dock-text"><b>{w ? `${w.name} is working…` : subject ? `Ask about “${cut(subject.label, 32)}”` : 'Ask the team'}</b><small>{starter ? `e.g. ${starter.text}` : 'Whoever knows answers.'}</small></span>
+        <span className="dock-text"><b>{w ? t('{name} is working…', { name: w.name }) : subject ? t('Ask about “{label}”', { label: cut(subject.label, 32) }) : t('Ask the team')}</b><small>{starter ? t('e.g. {text}', { text: starter.text }) : t('Whoever knows answers.')}</small></span>
         <span className="dock-key">↵</span>
       </button>
     );
   }
   return (
-    <aside className="dock open" aria-label="The team's conversation">
+    <aside className="dock open" aria-label={t("The team's conversation")}>
       <header className="dock-head">
-        <div><b>{subject ? `About “${cut(subject.label, 44)}”` : 'The team'}</b><small>{subject ? 'The agents already see it: just ask.' : 'One question, the right agent answers. Offers wait for your click.'}</small></div>
-        <button className="x" onClick={onClose} aria-label="Close">×</button>
+        <div><b>{subject ? t('About “{label}”', { label: cut(subject.label, 44) }) : t('The team')}</b><small>{subject ? t('The agents already see it: just ask.') : t('One question, the right agent answers. Offers wait for your click.')}</small></div>
+        <button className="x" onClick={onClose} aria-label={t('Close')}>×</button>
       </header>
       <TeamChat pid={pid} team={team} view={view} base="team" subject={subject} lock={lock} hint={hint} reload={reload} onLock={onLock} onOpenItem={onOpenItem} tall />
     </aside>

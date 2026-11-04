@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { contentApi, type ContentItem, type Media, type MediaFormat, type Slide } from '../api';
 import { useAction } from './shared';
+import { t as tr, t2 } from '../i18n';
 
-const FORMATS: Array<[MediaFormat, string, string]> = [['image', 'Image', 'One picture'], ['carousel', 'Carousel', 'A series of pictures'], ['video', 'Video', 'Short video: storyboard']];
+const FORMATS: Array<[MediaFormat, string, string]> = [['image', tr('Image'), tr('One picture')], ['carousel', tr('Carousel'), tr('A series of pictures')], ['video', tr('Video'), tr('Short video: storyboard')]];
 const blank = (video: boolean): Slide => ({ kind: video ? 'video' : 'image', visual: '', text: '', seconds: video ? 5 : 0 });
 
 // A post is more than a picture: the media (one image, a carousel or a video storyboard), the description, the hashtags.
@@ -15,7 +16,7 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
   useEffect(() => { setStamp(0); fetch(contentApi.videoUrl(item.id, 0), { method: 'HEAD' }).then(r => r.ok && setStamp(Date.now())).catch(() => {}); }, [item.id]);
   useEffect(() => { setMedia(item.media); setTags((item.media?.hashtags ?? []).join(' ')); }, [item.id, item.media]);
 
-  if (!media) return <p className="hint small">No media yet: have the post written, or <button className="linkish" onClick={() => setMedia({ format: 'image', hashtags: [], slides: [blank(false)] })}>build it by hand</button>.</p>;
+  if (!media) return <p className="hint small">{tr('No media yet: have the post written, or')} <button className="linkish" onClick={() => setMedia({ format: 'image', hashtags: [], slides: [blank(false)] })}>{tr('build it by hand')}</button>.</p>;
   // Same cleanup as the server (normalizeHashtags): strip odd characters,
   // add the #, drop duplicates, keep 20. The preview shows what is saved.
   const hashtags = (() => {
@@ -34,7 +35,7 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
   const setFormat = (format: MediaFormat) => {
     // Switching to one image drops the other slides: ask first when that loses work.
     if (format === 'image' && media.slides.length > 1 && media.slides.slice(1).some(x => x.visual.trim() || x.text.trim() || x.file)) {
-      if (!window.confirm(`Switching to a single image drops the other ${media.slides.length - 1} slides. Continue?`)) return;
+      if (!window.confirm(tr('Switching to a single image drops the other {n} slides. Continue?', { n: media.slides.length - 1 }))) return;
     }
     const v = format === 'video';
     let slides = media.slides.map(x => ({ ...x, kind: v ? 'video' as const : 'image' as const, seconds: v ? x.seconds || 5 : 0 }));
@@ -50,8 +51,8 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
   const onFile = (f: File | undefined) => {
     const i = picking; setPicking(null);
     if (!f || i == null) return;
-    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) { alert('Use a JPEG, PNG or WebP picture.'); return; }
-    if (f.size > 8 * 1024 * 1024) { alert('8 MB at most.'); return; }
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(f.type)) { alert(tr('Use a JPEG, PNG or WebP picture.')); return; }
+    if (f.size > 8 * 1024 * 1024) { alert(tr('8 MB at most.')); return; }
     const r = new FileReader();
     r.onload = () => { const data = String(r.result).split(',')[1] ?? ''; void run(`up${i}`, () => contentApi.uploadSlide(item.id, i, f.type, data)); };
     r.readAsDataURL(f);
@@ -59,7 +60,7 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
 
   return (
     <div className="post">
-      <div className="fmt" role="radiogroup" aria-label="Post format">
+      <div className="fmt" role="radiogroup" aria-label={tr('Post format')}>
         {FORMATS.map(([f, name, hint]) => <button key={f} role="radio" aria-checked={media.format === f} className={media.format === f ? 'on' : ''} title={hint} onClick={() => setFormat(f)}>{name}</button>)}
       </div>
 
@@ -67,41 +68,41 @@ export function PostBuilder({ item, reload }: { item: ContentItem; reload: () =>
         {media.slides.map((x, i) => (
           <div key={i} className="slide">
             <div className={`frame ${video ? 'tall' : ''}`}>
-              {x.file ? <img src={contentApi.mediaUrl(item.id, x.file)} alt={`${video ? 'Shot' : 'Slide'} ${i + 1}`} /> : <span>{video ? 'Keyframe' : 'Picture'} not generated</span>}
+              {x.file ? <img src={contentApi.mediaUrl(item.id, x.file)} alt={video ? tr('Shot {n}', { n: i + 1 }) : tr('Slide {n}', { n: i + 1 })} /> : <span>{video ? tr('Keyframe not generated') : tr('Picture not generated')}</span>}
               {x.file && x.text && <i className="pv-text">{x.text}</i>}
               <em>{i + 1}</em>
             </div>
-            <label>{video ? 'What we see' : 'Picture to generate'}<textarea rows={3} value={x.visual} onChange={e => setSlide(i, { visual: e.target.value })} /></label>
-            <label>{video ? 'Voiceover / on-screen text' : 'Text over the picture'}<input value={x.text} onChange={e => setSlide(i, { text: e.target.value })} /></label>
+            <label>{video ? tr('What we see') : tr('Picture to generate')}<textarea rows={3} value={x.visual} onChange={e => setSlide(i, { visual: e.target.value })} /></label>
+            <label>{video ? tr('Voiceover / on-screen text') : tr('Text over the picture')}<input value={x.text} onChange={e => setSlide(i, { text: e.target.value })} /></label>
             <div className="row">
-              {video && <label className="inline sec"><span>Seconds</span><input type="number" min={1} max={90} value={x.seconds} onChange={e => setSlide(i, { seconds: Number(e.target.value) })} /></label>}
-              <button disabled={b || dirty || !x.visual.trim()} title={dirty ? 'Save your changes first' : !x.visual.trim() ? 'Describe the picture first' : 'One paid image generation, about 20 seconds'} onClick={() => run(`gen${i}`, () => contentApi.generateSlide(item.id, i))}>{busy === `gen${i}` ? 'Drawing…' : x.file ? 'Redraw' : video ? 'Generate keyframe' : 'Generate picture'}</button>
-              <button className="linkish" disabled={b || dirty} title={dirty ? 'Save your changes first' : 'Your own photo instead of a generated one: no model call'} onClick={() => choose(i)}>{busy === `up${i}` ? 'Uploading…' : 'Use my photo'}</button>
-              {media.slides.length > (media.format === 'image' ? 1 : 2) && <button className="linkish" onClick={() => setMedia({ ...media, slides: media.slides.filter((_, j) => j !== i) })}>Remove</button>}
+              {video && <label className="inline sec"><span>{tr('Seconds')}</span><input type="number" min={1} max={90} value={x.seconds} onChange={e => setSlide(i, { seconds: Number(e.target.value) })} /></label>}
+              <button disabled={b || dirty || !x.visual.trim()} title={dirty ? tr('Save your changes first') : !x.visual.trim() ? tr('Describe the picture first') : tr('One paid image generation, about 20 seconds')} onClick={() => run(`gen${i}`, () => contentApi.generateSlide(item.id, i))}>{busy === `gen${i}` ? tr('Drawing…') : x.file ? tr('Redraw') : video ? tr('Generate keyframe') : tr('Generate picture')}</button>
+              <button className="linkish" disabled={b || dirty} title={dirty ? tr('Save your changes first') : tr('Your own photo instead of a generated one: no model call')} onClick={() => choose(i)}>{busy === `up${i}` ? tr('Uploading…') : tr('Use my photo')}</button>
+              {media.slides.length > (media.format === 'image' ? 1 : 2) && <button className="linkish" onClick={() => setMedia({ ...media, slides: media.slides.filter((_, j) => j !== i) })}>{tr('Remove')}</button>}
             </div>
           </div>
         ))}
         <input ref={pick} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={e => { onFile(e.target.files?.[0]); e.target.value = ''; }} />
-        {media.format !== 'image' && media.slides.length < 10 && <button className="slide add-slide" onClick={() => setMedia({ ...media, slides: [...media.slides, blank(video)] })}>+ {video ? 'Add a shot' : 'Add a slide'}</button>}
+        {media.format !== 'image' && media.slides.length < 10 && <button className="slide add-slide" onClick={() => setMedia({ ...media, slides: [...media.slides, blank(video)] })}>+ {video ? tr('Add a shot') : tr('Add a slide')}</button>}
       </div>
       {video && (
         <div className="videobox">
           {stamp > 0 ? <video controls playsInline src={contentApi.videoUrl(item.id, stamp)} /> : <VideoUnavailable />}
           <div>
-            <b>{stamp > 0 ? 'Your slideshow' : 'AI video: not available yet'}</b>
-            <p className="hint small">{stamp > 0 ? 'Assembled from the keyframes on your computer.' : 'Meta has not opened video generation on your key yet. As soon as it does, it will appear here.'}</p>
-            <button disabled={b || dirty || missing > 0 || media.slides.some(x => !x.file)} title={dirty ? 'Save your changes first' : missing > 0 ? 'Generate the missing keyframes first' : ''} onClick={() => run('video', async () => { await contentApi.renderVideo(item.id); setStamp(Date.now()); })}>{busy === 'video' ? 'Assembling…' : stamp > 0 ? 'Re-assemble the slideshow' : 'Assemble a slideshow instead'}</button>
-            {stamp === 0 && <span className="hint small">Free: a local montage of your keyframes, with zoom and text. Not AI-generated.</span>}
+            <b>{stamp > 0 ? tr('Your slideshow') : tr('AI video: not available yet')}</b>
+            <p className="hint small">{stamp > 0 ? tr('Assembled from the keyframes on your computer.') : tr('Meta has not opened video generation on your key yet. As soon as it does, it will appear here.')}</p>
+            <button disabled={b || dirty || missing > 0 || media.slides.some(x => !x.file)} title={dirty ? tr('Save your changes first') : missing > 0 ? tr('Generate the missing keyframes first') : ''} onClick={() => run('video', async () => { await contentApi.renderVideo(item.id); setStamp(Date.now()); })}>{busy === 'video' ? tr('Assembling…') : stamp > 0 ? tr('Re-assemble the slideshow') : tr('Assemble a slideshow instead')}</button>
+            {stamp === 0 && <span className="hint small">{tr('Free: a local montage of your keyframes, with zoom and text. Not AI-generated.')}</span>}
           </div>
         </div>
       )}
 
-      <label>Hashtags<input value={tags} onChange={e => setTags(e.target.value)} placeholder="#mealprep #solodev" /></label>
-      <div className="chips">{hashtags.map(h => <span key={h} className="pill">{h}</span>)}{hashtags.length >= 20 && <span className="hint small">20 max, the rest is dropped</span>}</div>
+      <label>{tr('Hashtags')}<input value={tags} onChange={e => setTags(e.target.value)} placeholder="#mealprep #solodev" /></label>
+      <div className="chips">{hashtags.map(h => <span key={h} className="pill">{h}</span>)}{hashtags.length >= 20 && <span className="hint small">{tr('20 max, the rest is dropped')}</span>}</div>
 
       <div className="row">
-        {dirty && <button className="primary" disabled={b} onClick={() => run('savemedia', () => contentApi.patchItem(item.id, { media: edited }))}>Save media</button>}
-        {!dirty && missing > 0 && <button disabled={b} onClick={() => run('genall', () => contentApi.generateMissing(item.id))}>{busy === 'genall' ? 'Drawing…' : `Generate ${missing} missing picture${missing > 1 ? 's' : ''}`}</button>}
+        {dirty && <button className="primary" disabled={b} onClick={() => run('savemedia', () => contentApi.patchItem(item.id, { media: edited }))}>{tr('Save media')}</button>}
+        {!dirty && missing > 0 && <button disabled={b} onClick={() => run('genall', () => contentApi.generateMissing(item.id))}>{busy === 'genall' ? tr('Drawing…') : t2(missing, 'Generate {n} missing picture', 'Generate {n} missing pictures')}</button>}
       </div>
       {error && <p className="error">{error}</p>}
     </div>
@@ -115,17 +116,17 @@ export function PostPreview({ item }: { item: ContentItem }) {
   if (!m) return null;
   const first = m.slides.find(s => s.file);
   return (
-    <div className="preview" aria-label="Preview">
+    <div className="preview" aria-label={tr('Preview')}>
       <div className={`pv-media ${m.format === 'video' ? 'tall' : ''}`}>
-        {first ? <img src={contentApi.mediaUrl(item.id, first.file!)} alt="" /> : <span>No picture yet</span>}
+        {first ? <img src={contentApi.mediaUrl(item.id, first.file!)} alt="" /> : <span>{tr('No picture yet')}</span>}
         {m.format !== 'image' && <b className="pv-tag">{m.format === 'video' ? `▶ ${m.slides.reduce((a, s) => a + s.seconds, 0)}s` : `1/${m.slides.length}`}</b>}
         {first && first.text && <i className="pv-text">{first.text}</i>}
       </div>
       {m.format !== 'image' && (
         <ol className="pv-shots">{m.slides.map((s, i) => (
           <li key={i} className={s.file ? 'done' : ''}>
-            <b>{m.format === 'video' ? `Shot ${i + 1} · ${s.seconds}s` : `Slide ${i + 1}`}</b>
-            <span>{s.file ? (s.text || 'No words on this one') : 'Not generated yet'}</span>
+            <b>{m.format === 'video' ? tr('Shot {n} · {s}s', { n: i + 1, s: s.seconds }) : tr('Slide {n}', { n: i + 1 })}</b>
+            <span>{s.file ? (s.text || tr('No words on this one')) : tr('Not generated yet')}</span>
           </li>
         ))}</ol>
       )}
@@ -138,12 +139,12 @@ export function PostPreview({ item }: { item: ContentItem }) {
 // A small picture standing in for the video the AI cannot make yet.
 function VideoUnavailable() {
   return (
-    <svg className="unavail" viewBox="0 0 90 160" role="img" aria-label="AI video not available yet">
+    <svg className="unavail" viewBox="0 0 90 160" role="img" aria-label={tr('AI video not available yet')}>
       <rect x="1.5" y="1.5" width="87" height="157" rx="12" className="u-frame" />
       <path d="M36 62 L58 76 L36 90 Z" className="u-play" />
       <line x1="22" y1="40" x2="68" y2="120" className="u-bar" />
       <rect x="18" y="128" width="54" height="14" rx="7" className="u-tag" />
-      <text x="45" y="138" textAnchor="middle" className="u-text">soon</text>
+      <text x="45" y="138" textAnchor="middle" className="u-text">{tr('soon')}</text>
     </svg>
   );
 }

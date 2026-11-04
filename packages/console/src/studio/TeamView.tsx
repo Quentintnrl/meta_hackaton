@@ -1,4 +1,5 @@
 import type { AgentId, ContentView, TeamView } from '../api';
+import { t } from '../i18n';
 import { OrgChart } from './DirectorPage';
 import { SettingsView } from './SettingsView';
 import type { View } from './Studio';
@@ -9,7 +10,7 @@ export function TeamView({ pid, team, view, reload, go, askAgent }: { pid: strin
     <div className="stack">
       <OrgChart pid={pid} team={team} go={go} reload={reload} onAsk={askAgent} />
       <div className="today">
-        <div><b>Voice and rules</b><span className="hint small">Written once, read by every agent before it works: how you speak, who you speak to, what never to say, and how pieces leave the studio.</span></div>
+        <div><b>{t('Voice and rules')}</b><span className="hint small">{t('Written once, read by every agent before it works: how you speak, who you speak to, what never to say, and how pieces leave the studio.')}</span></div>
       </div>
       <SettingsView pid={pid} view={view} reload={reload} />
     </div>

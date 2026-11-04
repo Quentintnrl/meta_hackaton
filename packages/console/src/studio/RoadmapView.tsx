@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { contentApi, type AgentId, type ContentView, type Feature, type Forecast, type Milestone, type Project } from '../api';
+import { locale, t, t2 } from '../i18n';
 import { fmt, today, useAction } from './shared';
 import type { View } from './Studio';
 
@@ -8,16 +9,16 @@ const DAY = 86_400_000;
 
 // A feature, in the words of someone who is not looking at the pipeline.
 const FEATURE: Record<string, [string, 'done' | 'doing' | 'todo']> = {
-  APPLIED: ['Merged into the app', 'done'], FEEDBACK: ['Merged into the app', 'done'], ANNOUNCE_DRAFTED: ['Merged into the app', 'done'], PUBLISHING: ['Merged into the app', 'done'], PUBLISHED: ['Merged into the app', 'done'],
-  PR_READY: ['Built: waiting for you to merge it', 'doing'], MERGING: ['Being merged', 'doing'], MERGE_FAILED: ['Merge failed: needs you', 'doing'], BUILDING: ['Being built', 'doing'], VISUAL_CHECK: ['Being checked against the design', 'doing'],
-  PLANNED: ['Plan waiting for your approval', 'todo'], DESIGN_DEFINED: ['Not planned yet', 'todo'],
+  APPLIED: [t('Merged into the app'), 'done'], FEEDBACK: [t('Merged into the app'), 'done'], ANNOUNCE_DRAFTED: [t('Merged into the app'), 'done'], PUBLISHING: [t('Merged into the app'), 'done'], PUBLISHED: [t('Merged into the app'), 'done'],
+  PR_READY: [t('Built: waiting for you to merge it'), 'doing'], MERGING: [t('Being merged'), 'doing'], MERGE_FAILED: [t('Merge failed: needs you'), 'doing'], BUILDING: [t('Being built'), 'doing'], VISUAL_CHECK: [t('Being checked against the design'), 'doing'],
+  PLANNED: [t('Plan waiting for your approval'), 'todo'], DESIGN_DEFINED: [t('Not planned yet'), 'todo'],
 };
 const ICON = { done: '✓', doing: '◐', todo: '○' };
 
 function Ring({ done, total }: { done: number; total: number }) {
   const r = 22, c = 2 * Math.PI * r, pct = total ? Math.min(1, done / total) : 0;
   return (
-    <svg className="ring" viewBox="0 0 56 56" role="img" aria-label={`${done} of ${total} features done`}>
+    <svg className="ring" viewBox="0 0 56 56" role="img" aria-label={t('{done} of {total} features done', { done, total })}>
       <circle cx="28" cy="28" r={r} className="ring-bg" /><circle cx="28" cy="28" r={r} className="ring-fg" strokeDasharray={`${c * pct} ${c}`} transform="rotate(-90 28 28)" />
       <text x="28" y="33" textAnchor="middle">{done}/{total}</text>
     </svg>
@@ -37,18 +38,18 @@ function DateLine({ m, contentDates }: { m: Milestone & { forecast?: Forecast };
   const near = (a: string, b: string) => Math.abs(x(a) - x(b)) < 16;
   const pin = (p: number) => `clamp(52px, ${p}%, calc(100% - 52px))`;
   return (
-    <div className="dateline" role="img" aria-label={`You want ${fmt(want)}${expect ? `, the team expects ${fmt(expect)}` : ''}`}>
+    <div className="dateline" role="img" aria-label={expect ? t('You want {want}, the team expects {expect}', { want: fmt(want), expect: fmt(expect) }) : t('You want {want}', { want: fmt(want) })}>
       <div className="dl-track">
         <i className="dl-today" style={{ left: `${x(today())}%` }} />
         {late && <i className="dl-slip" style={{ left: `${x(want)}%`, width: `${x(expect!) - x(want)}%` }} />}
         <i className="dl-want" style={{ left: `${x(want)}%` }} />
         {expect && <i className={`dl-expect ${late ? 'late' : ''}`} style={{ left: `${x(expect)}%` }} />}
-        {contentDates.filter(d => T(d) >= from && T(d) <= to).map((d, i) => <i key={i} className="dl-post" style={{ left: `${x(d)}%` }} title={`Content planned ${fmt(d)}`} />)}
+        {contentDates.filter(d => T(d) >= from && T(d) <= to).map((d, i) => <i key={i} className="dl-post" style={{ left: `${x(d)}%` }} title={t('Content planned {date}', { date: fmt(d) })} />)}
       </div>
-      <span className="dl-label up" style={{ left: pin(x(want)) }}><small>You want</small><b>{fmt(want)}</b></span>
-      {expect && <span className={`dl-label down ${late ? 'late' : 'ok'}`} style={{ left: pin(x(expect)) }}><small>Team expects</small><b>{fmt(expect)}</b></span>}
-      {!near(today(), want) && <span className="dl-label up muted" style={{ left: pin(x(today())) }}><small>Today</small></span>}
-      {late && <span className="dl-late" style={{ left: `${(x(want) + x(expect!)) / 2}%` }}>{m.slipDays} days late</span>}
+      <span className="dl-label up" style={{ left: pin(x(want)) }}><small>{t('You want')}</small><b>{fmt(want)}</b></span>
+      {expect && <span className={`dl-label down ${late ? 'late' : 'ok'}`} style={{ left: pin(x(expect)) }}><small>{t('Team expects')}</small><b>{fmt(expect)}</b></span>}
+      {!near(today(), want) && <span className="dl-label up muted" style={{ left: pin(x(today())) }}><small>{t('Today')}</small></span>}
+      {late && <span className="dl-late" style={{ left: `${(x(want) + x(expect!)) / 2}%` }}>{t('{n} days late', { n: m.slipDays })}</span>}
     </div>
   );
 }
@@ -60,22 +61,22 @@ export function RoadmapView({ view, project, features, reload, go, askAgent }: {
   return (
     <div className="stack">
       <div className="today">
-        <div><b>Your goals</b><span className="hint small">A goal is something you are building towards, like a beta or a launch. The team checks which features are done, projects the real date, and hangs the content on it.</span></div>
+        <div><b>{t('Your goals')}</b><span className="hint small">{t('A goal is something you are building towards, like a beta or a launch. The team checks which features are done, projects the real date, and hangs the content on it.')}</span></div>
       </div>
       {ms.length === 0 ? (
         <section className="card guide">
-          <h3>How the roadmap works</h3>
+          <h3>{t('How the roadmap works')}</h3>
           <ol className="steps big">
-            <li><span className="tick">1</span><span><b>Name a goal</b> and the date you want it by. For example “Public beta, 15 November”.</span></li>
-            <li><span className="tick">2</span><span><b>Attach the features</b> it needs. The team tracks which ones are done.</span></li>
-            <li><span className="tick">3</span><span><b>Read the verdict.</b> You see your date next to the date the team really expects, and the content follows.</span></li>
+            <li><span className="tick">1</span><span><b>{t('Name a goal')}</b> {t('and the date you want it by. For example “Public beta, 15 November”.')}</span></li>
+            <li><span className="tick">2</span><span><b>{t('Attach the features')}</b> {t('it needs. The team tracks which ones are done.')}</span></li>
+            <li><span className="tick">3</span><span><b>{t('Read the verdict.')}</b> {t('You see your date next to the date the team really expects, and the content follows.')}</span></li>
           </ol>
         </section>
       ) : (
         <div className="stats">
-          <div className="bigstat"><b>{ms.length}</b><span>goal{ms.length > 1 ? 's' : ''}</span></div>
-          <div className={`bigstat ${late ? 'warn' : 'good'}`}><b>{late || '✓'}</b><span>{late ? 'running late' : 'all on track'}</span></div>
-          <div className="bigstat"><b>{planned}</b><span>piece{planned === 1 ? '' : 's'} of content tied to a goal</span></div>
+          <div className="bigstat"><b>{ms.length}</b><span>{ms.length > 1 ? t('goals') : t('goal')}</span></div>
+          <div className={`bigstat ${late ? 'warn' : 'good'}`}><b>{late || '✓'}</b><span>{late ? t('running late') : t('all on track')}</span></div>
+          <div className="bigstat"><b>{planned}</b><span>{planned === 1 ? t('piece of content tied to a goal') : t('pieces of content tied to a goal')}</span></div>
         </div>
       )}
       {ms.map(m => <Goal key={m.id} m={m} features={features} view={view} reload={reload} go={go} askAgent={askAgent} />)}
@@ -93,12 +94,17 @@ function Goal({ m, features, view, reload, go, askAgent }: { m: Milestone & { fo
   const free = features.filter(x => !m.featureIds.includes(x.id));
   const open = m.status === 'open';
   const expect = open ? f?.predictedDate ?? m.targetDate : m.doneAt?.slice(0, 10);
+  const accuracy = m.accuracy
+    ? ' ' + (m.accuracy.errorDays > 0
+      ? t2(Math.abs(m.accuracy.errorDays), 'That was {n} day after what the team last expected.', 'That was {n} days after what the team last expected.')
+      : t2(Math.abs(m.accuracy.errorDays), 'That was {n} day before what the team last expected.', 'That was {n} days before what the team last expected.'))
+    : '';
   const verdict = !open
-    ? { tone: 'done', chip: 'Done', text: `Landed on ${fmt(expect)}.${m.accuracy ? ` That was ${Math.abs(m.accuracy.errorDays)} day${Math.abs(m.accuracy.errorDays) === 1 ? '' : 's'} ${m.accuracy.errorDays > 0 ? 'after' : 'before'} what the team last expected.` : ''}` }
-    : m.atRisk ? { tone: 'late', chip: `${m.slipDays} days late`, text: `At the pace so far, the team expects it ${m.slipDays} days after the date you want. Content tied to it follows the expected date.` }
-      : { tone: 'ok', chip: 'On track', text: `At the pace so far, the team expects it in time.` };
+    ? { tone: 'done', chip: t('Done'), text: t('Landed on {date}.', { date: fmt(expect) }) + accuracy }
+    : m.atRisk ? { tone: 'late', chip: t('{n} days late', { n: m.slipDays }), text: t('At the pace so far, the team expects it {n} days after the date you want. Content tied to it follows the expected date.', { n: m.slipDays }) }
+      : { tone: 'ok', chip: t('On track'), text: t('At the pace so far, the team expects it in time.') };
   const pct = m.scope ? Math.min(100, Math.round((m.delivered / m.scope) * 100)) : 0;
-  const basis = m.delivered === 0 ? 'nothing delivered yet, so it starts from your own plan' : `${m.delivered} of ${m.scope} feature${m.scope === 1 ? '' : 's'} done, at your pace so far`;
+  const basis = m.delivered === 0 ? t('nothing delivered yet, so it starts from your own plan') : t2(m.scope, '{done} of {n} feature done, at your pace so far', '{done} of {n} features done, at your pace so far', { done: m.delivered });
 
   return (
     <section className={`card goal ${verdict.tone}`}>
@@ -108,40 +114,40 @@ function Goal({ m, features, view, reload, go, askAgent }: { m: Milestone & { fo
       </div>
 
       <div className="dates2">
-        <div className="datecol"><small>You want it on</small><b>{fmt(m.targetDate)}</b><span>the date you set</span></div>
-        <div className={`datecol ${verdict.tone}`}><small>{open ? 'The team expects' : 'It landed on'}</small><b>{fmt(expect)}</b><span>{open ? `projected from ${basis}` : 'marked done by you'}</span></div>
+        <div className="datecol"><small>{t('You want it on')}</small><b>{fmt(m.targetDate)}</b><span>{t('the date you set')}</span></div>
+        <div className={`datecol ${verdict.tone}`}><small>{open ? t('The team expects') : t('It landed on')}</small><b>{fmt(expect)}</b><span>{open ? t('projected from {basis}', { basis }) : t('marked done by you')}</span></div>
       </div>
       <p className="verdict-text">{verdict.text}</p>
       {open && <DateLine m={m} contentDates={mine.map(i => i.date).filter((d): d is string => Boolean(d))} />}
 
-      <div className="progress-line" role="img" aria-label={`${m.delivered} of ${m.scope} features done`}><div className="pbar"><i style={{ width: `${pct}%` }} /></div><span>{m.delivered} of {m.scope} feature{m.scope === 1 ? '' : 's'} done</span></div>
+      <div className="progress-line" role="img" aria-label={t('{done} of {total} features done', { done: m.delivered, total: m.scope })}><div className="pbar"><i style={{ width: `${pct}%` }} /></div><span>{t2(m.scope, '{done} of {n} feature done', '{done} of {n} features done', { done: m.delivered })}</span></div>
       <div className="chips">
         {m.featureIds.map(id => {
           const x = features.find(y => y.id === id);
-          const [label, kind] = FEATURE[x?.state ?? ''] ?? ['In progress', 'doing'];
-          return <span key={id} className={`fchip ${kind}`} title={label}><i>{ICON[kind]}</i>{x?.title ?? id}{open && <button className="linkish tight" aria-label={`Take ${x?.title ?? id} out of this goal`} disabled={busy !== ''} onClick={() => run('unlink', () => contentApi.unlink(m.id, id))}>✕</button>}</span>;
+          const [label, kind] = FEATURE[x?.state ?? ''] ?? [t('In progress'), 'doing'];
+          return <span key={id} className={`fchip ${kind}`} title={label}><i>{ICON[kind]}</i>{x?.title ?? id}{open && <button className="linkish tight" aria-label={t('Take {title} out of this goal', { title: x?.title ?? id })} disabled={busy !== ''} onClick={() => run('unlink', () => contentApi.unlink(m.id, id))}>✕</button>}</span>;
         })}
-        {open && free.length > 0 && <select className="addfeat" value="" aria-label="Add a feature" onChange={e => e.target.value && run('link', () => contentApi.link(m.id, e.target.value))}><option value="">+ Add a feature</option>{free.map(x => <option key={x.id} value={x.id}>{x.title}</option>)}</select>}
-        {m.featureIds.length === 0 && <span className="hint small">No feature attached yet: the team cannot tell how far along you are.</span>}
+        {open && free.length > 0 && <select className="addfeat" value="" aria-label={t('Add a feature')} onChange={e => e.target.value && run('link', () => contentApi.link(m.id, e.target.value))}><option value="">{t('+ Add a feature')}</option>{free.map(x => <option key={x.id} value={x.id}>{x.title}</option>)}</select>}
+        {m.featureIds.length === 0 && <span className="hint small">{t('No feature attached yet: the team cannot tell how far along you are.')}</span>}
       </div>
 
       <div className="goal-foot">
-        <button className="linkish left" onClick={() => go('calendar')}>{mine.length ? `${mine.length} piece${mine.length > 1 ? 's' : ''} of content around this goal${next ? `, next: ${next.title} on ${fmt(next.date)}` : ''}` : 'No content around this goal yet'}</button>
+        <button className="linkish left" onClick={() => go('calendar')}>{mine.length ? t2(mine.length, '{n} piece of content around this goal', '{n} pieces of content around this goal') + (next ? t(', next: {title} on {date}', { title: next.title, date: fmt(next.date) }) : '') : t('No content around this goal yet')}</button>
         <div className="row nomargin">
-          {f && <button onClick={async () => setWhy(why ? null : await contentApi.forecasts(m.id))}>{why ? 'Hide' : 'Why this date?'}</button>}
-          <button onClick={() => askAgent('strategist', 'milestone', m.id)}>Ask the Strategist</button>
-          <details className="more"><summary>More</summary><div>
-            {open && <button disabled={busy !== ''} onClick={() => run('done', () => contentApi.markDone(m.id))}>Mark as done</button>}
-            <button className="linkish" disabled={busy !== ''} onClick={() => run('rm', () => contentApi.removeMilestone(m.id))}>Remove this goal</button>
+          {f && <button onClick={async () => setWhy(why ? null : await contentApi.forecasts(m.id))}>{why ? t('Hide') : t('Why this date?')}</button>}
+          <button onClick={() => askAgent('strategist', 'milestone', m.id)}>{t('Ask the Strategist')}</button>
+          <details className="more"><summary>{t('More')}</summary><div>
+            {open && <button disabled={busy !== ''} onClick={() => run('done', () => contentApi.markDone(m.id))}>{t('Mark as done')}</button>}
+            <button className="linkish" disabled={busy !== ''} onClick={() => run('rm', () => contentApi.removeMilestone(m.id))}>{t('Remove this goal')}</button>
           </div></details>
         </div>
       </div>
 
       {why && f && (
         <div className="why-panel">
-          <p className="small"><b>How the team gets this date.</b> {f.done === 0 ? 'Nothing is delivered yet, so it starts from your own plan.' : `${f.done} of ${f.scope} features took the time since the start, and the rest is projected at the same pace.`}
-            {f.calibration !== 1 && ` It then adds ${Math.round((f.calibration - 1) * 100)}% because earlier goals took longer than planned.`} How sure: <b>{f.confidence}</b>.</p>
-          <ol className="history small">{[...why].reverse().map(h => <li key={h.id}><b>{fmt(h.predictedDate)}</b> <span className="hint">expected on {new Date(h.madeAt).toLocaleDateString()}</span><br />{h.note}</li>)}</ol>
+          <p className="small"><b>{t('How the team gets this date.')}</b> {f.done === 0 ? t('Nothing is delivered yet, so it starts from your own plan.') : t('{done} of {total} features took the time since the start, and the rest is projected at the same pace.', { done: f.done, total: f.scope })}
+            {f.calibration !== 1 && ' ' + t('It then adds {pct}% because earlier goals took longer than planned.', { pct: Math.round((f.calibration - 1) * 100) })} {t('How sure:')} <b>{f.confidence}</b>.</p>
+          <ol className="history small">{[...why].reverse().map(h => <li key={h.id}><b>{fmt(h.predictedDate)}</b> <span className="hint">{t('expected on {date}', { date: new Date(h.madeAt).toLocaleDateString(locale) })}</span><br />{h.note}</li>)}</ol>
         </div>
       )}
       {error && <p className="error">{error}</p>}
@@ -154,18 +160,18 @@ function NewGoal({ projectId, reload, first }: { projectId: string; reload: () =
   const [form, setForm] = useState(empty);
   const [open, setOpen] = useState(first);
   const { busy, error, run } = useAction(reload);
-  if (!open && !first) return <button className="add-goal" onClick={() => setOpen(true)}>+ Add a goal</button>;
+  if (!open && !first) return <button className="add-goal" onClick={() => setOpen(true)}>{t('+ Add a goal')}</button>;
   return (
     <section className="card">
-      <h3>New goal</h3>
-      <label>What do you want to reach?<input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Public beta" /></label>
+      <h3>{t('New goal')}</h3>
+      <label>{t('What do you want to reach?')}<input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder={t('Public beta')} /></label>
       <div className="two">
-        <label>By when?<input type="date" min={today()} value={form.targetDate} onChange={e => setForm({ ...form, targetDate: e.target.value })} /></label>
-        <label>How many features does it take?<input type="number" min={1} max={50} value={form.scope} onChange={e => setForm({ ...form, scope: Number(e.target.value) })} /><span className="field-hint">A rough guess is fine, you can change it later.</span></label>
+        <label>{t('By when?')}<input type="date" min={today()} value={form.targetDate} onChange={e => setForm({ ...form, targetDate: e.target.value })} /></label>
+        <label>{t('How many features does it take?')}<input type="number" min={1} max={50} value={form.scope} onChange={e => setForm({ ...form, scope: Number(e.target.value) })} /><span className="field-hint">{t('A rough guess is fine, you can change it later.')}</span></label>
       </div>
-      <label>Why does it matter? <span className="opt">optional: the team writes better content with it</span><textarea rows={2} value={form.intent} onChange={e => setForm({ ...form, intent: e.target.value })} placeholder="Ten testers plan a week of meals. The story: no more “what’s for dinner”." /></label>
+      <label>{t('Why does it matter?')} <span className="opt">{t('optional: the team writes better content with it')}</span><textarea rows={2} value={form.intent} onChange={e => setForm({ ...form, intent: e.target.value })} placeholder={t('Ten testers plan a week of meals. The story: no more “what’s for dinner”.')} /></label>
       {error && <p className="error">{error}</p>}
-      <div className="row"><button className="primary" disabled={busy !== '' || !form.title.trim() || !form.targetDate} onClick={() => run('add', async () => { await contentApi.addMilestone(projectId, form); setForm(empty); setOpen(false); })}>Add this goal</button>{!first && <button className="linkish" onClick={() => setOpen(false)}>Cancel</button>}</div>
+      <div className="row"><button className="primary" disabled={busy !== '' || !form.title.trim() || !form.targetDate} onClick={() => run('add', async () => { await contentApi.addMilestone(projectId, form); setForm(empty); setOpen(false); })}>{t('Add this goal')}</button>{!first && <button className="linkish" onClick={() => setOpen(false)}>{t('Cancel')}</button>}</div>
     </section>
   );
 }

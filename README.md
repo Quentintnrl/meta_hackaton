@@ -65,6 +65,8 @@ pnpm dev:demo            # http://localhost:5190
 | **Settings** | Voix, audience, consignes, mode de publication, *Team on duty*, *Writer drafts ahead*. Chaque champ dit quel agent le lit. |
 | **Agents** | Une page par agent : marche/arrêt, ressources en parallèle, comportement avec tes mots, dernier résultat, chat. Le Director est le point d'entrée. |
 
+L'interface existe en **anglais et en français** (sélecteur en bas de la barre latérale, mémorisé dans le navigateur) ; la langue du contenu produit par les agents, elle, se règle dans *Settings*.
+
 Dans l'éditeur d'un post : format (image, carrousel, vidéo), texte, hashtags, images générées ou **tes propres photos** (« Use my photo », sans appel modèle), aperçu dans un fil, *Copy caption*, *Mark posted*. Une pièce approuvée est écrite dans `out/content/<projet>/`.
 
 ## Ce que tu dois fournir

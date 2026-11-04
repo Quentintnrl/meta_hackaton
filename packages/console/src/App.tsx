@@ -4,6 +4,7 @@ import { NewStudio } from './NewStudio';
 import { Studio } from './studio/Studio';
 import { useHashPath, writeHashPath } from './route';
 import { parseAppView as parseView } from './route-path.ts';
+import { lang, setLang, t, t as tr, type Lang } from './i18n';
 
 type Theme = 'light' | 'dark' | 'auto';
 const readTheme = (): Theme => { try { const t = localStorage.getItem('theme'); return t === 'dark' || t === 'auto' ? t : 'light'; } catch { return 'light'; } };
@@ -13,8 +14,17 @@ function ThemeSwitch() {
   const [theme, setTheme] = useState<Theme>(readTheme);
   useEffect(() => { document.documentElement.dataset.theme = theme; try { localStorage.setItem('theme', theme); } catch { /* private window: the choice lasts for this tab */ } }, [theme]);
   return (
-    <div className="theme" role="radiogroup" aria-label="Theme">
-      {(['light', 'dark', 'auto'] as Theme[]).map(t => <button key={t} role="radio" aria-checked={theme === t} className={theme === t ? 'on' : ''} onClick={() => setTheme(t)}>{t === 'auto' ? 'System' : t === 'light' ? 'Light' : 'Dark'}</button>)}
+    <div className="theme" role="radiogroup" aria-label={t('Theme')}>
+      {(['light', 'dark', 'auto'] as Theme[]).map(t => <button key={t} role="radio" aria-checked={theme === t} className={theme === t ? 'on' : ''} onClick={() => setTheme(t)}>{t === 'auto' ? tr('System') : t === 'light' ? tr('Light') : tr('Dark')}</button>)}
+    </div>
+  );
+}
+
+// English or French for the interface itself; the content keeps the project's language (Settings).
+function LangSwitch() {
+  return (
+    <div className="theme lang" role="radiogroup" aria-label={t('Language')}>
+      {(['en', 'fr'] as Lang[]).map(l => <button key={l} role="radio" aria-checked={lang === l} className={lang === l ? 'on' : ''} onClick={() => setLang(l)}>{l === 'en' ? 'English' : 'Français'}</button>)}
     </div>
   );
 }
@@ -59,8 +69,8 @@ export function App() {
 
   return (
     <div className="layout wide">
-      <a className="skip" href="#main">Skip to content</a>
-      <aside className="side rail" aria-label="Studios">
+      <a className="skip" href="#main">{t('Skip to content')}</a>
+      <aside className="side rail" aria-label={t('Studios')}>
         <div className="brand">
           <svg width="28" height="28" viewBox="0 0 32 32" fill="none" aria-hidden>
             <circle cx="16" cy="16" r="4" fill="currentColor" />
@@ -69,22 +79,23 @@ export function App() {
           </svg>
           <div>
             <h1>Ripple_handoff</h1>
-            <p className={online ? 'status on' : 'status off'}><i />{online ? 'Connected' : 'Offline'}</p>
+            <p className={online ? 'status on' : 'status off'}><i />{online ? t('Connected') : t('Offline')}</p>
           </div>
         </div>
 
         <div className="studios">
-          <h3 className="eyebrow">Studios</h3>
+          <h3 className="eyebrow">{t('Studios')}</h3>
           {projects.map(p => (
             <button key={p.id} className={p.id === studioId ? 'item active' : 'item'} onClick={() => writeHashPath(`/projects/${p.id}/content`)}>
               <b>{p.name}</b>
             </button>
           ))}
-          <button className="new" onClick={() => writeHashPath('/new')}><span>+</span> New studio</button>
+          <button className="new" onClick={() => writeHashPath('/new')}><span>+</span> {t('New studio')}</button>
         </div>
 
         <div className="rail-nav" ref={setRail} />
         <ThemeSwitch />
+        <LangSwitch />
       </aside>
 
       <main className="main" id="main" tabIndex={-1}>

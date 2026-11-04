@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import type { ContentItem, ContentView } from '../api';
 import { KIND_HUE, credit, logicFor, today } from './shared';
+import { locale, t, t2 } from '../i18n';
 
 const pad = (n: number) => String(n).padStart(2, '0');
 const iso = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
 const STATUS_MARK: Record<string, string> = { briefed: '○', drafted: '◐', approved: '●', published: '✓' }; // ideas live in the inbox, never here
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => t(d));
 
 export function CalendarView({ view, openId, open }: { view: ContentView; openId: string | null; open: (id: string) => void }) {
   const now = new Date();
@@ -32,35 +34,35 @@ export function CalendarView({ view, openId, open }: { view: ContentView; openId
   return (
     <div className="cal-wrap">
       <div className="today">
-        <div><b>The month</b><span className="hint small">Every piece on the day it is planned. Accepted pieces follow their goal's expected date; a date you lock never moves.</span></div>
+        <div><b>{t('The month')}</b><span className="hint small">{t("Every piece on the day it is planned. Accepted pieces follow their goal's expected date; a date you lock never moves.")}</span></div>
       </div>
       <section className="card">
         <div className="head">
-          <h3>{first.toLocaleDateString(undefined, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</h3>
-          <div className="row nomargin"><button onClick={() => go(-1)} aria-label="Previous month">‹</button><button onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })}>Today</button><button onClick={() => go(1)} aria-label="Next month">›</button></div>
+          <h3>{first.toLocaleDateString(locale, { month: 'long', year: 'numeric', timeZone: 'UTC' })}</h3>
+          <div className="row nomargin"><button onClick={() => go(-1)} aria-label={t('Previous month')}>‹</button><button onClick={() => setCursor({ y: now.getFullYear(), m: now.getMonth() })}>{t('Today')}</button><button onClick={() => go(1)} aria-label={t('Next month')}>›</button></div>
         </div>
-        <p className="hint small" role="status">{inMonth.length === 0 ? 'Nothing planned this month yet.' : `${inMonth.length} piece${inMonth.length > 1 ? 's' : ''} this month · ${ready} ready to post · ${out} posted.`} Click a piece to work on it.</p>
+        <p className="hint small" role="status">{inMonth.length === 0 ? t('Nothing planned this month yet.') : t2(inMonth.length, '{n} piece this month · {ready} ready to post · {out} posted.', '{n} pieces this month · {ready} ready to post · {out} posted.', { ready, out })} {t('Click a piece to work on it.')}</p>
         <div className="grid">
-          {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => <div key={d} className="dow">{d}</div>)}
+          {DOW.map(d => <div key={d} className="dow">{d}</div>)}
           {cells.map((d, idx) => {
             if (d < 1 || d > days) return <div key={idx} className="day out" />;
             const key = iso(cursor.y, cursor.m, d);
             return (
               <div key={idx} className={`day ${key === today() ? 'today' : ''}`}>
                 <span className="n">{d}</span>
-                {landings.get(key)?.map(t => <span key={t} className="landing" title="Projected landing">⚑ {t}</span>)}
+                {landings.get(key)?.map(t_ => <span key={t_} className="landing" title={t('Projected landing')}>⚑ {t_}</span>)}
                 {byDate.get(key)?.map(i => (
                   <button key={i.id} className={`pill-item ${i.id === openId ? 'sel' : ''}`} style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)} title={`${i.title} (${i.status}) — ${credit(i)}${logicFor(i) ? ` · ${logicFor(i)}` : ''}`}>
-                    <span>{STATUS_MARK[i.status]}</span> {i.title}{i.shiftDays ? <em className={i.shiftDays > 0 ? 'late' : 'early'}> {i.shiftDays > 0 ? '+' : ''}{i.shiftDays}d</em> : null}
+                    <span>{STATUS_MARK[i.status]}</span> {i.title}{i.shiftDays ? <em className={i.shiftDays > 0 ? 'late' : 'early'}> {i.shiftDays > 0 ? '+' : ''}{i.shiftDays}{t('d')}</em> : null}
                   </button>
                 ))}
               </div>
             );
           })}
         </div>
-        <p className="legend small hint"><span>○ briefed</span><span>◐ drafted</span><span>● approved</span><span>✓ published</span><span>⚑ milestone lands (projected)</span><span><em className="late">+3d</em> pushed back by the projection</span></p>
-        {undated.length > 0 && <><h5>No date yet</h5><div className="chips">{undated.map(i => <button key={i.id} className="pill-item" style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)}>{i.title}</button>)}</div></>}
-        {items.length === 0 && <p className="hint">The calendar fills when you accept proposals from the team. Accepted pieces land on their goal's date; locked dates never move.</p>}
+        <p className="legend small hint"><span>{t('○ briefed')}</span><span>{t('◐ drafted')}</span><span>{t('● approved')}</span><span>{t('✓ published')}</span><span>{t('⚑ milestone lands (projected)')}</span><span><em className="late">+3{t('d')}</em> {t('pushed back by the projection')}</span></p>
+        {undated.length > 0 && <><h5>{t('No date yet')}</h5><div className="chips">{undated.map(i => <button key={i.id} className="pill-item" style={{ ['--h' as string]: KIND_HUE[i.kind] }} onClick={() => open(i.id)}>{i.title}</button>)}</div></>}
+        {items.length === 0 && <p className="hint">{t("The calendar fills when you accept proposals from the team. Accepted pieces land on their goal's date; locked dates never move.")}</p>}
       </section>
     </div>
   );

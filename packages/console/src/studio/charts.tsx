@@ -1,11 +1,12 @@
 import type { AccountPost } from '../api';
+import { locale, t as tr, t2 } from '../i18n';
 
 // Small drawings, one series each, one hue, thin marks anchored to the baseline, a title on every mark for hover.
 // They carry a finding, never a panel of numbers: the sentence next to them is the point, the drawing is the proof.
 
 const DAY = 86_400_000;
-export const fmtY = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
-const fmtM = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', year: '2-digit', timeZone: 'UTC' });
+export const fmtY = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString(locale, { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const fmtM = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString(locale, { month: 'short', year: '2-digit', timeZone: 'UTC' });
 const cap = (s: string, n: number) => (s.length > n ? s.slice(0, n - 1) + '…' : s);
 
 // The story of the account: every post as a bar on a time axis, the silences shaded, the best post named.
@@ -20,33 +21,33 @@ export function Timeline({ posts, silences, hueOf, best }: { posts: AccountPost[
   for (const d = new Date(t0); d.getTime() <= t1; d.setUTCMonth(d.getUTCMonth() + 1, 1)) if (d.getTime() >= t0) months.push(d.toISOString().slice(0, 10));
   const bestX = best ? x(best.postedAt) : 0;
   return (
-    <svg className="chart timeline" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Posts over time, likes as height, silences shaded">
-      {silences.map(s => <g key={s.from}><rect x={x(s.from) + 3} y={top - 10} width={Math.max(2, x(s.to) - x(s.from) - 6)} height={h - 24 - top + 10} className="silence"><title>{`${s.days} days of silence, ${fmtY(s.from)} to ${fmtY(s.to)}`}</title></rect>{x(s.to) - x(s.from) > 115 && <text x={(x(s.from) + x(s.to)) / 2} y={top + 4} className="tick" textAnchor="middle">{s.days} days of silence</text>}</g>)}
+    <svg className="chart timeline" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('Posts over time, likes as height, silences shaded')}>
+      {silences.map(s => <g key={s.from}><rect x={x(s.from) + 3} y={top - 10} width={Math.max(2, x(s.to) - x(s.from) - 6)} height={h - 24 - top + 10} className="silence"><title>{tr('{d} days of silence, {from} to {to}', { d: s.days, from: fmtY(s.from), to: fmtY(s.to) })}</title></rect>{x(s.to) - x(s.from) > 115 && <text x={(x(s.from) + x(s.to)) / 2} y={top + 4} className="tick" textAnchor="middle">{tr('{d} days of silence', { d: s.days })}</text>}</g>)}
       <line x1={pad} x2={w - pad} y1={h - 24} y2={h - 24} className="axis" />
       {months.filter((_, i) => i % 2 === 0).map(m => <text key={m} x={x(m)} y={h - 8} className="tick" textAnchor="middle">{fmtM(m)}</text>)}
-      {sorted.map((p, i) => <rect key={i} x={x(p.postedAt) - 2.5} y={y(p.likes)} width={5} height={h - 24 - y(p.likes)} rx={2.5} style={{ fill: `hsl(${hueOf(p)} 65% 50%)` }}><title>{`${fmtY(p.postedAt)}: ${p.likes} likes${p.comments ? `, ${p.comments} comments` : ''} — ${cap(p.text, 90)}`}</title></rect>)}
-      {best && <text x={bestX < w / 2 ? bestX + 8 : bestX - 8} y={y(best.likes) - 6} className="note" textAnchor={bestX < w / 2 ? 'start' : 'end'}>{best.likes} likes: “{cap(best.text, 48)}”</text>}
+      {sorted.map((p, i) => <rect key={i} x={x(p.postedAt) - 2.5} y={y(p.likes)} width={5} height={h - 24 - y(p.likes)} rx={2.5} style={{ fill: `hsl(${hueOf(p)} 65% 50%)` }}><title>{p.comments ? tr('{date}: {likes} likes, {comments} comments — {text}', { date: fmtY(p.postedAt), likes: p.likes, comments: p.comments, text: cap(p.text, 90) }) : tr('{date}: {likes} likes — {text}', { date: fmtY(p.postedAt), likes: p.likes, text: cap(p.text, 90) })}</title></rect>)}
+      {best && <text x={bestX < w / 2 ? bestX + 8 : bestX - 8} y={y(best.likes) - 6} className="note" textAnchor={bestX < w / 2 ? 'start' : 'end'}>{tr('{likes} likes: “{text}”', { likes: best.likes, text: cap(best.text, 48) })}</text>}
     </svg>
   );
 }
 
 // A handful of groups compared on one measure: thin bars, the count under each, the biggest named.
-export function Compare({ groups, unit = 'likes', hue }: { groups: Array<{ label: string; n: number; avg: number }>; unit?: string; hue?: number }) {
+export function Compare({ groups, unit = tr('likes'), hue }: { groups: Array<{ label: string; n: number; avg: number }>; unit?: string; hue?: number }) {
   const w = 300, h = 120, pad = 10, bw = 22;
   const max = Math.max(1, ...groups.map(g => g.avg));
   const step = (w - 2 * pad) / groups.length;
   const fill = hue != null ? `hsl(${hue} 65% 50%)` : 'var(--accent)';
   return (
-    <svg className="chart compare" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={`Average ${unit} per group`}>
+    <svg className="chart compare" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('Average {unit} per group', { unit })}>
       <line x1={pad} x2={w - pad} y1={h - 30} y2={h - 30} className="axis" />
       {groups.map((g, i) => {
         const bh = g.n ? Math.max(2, (g.avg / max) * (h - 56)) : 0;
         const cx = pad + step * i + step / 2;
         return <g key={g.label}>
-          {g.n > 0 && <rect x={cx - bw / 2} y={h - 30 - bh} width={bw} height={bh} rx={4} style={{ fill }} opacity={g.n ? 1 : .3}><title>{`${g.label}: ${g.avg} ${unit} on average, ${g.n} post${g.n > 1 ? 's' : ''}`}</title></rect>}
+          {g.n > 0 && <rect x={cx - bw / 2} y={h - 30 - bh} width={bw} height={bh} rx={4} style={{ fill }} opacity={g.n ? 1 : .3}><title>{tr('{label}: {avg} {unit} on average, {posts}', { label: g.label, avg: g.avg, unit, posts: t2(g.n, '{n} post', '{n} posts') })}</title></rect>}
           <text x={cx} y={h - 30 - bh - 5} className="value" textAnchor="middle">{g.n ? g.avg : '–'}</text>
           <text x={cx} y={h - 16} className="tick" textAnchor="middle">{g.label}</text>
-          <text x={cx} y={h - 4} className="tick faint" textAnchor="middle">{g.n ? `${g.n} post${g.n > 1 ? 's' : ''}` : 'none'}</text>
+          <text x={cx} y={h - 4} className="tick faint" textAnchor="middle">{g.n ? t2(g.n, '{n} post', '{n} posts') : tr('none')}</text>
         </g>;
       })}
     </svg>
@@ -59,10 +60,10 @@ export function Dots({ points, hue }: { points: Array<{ text: string; views: num
   const mx = Math.max(1, ...points.map(p => p.views)), my = Math.max(1, ...points.map(p => p.likes));
   const x = (v: number) => pad + (v / mx) * (w - pad - 10), y = (v: number) => h - 24 - (v / my) * (h - 40);
   return (
-    <svg className="chart dots" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Views against reactions, one dot per post">
+    <svg className="chart dots" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('Views against reactions, one dot per post')}>
       <line x1={pad} x2={w - 10} y1={h - 24} y2={h - 24} className="axis" /><line x1={pad} x2={pad} y1={10} y2={h - 24} className="axis" />
-      <text x={w - 10} y={h - 8} className="tick" textAnchor="end">views</text><text x={pad + 4} y={14} className="tick">reactions</text>
-      {points.map((p, i) => { const labelled = p === points[0] || p.rate === Math.max(...points.map(q => q.rate)); return <g key={i}><circle cx={x(p.views)} cy={y(p.likes)} r={6} style={{ fill: `hsl(${hue} 65% 50%)` }} stroke="var(--panel)" strokeWidth={2}><title>{`${fmtY(p.postedAt)}: ${p.views} views, ${p.likes} reactions (${p.rate}%) — ${cap(p.text, 80)}`}</title></circle>{labelled && <text x={x(p.views) + (p === points[0] ? -10 : 10)} y={y(p.likes) + 4} className="tick" textAnchor={p === points[0] ? 'end' : 'start'}>{p.rate}% of {p.views}</text>}</g>; })}
+      <text x={w - 10} y={h - 8} className="tick" textAnchor="end">{tr('views')}</text><text x={pad + 4} y={14} className="tick">{tr('reactions')}</text>
+      {points.map((p, i) => { const labelled = p === points[0] || p.rate === Math.max(...points.map(q => q.rate)); return <g key={i}><circle cx={x(p.views)} cy={y(p.likes)} r={6} style={{ fill: `hsl(${hue} 65% 50%)` }} stroke="var(--panel)" strokeWidth={2}><title>{tr('{date}: {views} views, {likes} reactions ({rate}%) — {text}', { date: fmtY(p.postedAt), views: p.views, likes: p.likes, rate: p.rate, text: cap(p.text, 80) })}</title></circle>{labelled && <text x={x(p.views) + (p === points[0] ? -10 : 10)} y={y(p.likes) + 4} className="tick" textAnchor={p === points[0] ? 'end' : 'start'}>{tr('{rate}% of {views}', { rate: p.rate, views: p.views })}</text>}</g>; })}
     </svg>
   );
 }
@@ -77,11 +78,11 @@ export function Strip({ players, you, hue }: { players: Array<{ name: string; fo
   const ticks = [10, 100, 1_000, 10_000, 100_000].filter(t => Math.log10(t) >= lo - 0.2 && Math.log10(t) <= hi);
   const sorted = [...players].sort((a, b) => a.followers - b.followers);
   return (
-    <svg className="chart strip" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="Followers of each player on a log scale">
+    <svg className="chart strip" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('Followers of each player on a log scale')}>
       <line x1={pad} x2={w - pad} y1={40} y2={40} className="axis" />
-      {ticks.map(t => <g key={t}><line x1={x(t)} x2={x(t)} y1={36} y2={44} className="axis" /><text x={x(t)} y={60} className="tick" textAnchor="middle">{t.toLocaleString()}</text></g>)}
-      {sorted.map((p, i) => <g key={p.name}><circle cx={x(p.followers)} cy={40} r={5} className="dot-muted"><title>{`${p.name}: ${p.followers.toLocaleString()} followers`}</title></circle><text x={x(p.followers)} y={i % 2 ? 26 : 14} className="tick" textAnchor="middle">{cap(p.name, 16)}</text></g>)}
-      {you && you.followers > 0 && <g><circle cx={x(you.followers)} cy={40} r={7} style={{ fill: `hsl(${hue} 65% 50%)` }} stroke="var(--panel)" strokeWidth={2}><title>{`${you.name}: ${you.followers} followers`}</title></circle><text x={x(you.followers)} y={26} className="note" textAnchor="start">you, {you.followers}</text></g>}
+      {ticks.map(t => <g key={t}><line x1={x(t)} x2={x(t)} y1={36} y2={44} className="axis" /><text x={x(t)} y={60} className="tick" textAnchor="middle">{t.toLocaleString(locale)}</text></g>)}
+      {sorted.map((p, i) => <g key={p.name}><circle cx={x(p.followers)} cy={40} r={5} className="dot-muted"><title>{tr('{name}: {followers} followers', { name: p.name, followers: p.followers.toLocaleString(locale) })}</title></circle><text x={x(p.followers)} y={i % 2 ? 26 : 14} className="tick" textAnchor="middle">{cap(p.name, 16)}</text></g>)}
+      {you && you.followers > 0 && <g><circle cx={x(you.followers)} cy={40} r={7} style={{ fill: `hsl(${hue} 65% 50%)` }} stroke="var(--panel)" strokeWidth={2}><title>{tr('{name}: {followers} followers', { name: you.name, followers: you.followers })}</title></circle><text x={x(you.followers)} y={26} className="note" textAnchor="start">{tr('you, {n}', { n: you.followers })}</text></g>}
     </svg>
   );
 }
@@ -97,13 +98,13 @@ export function Ahead({ events, pieces, today, months = 7 }: { events: Array<{ n
   const ev = events.filter(e => inRange(e.at)).sort((a, b) => a.at.localeCompare(b.at));
   const pc = pieces.filter(p => inRange(p.at)).sort((a, b) => a.at.localeCompare(b.at));
   return (
-    <svg className="chart ahead" viewBox={`0 0 ${w} ${h}`} role="img" aria-label="The months ahead: audience dates above the line, your planned pieces below">
+    <svg className="chart ahead" viewBox={`0 0 ${w} ${h}`} role="img" aria-label={tr('The months ahead: audience dates above the line, your planned pieces below')}>
       <line x1={pad} x2={w - pad} y1={80} y2={80} className="axis" />
       {ms.map(m => <g key={m}><line x1={x(m)} x2={x(m)} y1={76} y2={84} className="axis" /><text x={x(m)} y={98} className="tick" textAnchor="middle">{fmtM(m)}</text></g>)}
-      <g><line x1={x(today)} x2={x(today)} y1={8} y2={100} className="today" /><text x={x(today) + 4} y={12} className="tick">today</text></g>
+      <g><line x1={x(today)} x2={x(today)} y1={8} y2={100} className="today" /><text x={x(today) + 4} y={12} className="tick">{tr('today')}</text></g>
       {ev.map((e, i) => <g key={e.name}><line x1={x(e.at)} x2={x(e.at)} y1={80} y2={62 - (i % 3) * 18} className="stem" /><circle cx={x(e.at)} cy={80} r={5} style={{ fill: 'var(--wait)' }}><title>{`${fmtY(e.at)}: ${e.name}${e.post ? ` — ${e.post}` : ''}`}</title></circle><text x={x(e.at)} y={58 - (i % 3) * 18} className="note" textAnchor={x(e.at) > w - 120 ? 'end' : x(e.at) < 120 ? 'start' : 'middle'}>{cap(e.name, 30)}</text></g>)}
       {pc.map((p, i) => { const room = i === 0 || x(p.at) - x(pc[i - 1].at) > 90; return <g key={p.title + p.at}><line x1={x(p.at)} x2={x(p.at)} y1={84} y2={110} className="stem" /><circle cx={x(p.at)} cy={112} r={4} style={{ fill: 'var(--accent)' }}><title>{`${fmtY(p.at)}: ${p.title}`}</title></circle>{room && <text x={x(p.at)} y={132} className="tick" textAnchor={x(p.at) < 120 ? 'start' : 'middle'}>{cap(p.title, 26)}</text>}</g>; })}
-      {pc.length > 0 && <text x={w - pad} y={132} className="tick" textAnchor="end">{pc.length} piece{pc.length > 1 ? 's' : ''} planned, {fmtM(pc[0].at)} to {fmtM(pc.at(-1)!.at)}</text>}
+      {pc.length > 0 && <text x={w - pad} y={132} className="tick" textAnchor="end">{tr('{pieces} planned, {from} to {to}', { pieces: t2(pc.length, '{n} piece', '{n} pieces'), from: fmtM(pc[0].at), to: fmtM(pc.at(-1)!.at) })}</text>}
     </svg>
   );
 }

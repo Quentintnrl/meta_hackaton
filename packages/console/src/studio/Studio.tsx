@@ -19,22 +19,23 @@ import { NextView } from './NextView';
 import { SettingsView } from './SettingsView';
 import { CommunityBoard, CreateBoard, DutyLine, PlatformsBoard, WatchBoard } from './boards';
 import { AgendaBoard } from './agenda';
+import { t } from '../i18n';
 
 export type View = 'studio' | 'platforms' | 'community' | 'watch' | 'agenda' | 'next' | 'settings' | 'today' | 'create' | 'calendar' | 'insights' | 'team' | `agent:${AgentId}`;
 
 const PAGES: Record<Exclude<View, `agent:${string}`>, { title: string; about: string }> = {
-  studio: { title: 'Create', about: 'What the team proposes, what is being written, what is ready. You say yes or no; nothing is written or posted without you.' },
-  platforms: { title: 'Platforms', about: 'One card per place you publish: its audience, its rhythm, what is planned there, and where to feed it.' },
-  community: { title: 'Community', about: 'Who follows, what they reacted to, and whether anyone talks back.' },
-  watch: { title: 'Competitors', about: 'Who else talks to your audience, how they communicate, and what they leave you.' },
-  agenda: { title: 'Calendar', about: 'The dates your audience lives by and your pieces, on the same days. A date with nothing near it is a post to plan.' },
-  next: { title: 'What to post next', about: 'The team proposes, with its reasons. You say yes or no. Nothing is written or posted without you.' },
-  settings: { title: 'Voice, orders and publishing', about: 'Written once, read by every agent before it works.' },
-  today: { title: 'Today', about: 'What the team did, and what waits for you: ideas to judge, drafts to review, pieces to post.' },
-  create: { title: 'Brief the team', about: 'Say what you want. The Scout researches, the Analyst scores your posts, the Strategist proposes. The ideas land in Today.' },
-  calendar: { title: 'Calendar', about: 'What you are building towards and when it really lands, then every piece on its day.' },
-  insights: { title: 'Insights', about: 'The numbers: the plan, your account against the field, and what the research measured.' },
-  team: { title: 'Team', about: 'Five agents: what each one does, what it did last, how many of them work at once, and the rules they all follow.' },
+  studio: { title: t('Create'), about: t('What the team proposes, what is being written, what is ready. You say yes or no; nothing is written or posted without you.') },
+  platforms: { title: t('Platforms'), about: t('One card per place you publish: its audience, its rhythm, what is planned there, and where to feed it.') },
+  community: { title: t('Community'), about: t('Who follows, what they reacted to, and whether anyone talks back.') },
+  watch: { title: t('Competitors'), about: t('Who else talks to your audience, how they communicate, and what they leave you.') },
+  agenda: { title: t('Calendar'), about: t('The dates your audience lives by and your pieces, on the same days. A date with nothing near it is a post to plan.') },
+  next: { title: t('What to post next'), about: t('The team proposes, with its reasons. You say yes or no. Nothing is written or posted without you.') },
+  settings: { title: t('Voice, orders and publishing'), about: t('Written once, read by every agent before it works.') },
+  today: { title: t('Today'), about: t('What the team did, and what waits for you: ideas to judge, drafts to review, pieces to post.') },
+  create: { title: t('Brief the team'), about: t('Say what you want. The Scout researches, the Analyst scores your posts, the Strategist proposes. The ideas land in Today.') },
+  calendar: { title: t('Calendar'), about: t('What you are building towards and when it really lands, then every piece on its day.') },
+  insights: { title: t('Insights'), about: t('The numbers: the plan, your account against the field, and what the research measured.') },
+  team: { title: t('Team'), about: t('Five agents: what each one does, what it did last, how many of them work at once, and the rules they all follow.') },
 };
 
 // The communication team of a project: a sub-menu on the left, one page at a time.
@@ -83,22 +84,22 @@ export function Studio({ project, rail }: { project: Project; rail?: HTMLElement
   // The tab says what waits, so a manager who left the team working sees it from another tab.
   const waitingNow = view ? view.items.filter(i => i.status === 'idea' || i.status === 'drafted' || i.status === 'approved').length : 0;
   useEffect(() => {
-    document.title = `${waitingNow ? `(${waitingNow}) ` : ''}${team?.working ? `${team.agents.find(a => a.id === team.working!.agent)?.name ?? 'Team'} working · ` : ''}${project.name} · Ripple_handoff`;
+    document.title = `${waitingNow ? `(${waitingNow}) ` : ''}${team?.working ? `${t('{who} working', { who: team.agents.find(a => a.id === team.working!.agent)?.name ?? t('Team') })} · ` : ''}${project.name} · Ripple_handoff`;
     return () => { document.title = 'Ripple_handoff'; };
   }, [waitingNow, team?.working, project.name]);
 
-  if (!view || !team) return <section className="card" role="status">{loadError ? <><p className="error">The studio did not load: {loadError}</p><p><button className="primary" onClick={() => reload().catch(e => setLoadError((e as Error).message))}>Retry</button></p></> : <p className="hint pulse-text">Loading your studio…</p>}</section>;
+  if (!view || !team) return <section className="card" role="status">{loadError ? <><p className="error">{t('The studio did not load: {error}', { error: loadError })}</p><p><button className="primary" onClick={() => reload().catch(e => setLoadError((e as Error).message))}>{t('Retry')}</button></p></> : <p className="hint pulse-text">{t('Loading your studio…')}</p>}</section>;
 
   const waiting = view.items.filter(i => i.status === 'idea').length + view.items.filter(i => i.status === 'drafted').length + view.items.filter(i => i.status === 'approved').length;
   const late = view.milestones.filter(m => m.atRisk).length;
   // One page, plus the settings. The older pages stay reachable from the foot of the page and by URL.
   const nav: Array<[View, string, number?, string?]> = [
-    ['studio', 'Create', waiting],
-    ['platforms', 'Platforms'],
-    ['community', 'Community'],
-    ['watch', 'Competitors'],
-    ['agenda', 'Calendar'],
-    ['settings', 'Settings'],
+    ['studio', t('Create'), waiting],
+    ['platforms', t('Platforms')],
+    ['community', t('Community')],
+    ['watch', t('Competitors')],
+    ['agenda', t('Calendar')],
+    ['settings', t('Settings')],
     ...(['next', 'today', 'create', 'calendar', 'insights', 'team'].includes(page) ? [[page, PAGES[page as keyof typeof PAGES].title, page === 'calendar' ? late : undefined, 'late'] as [View, string, number?, string?]] : []),
   ];
   // Open a side chat with an agent, staying on the page: the agent sees the
@@ -108,7 +109,7 @@ export function Studio({ project, rail }: { project: Project; rail?: HTMLElement
   const open = view.items.find(i => i.id === openId);
   const agentId = page.startsWith('agent:') ? page.slice(6) as AgentId : undefined;
   const agentInfo = agentId && team.agents.find(a => a.id === agentId);
-  const info = agentInfo ? { title: agentInfo.name, about: agentInfo.role + '.' } : PAGES[page as keyof typeof PAGES];
+  const info = agentInfo ? { title: agentInfo.name, about: t(agentInfo.role) + '.' } : PAGES[page as keyof typeof PAGES];
   // What a chat is about, resolved for the prompt; nothing is shown except its title.
   const subjectOf = (kind: 'item' | 'milestone' | null, id: string | null): Subject | undefined => {
     if (kind === 'item' && id) {
@@ -136,7 +137,7 @@ export function Studio({ project, rail }: { project: Project; rail?: HTMLElement
   return (
     <div className="studio">
       {createPortal(
-        <nav className="subnav" aria-label="Studio">
+        <nav className="subnav" aria-label={t('Studio')}>
           {nav.map(([id, label, n, tone]) => (
             <button key={id} className={page === id || (id === 'team' && page.startsWith('agent:')) ? 'navitem on' : 'navitem'} aria-current={page === id ? 'page' : undefined} onClick={() => setPage(id)}>
               <span className="navlabelrow">{label}</span>{n ? <span className={`count ${tone ?? ''}`}>{n}</span> : null}

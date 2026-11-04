@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { hasFigure, teamApi, type Figure, type Plan, type PlanLever, type Proof, type YourScore } from '../api';
+import { locale, t, t2 } from '../i18n';
 
 // The small pieces that put numbers next to words: a figure with its source, a thumbnail of an example,
 // the proof behind an idea, the plan's format mix. All read-only; nothing here calls a model.
@@ -7,7 +8,7 @@ import { hasFigure, teamApi, type Figure, type Plan, type PlanLever, type Proof,
 export type FormatStat = { format: string; posts: number; avgEngagement: number };
 // spread with the golden angle so two formats rarely share a hue
 export const hue = (s: string) => Math.round(([...s].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 9973, 7) * 137.508) % 360);
-export const num = (n: number) => (Number.isInteger(n) ? n : Math.round(n * 10) / 10).toLocaleString();
+export const num = (n: number) => (Number.isInteger(n) ? n : Math.round(n * 10) / 10).toLocaleString(locale);
 const host = (u: string) => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
 
 // "Behind-the-scenes" and "behind the scenes" are one format, as on the server.
@@ -17,29 +18,29 @@ export function sameFormat(a: string, b: string): boolean {
   if (!x || !y) return false;
   if (x === y || x.includes(y) || y.includes(x)) return true;
   const ys = y.split(' ');
-  return x.split(' ').some(t => t.length > 3 && ys.includes(t));
+  return x.split(' ').some(w => w.length > 3 && ys.includes(w));
 }
 
 // A measured figure, big, with what it measures and where it comes from. Or the honest "none found".
 export function FigureTile({ figure, label }: { figure?: Figure; label?: string }) {
-  if (!hasFigure(figure)) return <div className="figure none"><b>–</b><span>{label ?? 'no figure found'}</span></div>;
+  if (!hasFigure(figure)) return <div className="figure none"><b>–</b><span>{label ?? t('no figure found')}</span></div>;
   const pct = figure.unit.trim().startsWith('%');
   return (
     <div className="figure">
       <b>{num(figure.value)}{pct ? '%' : ''}</b>
       <span>{pct || figure.what.toLowerCase().startsWith(figure.unit.toLowerCase()) ? '' : `${figure.unit} `}{figure.what}</span>
-      {figure.source && <a className="src" href={figure.source} target="_blank" rel="noopener noreferrer" title={figure.source}>{host(figure.source) || 'source'}{figure.period ? ` · ${figure.period}` : ''}</a>}
+      {figure.source && <a className="src" href={figure.source} target="_blank" rel="noopener noreferrer" title={figure.source}>{host(figure.source) || t('source')}{figure.period ? ` · ${figure.period}` : ''}</a>}
     </div>
   );
 }
 
 // Where a format stands on this account: its average score and its rank among the formats.
 export function YoursTile({ yours, label, simulated }: { yours?: YourScore; label?: string; simulated?: boolean }) {
-  if (!yours) return <div className="figure none"><b>–</b><span>{label ?? 'not posted yet on your account'}</span></div>;
+  if (!yours) return <div className="figure none"><b>–</b><span>{label ?? t('not posted yet on your account')}</span></div>;
   return (
     <div className="figure yours">
       <b>{num(yours.value)}</b>
-      <span>avg score · #{yours.rank} of {yours.of} formats · {yours.posts} post{yours.posts > 1 ? 's' : ''}{simulated ? ' · demo' : ''}</span>
+      <span>{t('avg score · #{rank} of {of} formats', { rank: yours.rank, of: yours.of })} · {t2(yours.posts, '{n} post', '{n} posts')}{simulated ? ` · ${t('demo')}` : ''}</span>
     </div>
   );
 }
@@ -48,7 +49,7 @@ export function YoursTile({ yours, label, simulated }: { yours?: YourScore; labe
 export function Thumb({ pid, url, alt }: { pid: string; url: string; alt: string }) {
   const [failed, setFailed] = useState(false);
   if (!url) return null;
-  if (failed) return <a className="thumb fallback" href={url} target="_blank" rel="noopener noreferrer">{host(url) || 'open'} ↗</a>;
+  if (failed) return <a className="thumb fallback" href={url} target="_blank" rel="noopener noreferrer">{host(url) || t('open')} ↗</a>;
   return <a className="thumb" href={url} target="_blank" rel="noopener noreferrer"><img src={teamApi.thumbUrl(pid, url)} alt={alt} loading="lazy" onError={() => setFailed(true)} /></a>;
 }
 
@@ -59,11 +60,11 @@ export function ProofCard({ proof, stats, simulated }: { proof: Proof; stats: Fo
   const shown = stats.length > 5 ? [...stats.slice(0, 4), ...(mine.some(m => stats.indexOf(m) >= 4) ? mine : [])] : stats;
   return (
     <div className="proof">
-      <b className="proof-head">The numbers{simulated ? ' (demo data)' : ''}</b>
+      <b className="proof-head">{simulated ? t('The numbers (demo data)') : t('The numbers')}</b>
       <div className="proof-grid">
         {proof.yours && stats.length > 0 && (
-          <div className="proof-bars" role="img" aria-label={`${proof.format} averages ${num(proof.yours.value)} on your account, rank ${proof.yours.rank} of ${proof.yours.of}`}>
-            <span className="hint small">Your average score per format</span>
+          <div className="proof-bars" role="img" aria-label={t('{format} averages {value} on your account, rank {rank} of {of}', { format: proof.format, value: num(proof.yours.value), rank: proof.yours.rank, of: proof.yours.of })}>
+            <span className="hint small">{t('Your average score per format')}</span>
             {shown.map(s => { const hit = sameFormat(s.format, proof.format); return (
               <div key={s.format} className={`barrow ${hit ? 'hit' : ''}`}><span>{s.format}</span><div><i style={{ width: `${(s.avgEngagement / max) * 100}%` }} /></div><b>{num(s.avgEngagement)}</b></div>
             ); })}
@@ -71,7 +72,7 @@ export function ProofCard({ proof, stats, simulated }: { proof: Proof; stats: Fo
         )}
         <div className="proof-side">
           {proof.yours && <YoursTile yours={proof.yours} simulated={simulated} />}
-          {proof.field ? <FigureTile figure={proof.field} /> : <div className="figure none"><b>–</b><span>no field figure for this format</span></div>}
+          {proof.field ? <FigureTile figure={proof.field} /> : <div className="figure none"><b>–</b><span>{t('no field figure for this format')}</span></div>}
         </div>
       </div>
       {proof.text && <p className="hint small">{proof.text}</p>}
@@ -80,10 +81,10 @@ export function ProofCard({ proof, stats, simulated }: { proof: Proof; stats: Fo
 }
 
 export const LEVER: Record<PlanLever, { label: string; hint: string }> = {
-  'double-down': { label: 'Double down', hint: 'It scores high on your account: do more of it' },
-  'fill-gap': { label: 'Fill the gap', hint: 'The field shows it works and you have little or none' },
-  test: { label: 'Test', hint: 'Try it with one or two pieces and measure' },
-  keep: { label: 'Keep', hint: 'A steady baseline' },
+  'double-down': { label: t('Double down'), hint: t('It scores high on your account: do more of it') },
+  'fill-gap': { label: t('Fill the gap'), hint: t('The field shows it works and you have little or none') },
+  test: { label: t('Test'), hint: t('Try it with one or two pieces and measure') },
+  keep: { label: t('Keep'), hint: t('A steady baseline') },
 };
 
 // The plan as a table: how many of each format, why, and the two numbers behind each line.
@@ -93,14 +94,14 @@ export function PlanMix({ plan, simulated }: { plan: Plan; simulated?: boolean }
     <div className="mix">
       {plan.mix.map(l => (
         <div key={l.format} className="mixrow" style={{ ['--h' as string]: hue(l.format) }}>
-          <div className="mixcount"><b>{l.count}</b><span>of {total}</span></div>
+          <div className="mixcount"><b>{l.count}</b><span>{t('of {total}', { total })}</span></div>
           <div className="mixwhat">
             <div className="mixname"><b>{l.format}</b><span className={`lever ${l.lever}`} title={LEVER[l.lever].hint}>{LEVER[l.lever].label}</span></div>
             <p>{l.why}</p>
           </div>
           <div className="mixnums">
-            <YoursTile yours={l.yours} label="not on your account yet" simulated={simulated} />
-            <FigureTile figure={l.field} label="no field figure" />
+            <YoursTile yours={l.yours} label={t('not on your account yet')} simulated={simulated} />
+            <FigureTile figure={l.field} label={t('no field figure')} />
           </div>
         </div>
       ))}
@@ -132,11 +133,11 @@ export function CadenceDots({ plan }: { plan: Plan }) {
   while (queues.some(q => q.length)) for (const q of queues) { const f = q.shift(); if (f) byWeek[w++ % weeks].push(f); }
   if (posts.length === 0) return null;
   return (
-    <div className="cadence" role="img" aria-label={`${posts.length} posts over ${weeks} weeks`}>
+    <div className="cadence" role="img" aria-label={t('{n} posts over {w} weeks', { n: posts.length, w: weeks })}>
       {byWeek.map((fs, i) => (
-        <div key={i} className="week"><small>Week {i + 1}</small><span className="dots-row">{fs.map((f, k) => <i key={k} style={{ ['--h' as string]: hue(f) }} title={f} />)}{fs.length === 0 && <em>–</em>}</span></div>
+        <div key={i} className="week"><small>{t('Week {n}', { n: i + 1 })}</small><span className="dots-row">{fs.map((f, k) => <i key={k} style={{ ['--h' as string]: hue(f) }} title={f} />)}{fs.length === 0 && <em>–</em>}</span></div>
       ))}
-      <p className="hint small">{posts.length} posts over {weeks} weeks, about {Math.round((posts.length / weeks) * 10) / 10} a week. One way to spread them; the dates are set when you accept each idea.</p>
+      <p className="hint small">{t('{n} posts over {w} weeks, about {r} a week. One way to spread them; the dates are set when you accept each idea.', { n: posts.length, w: weeks, r: num(Math.round((posts.length / weeks) * 10) / 10) })}</p>
     </div>
   );
 }
@@ -145,7 +146,7 @@ export function CadenceDots({ plan }: { plan: Plan }) {
 export function StrengthChart({ rows }: { rows: Array<{ format: string; strength?: number; figure?: Figure }> }) {
   const sorted = [...rows].sort((a, b) => (b.strength ?? 3) - (a.strength ?? 3));
   return (
-    <div className="bars strength" role="img" aria-label="Formats ranked by strength in the field">
+    <div className="bars strength" role="img" aria-label={t('Formats ranked by strength in the field')}>
       {sorted.map(r => (
         <div key={r.format} className="barrow" style={{ ['--h' as string]: hue(r.format) }}>
           <span>{r.format}</span>
@@ -153,7 +154,7 @@ export function StrengthChart({ rows }: { rows: Array<{ format: string; strength
           <b>{hasFigure(r.figure) ? `${num(r.figure.value)}${r.figure.unit.trim().startsWith('%') ? '%' : ''}` : `${r.strength ?? 3}/5`}</b>
         </div>
       ))}
-      <span className="hint small">Bar: strength out of 5 as the Scout rated it. Number: the measured figure when one was found, else the rating.</span>
+      <span className="hint small">{t('Bar: strength out of 5 as the Scout rated it. Number: the measured figure when one was found, else the rating.')}</span>
     </div>
   );
 }

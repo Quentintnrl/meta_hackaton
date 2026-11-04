@@ -1,12 +1,13 @@
 import type { AgentId, TeamView } from '../api';
+import { t } from '../i18n';
 import { AGENT_HUE, ago } from './shared';
 
 // What each agent does, in the manager's words. Read on the Team page, the agent pages and the brief.
 export const ABOUT: Record<Exclude<AgentId, 'director'>, { does: string; workers: string; ideas: string[]; starters: string[] }> = {
-  scout: { does: 'Searches the web for what works in your field.', workers: 'Each extra researcher takes another angle (formats, hooks and topics, what flops) at the same time.', ideas: ['Only look at video formats', 'Ignore big brands, focus on solo developers', 'Always cite recent examples'], starters: ['What did you find?', 'Look only at video formats from now on', 'How reliable are your sources?'] },
-  analyst: { does: 'Compares your account with what the Scout found.', workers: 'One analyst is enough: it reads all your posts.', ideas: ['Weigh shares more than likes', 'Compare only the last 3 months', 'Be blunt about what does not work'], starters: ['What is my weakest format?', 'Be blunter in your analysis', 'How do you measure engagement?'] },
-  strategist: { does: 'Reads your roadmap and proposes content, with its evidence.', workers: 'Each extra strategist looks through another lens (roadmap, your account, field trends) and the proposals are merged.', ideas: ['Always propose one video', 'Max 3 proposals at a time', 'Favour posts tied to a milestone'], starters: ['Why these proposals?', 'Propose fewer, better ideas', 'Focus on the beta launch'] },
-  writer: { does: 'Drafts what you accept: caption, hashtags, slides or storyboard.', workers: 'Extra writers draft several accepted pieces at the same time.', ideas: ['Shorter captions, max 3 hashtags', 'Always end with a question', 'More humour, fewer adjectives'], starters: ['Write shorter captions from now on', 'Always end with a question', 'What do you draft first?'] },
+  scout: { does: t('Searches the web for what works in your field.'), workers: t('Each extra researcher takes another angle (formats, hooks and topics, what flops) at the same time.'), ideas: [t('Only look at video formats'), t('Ignore big brands, focus on solo developers'), t('Always cite recent examples')], starters: [t('What did you find?'), t('Look only at video formats from now on'), t('How reliable are your sources?')] },
+  analyst: { does: t('Compares your account with what the Scout found.'), workers: t('One analyst is enough: it reads all your posts.'), ideas: [t('Weigh shares more than likes'), t('Compare only the last 3 months'), t('Be blunt about what does not work')], starters: [t('What is my weakest format?'), t('Be blunter in your analysis'), t('How do you measure engagement?')] },
+  strategist: { does: t('Reads your roadmap and proposes content, with its evidence.'), workers: t('Each extra strategist looks through another lens (roadmap, your account, field trends) and the proposals are merged.'), ideas: [t('Always propose one video'), t('Max 3 proposals at a time'), t('Favour posts tied to a milestone')], starters: [t('Why these proposals?'), t('Propose fewer, better ideas'), t('Focus on the beta launch')] },
+  writer: { does: t('Drafts what you accept: caption, hashtags, slides or storyboard.'), workers: t('Extra writers draft several accepted pieces at the same time.'), ideas: [t('Shorter captions, max 3 hashtags'), t('Always end with a question'), t('More humour, fewer adjectives')], starters: [t('Write shorter captions from now on'), t('Always end with a question'), t('What do you draft first?')] },
 };
 
 
@@ -39,9 +40,9 @@ export function Avatar({ id, state, size = 40 }: { id: AgentId; state: AgentStat
 export function TeamPulse({ team, onOpen }: { team: TeamView; onOpen: () => void }) {
   const w = team.working && team.agents.find(a => a.id === team.working!.agent);
   return (
-    <button className="pulse" onClick={onOpen} title="Open the team">
+    <button className="pulse" onClick={onOpen} title={t('Open the team')}>
       <span className="stack-av">{team.agents.map(a => <Avatar key={a.id} id={a.id} state={agentState(team, a.id)} size={26} />)}</span>
-      <span className="pulse-text">{w ? `${w.name} is working…` : 'Team is idle'}</span>
+      <span className="pulse-text">{w ? t('{name} is working…', { name: w.name }) : t('Team is idle')}</span>
     </button>
   );
 }
@@ -53,15 +54,15 @@ export function TeamLog({ team, n = 4, onOpen, title }: { team: TeamView; n?: nu
   const lines = team.activity.slice(0, n);
   return (
     <section className="card tlog" aria-live="polite">
-      <div className="head"><h3>{title ?? 'The team right now'}</h3><span className="hint small">{w ? 'Working' : lines[0] ? `Last activity ${ago(lines[0].at)}` : 'Idle'}</span></div>
-      {w && <div className="tl-line working"><Avatar id={w.id} state="working" size={30} /><span><b>{w.name}</b> is working<span className="typing"><i /><i /><i /></span><small>since {ago(team.working!.since)}</small></span></div>}
+      <div className="head"><h3>{title ?? t('The team right now')}</h3><span className="hint small">{w ? t('Working') : lines[0] ? t('Last activity {ago}', { ago: ago(lines[0].at) }) : t('Idle')}</span></div>
+      {w && <div className="tl-line working"><Avatar id={w.id} state="working" size={30} /><span><b>{w.name}</b> {t('is working')}<span className="typing"><i /><i /><i /></span><small>{t('since {ago}', { ago: ago(team.working!.since) })}</small></span></div>}
       {lines.map(a => { const who = team.agents.find(x => x.id === a.agent); return (
         <button key={a.id} className={`tl-line ${a.ok ? '' : 'failed'}`} onClick={() => onOpen(a.agent)}>
           <Avatar id={a.agent} state={a.ok ? 'idle' : 'failed'} size={30} />
-          <span><b>{who?.name ?? a.agent}</b> {a.summary}<small>{ago(a.at)}{a.ok ? '' : ' · failed'}</small></span>
+          <span><b>{who?.name ?? a.agent}</b> {a.summary}<small>{ago(a.at)}{a.ok ? '' : ` · ${t('failed')}`}</small></span>
         </button>
       ); })}
-      {!w && lines.length === 0 && <p className="hint">The team has not worked yet. Brief it and its work shows up here, line by line.</p>}
+      {!w && lines.length === 0 && <p className="hint">{t('The team has not worked yet. Brief it and its work shows up here, line by line.')}</p>}
     </section>
   );
 }
