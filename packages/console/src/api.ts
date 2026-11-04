@@ -156,7 +156,7 @@ export interface PlanLine { format: string; count: number; lever: PlanLever; why
 export interface Plan { period: string; headline: string; mix: PlanLine[]; cadence: string; next: string; basis: { posts: number; audited: boolean } }
 export interface Audit { summary: string; whatWorks: Array<{ format: string; why: string; example: string; strength?: number; figure?: Figure; exampleUrl?: string; exampleFigure?: string }>; hooks: string[]; topics: string[]; avoid: string[]; misses?: Array<{ format: string; why: string; example: string }>; benchmarks?: Benchmark[]; sources: string[] }
 export interface VerdictPost { text: string; format: string; engagement: number; note: string }
-export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[]; fixes?: Fix[]; readings?: Reading[] }
+export interface AccountReport { summary: string; strengths: string[]; gaps: string[]; opportunities: string[]; stats: Array<{ format: string; posts: number; avgEngagement: number }>; postCount: number; winners?: VerdictPost[]; losers?: VerdictPost[]; fixes?: Fix[]; readings?: Reading[]; trail?: string[] }
 export interface Reading { fact: 'pace' | 'trend' | 'question' | 'length' | 'weekday' | 'words' | 'reach' | 'hooks'; meaning: string; action: string }
 export interface Fix { problem: string; fix: string; firstStep: string }
 export interface Group { n: number; avg: number }
@@ -187,7 +187,7 @@ export interface TeamView {
   config: Record<AgentId, AgentConfig>; synthesis?: Report<Synthesis>; plan?: Report<Plan>;
   posts: Array<{ text: string; format: string; engagement: number; postedAt: string }>;
   audit?: Report<Audit>; audits?: Array<Report<Audit>>; account?: Report<AccountReport>; accountPosts: number; facts: Facts | null;
-  watch?: Report<Watch>; snapshots: Snapshot[]; duty: { autopilot: boolean; lastPass?: string }; connected: { instagram: boolean };
+  watch?: Report<Watch>; proposals?: Report<{ trail: string[]; made: number }>; snapshots: Snapshot[]; duty: { autopilot: boolean; lastPass?: string }; connected: { instagram: boolean };
   activity: Array<{ id: number; agent: AgentId; summary: string; ok: boolean; at: string }>;
 }
 

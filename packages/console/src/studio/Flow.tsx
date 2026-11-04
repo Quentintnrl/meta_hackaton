@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { contentApi, teamApi, type AgentId, type ContentItem, type ContentView, type ItemStatus, type TeamView } from '../api';
-import { KIND_HUE, KindChip, ago, fmt, useAction } from './shared';
+import { KIND_HUE, KindChip, Trail, ago, fmt, useAction } from './shared';
 import { Brief } from './NextView';
 import { Checkpoints } from './Chain';
 import { Avatar } from './Agents';
@@ -62,6 +62,7 @@ export function FlowBoard({ pid, team, view, reload, open, askAgent, since = '' 
               <p className="hint small">{lane.who}{lane.status === 'briefed' && writing ? ' · writing now' : ''}</p>
             </header>
             <div className="stage-body">
+              {lane.status === 'idea' && <Trail who="Strategist" lines={team.proposals?.data.trail} summary={team.proposals ? `what it read before proposing, ${ago(team.proposals.at)}` : undefined} />}
               {lane.items.length === 0 && <p className="stage-empty">{lane.empty}</p>}
               {lane.items.map(i => <ThreadCard key={i.id} item={i} view={view} reload={reload} open={open} askAgent={askAgent} writing={writing} fresh={i.status === 'idea' && i.createdAt > since} />)}
               {lane.status === 'idea' && refused.length > 0 && (

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { teamApi, type AgentId, type ContentView, type TeamView } from '../api';
-import { AGENT_HUE, ago, useAction } from './shared';
+import { AGENT_HUE, Trail, ago, useAction } from './shared';
 import { ABOUT, Avatar, agentState } from './Agents';
 export { ABOUT };
 import { TeamChat, type Subject } from './Chat';
@@ -46,6 +46,7 @@ export function AgentPage({ pid, agent, team, view, reload, go, subject, onClear
         <section className="card">
           <h3>Last result</h3>
           {result || <p className="hint">Nothing yet. Run {info.name} to see its work here.</p>}
+          <Trail who={info.name} lines={{ scout: team.watch?.data.trail, analyst: team.account?.data.trail, strategist: team.proposals?.data.trail, writer: undefined }[agent]} />
         </section>
       </div>
 

@@ -4,7 +4,7 @@ import { defaultAutonomy } from '@ripple/shared';
 import type { Journal } from '../journal.ts';
 import type { ProjectStore } from '../projects.ts';
 import type { ContentStore } from '../content/store.ts';
-import { DUTY_LINE, formatStats } from '../content/team.ts';
+import { DUTY_LINE, analystTrail, formatStats, strategistTrail, type AccountReport, type Audit } from '../content/team.ts';
 import { readFileSync } from 'node:fs';
 import { addDays, day, type AccountPost, type Item, type ItemKind, type Media } from '../content/types.ts';
 
@@ -91,7 +91,9 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   s.setAccount(P, all);
   s.snapshot(P, { at: at(0), platform: 'instagram', followers: ACCOUNT.instagram.followers, posts: posts.length }); // read on the public page the same day
   s.snapshot(P, { at: at(0), platform: 'linkedin', followers: ACCOUNT.linkedin.followers, posts: linkedin.length }); // read in the page admin the same day
-  s.addReport(P, 'account', { ...REAL.account, stats: formatStats(all), postCount: all.length }, false, at(-0.02)); // the Analyst's real reading of the 32 posts
+  const auditReport = s.latestReport<Audit>(P, 'audit');
+  const orders = s.profile(P).directives;
+  s.addReport(P, 'account', { ...REAL.account, stats: formatStats(all), postCount: all.length, trail: analystTrail(all, auditReport, orders, '') }, false, at(-0.02)); // the Analyst's real reading of the 32 posts
 
   // --- content, at every stage
   const add = (i: { kind: ItemKind; title: string; brief: string } & Partial<Omit<Item, 'id' | 'projectId' | 'revisions'>>) =>
@@ -107,6 +109,10 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
     const idea = add({ ...rest, origin: 'ai', status: 'idea', createdAt: at(-0.01), ...(milestoneId && offsetDays !== undefined ? { milestoneId: pilot.id, offsetDays } : { fixedDate: fixedDate && fixedDate >= today ? fixedDate : d(5) }) });
     step(idea.id, -0.01, 'proposed', 'strategist', i.rationale.split('\nEvidence: ')[0].replace(/\s+/g, ' ').slice(0, 160));
   }
+  // What the Strategist looked at for those four, counted on the demo's own state.
+  const strategistSaw = strategistTrail({ audit: auditReport, account: s.latestReport<AccountReport>(P, 'account'), milestones: 1, features: 0, commits: 0, planned: 0, posted: 0, refused: 0, brief: '', orders, note: '', workers: 1 });
+  strategistSaw.push(`Proposed ${REAL.ideas.length} piece(s)`);
+  s.addReport(P, 'proposals', { trail: strategistSaw, made: REAL.ideas.length }, false, at(-0.01));
 
   // a carousel, drafted, two pictures generated
   const carousel = add({ kind: 'social-post', title: 'Bêta : ce que vous verrez en premier', brief: 'For the people who signed up: what the first login shows, who to write to, no price.', status: 'drafted', milestoneId: pilot.id, offsetDays: -14, pitch: { hook: 'Dans trois semaines, les premiers bêta testeurs ouvrent Mairie360.', channel: 'Instagram and LinkedIn', measure: 'Replies and sign-ups from the carousel link, compared with the 11 October call' }, rationale: 'The 11 October call for testers got 8 likes and no comment: people liked, nobody wrote. Showing what the first screen looks like gives them something to react to.', source: 'account' });

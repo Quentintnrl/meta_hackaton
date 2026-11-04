@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { contentApi, teamApi, type AccountPost, type AgentId, type ContentItem, type ContentView, type Event, type Find, type Fix, type Player, type Reading, type Strategy, type TeamView } from '../api';
-import { KIND_HUE, KindChip, ago, fmt, useAction } from './shared';
+import { KIND_HUE, KindChip, Trail, ago, fmt, useAction } from './shared';
 import { hue } from './Numbers';
 import { Ahead, Compare, Dots, Strip, Timeline, dateIn, followersIn } from './charts';
 import type { View } from './Studio';
@@ -212,6 +212,7 @@ export function CommunityBoard({ pid, team, reload, go, askAgent }: Common) {
         {fixes.length > 0 ? <div className="fixes">{fixes.map((x, n) => <FixCard key={n} pid={pid} f={x} reload={reload} go={go} />)}</div>
           : <p className="hint small">{report ? 'This reading has no fixes yet: ask the Analyst for a fresh one.' : 'The Analyst has not read the account yet.'} <button className="linkish tight" disabled={busy !== '' || Boolean(team.working)} onClick={() => run('a', () => teamApi.run(pid, ['analyst'], ''))}>{busy ? 'Asking…' : 'Read the account and propose fixes →'}</button></p>}
         {error && <p className="error">{error}</p>}
+        <Trail who="Analyst" lines={report?.data.trail} />
       </section>
       <section className="card">
         <div className="head"><h3>Your most liked posts, and why</h3><span className="hint small">the three posts that drew the most people, with the Analyst's reading of each</span></div>
@@ -265,7 +266,7 @@ export function WatchBoard({ pid, team, view, reload, go }: Common) {
           <Strip players={players} you={you ? { name: 'you', followers: you.followers } : undefined} hue={PLATFORM_HUE.linkedin} />
           <p className="finding">Their LinkedIn followers on a log scale{you ? `, you at ${you.followers}` : ''}. {you ? `The smallest has ${Math.min(...players.map(p => p.followers)).toLocaleString()}: ${Math.round(Math.min(...players.map(p => p.followers)) / Math.max(1, you.followers))} times your audience.` : ''} The point is not to catch them but to take the ground each one leaves open, named on its card below.</p>
         </>}
-        {d.trail && d.trail.length > 0 && <details className="trail"><summary className="hint small">How the Scout worked: {d.trail.filter(t => t.startsWith('Searched')).length} searches, {d.trail.filter(t => t.startsWith('Opened')).length} pages opened and read before writing this</summary><ol>{d.trail.map((t, n) => <li key={n} className={/ → /.test(t) ? 'refused' : ''}>{t}</li>)}</ol></details>}
+        <Trail who="Scout" lines={d.trail} summary={d.trail ? `${d.trail.filter(t => t.startsWith('Searched')).length} searches, ${d.trail.filter(t => t.startsWith('Opened')).length} pages opened and read before writing this` : undefined} />
         <div className="row">{again}{error && <p className="error">{error}</p>}</div>
       </section>
       <section className="card">

@@ -7,7 +7,7 @@ import { loadInstagram, readInstagram, type InstagramConfig } from './instagram.
 import { scoutTools } from './scout-tools.ts';
 import { accountFacts, factsText } from './facts.ts';
 import { CAN, EMPTY_ACTION, ROLE_OF, Reply, actionsFrom, groundFor, routeAgent, type Subject } from './talk.ts';
-import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type ChatMessage, type Figure, type Item, type Milestone, type Plan, type Proof, type SuggestedAction, type Watch } from './types.ts';
+import { ItemKind, MAX_WORKERS, NO_FIGURE, WORKERS, addDays, day, engagement, hasFigure, type AccountPost, type AgentConfig, type AgentId, type ChatMessage, type Figure, type Item, type Milestone, type Plan, type Proof, type ProposalsTrail, type SuggestedAction, type Watch } from './types.ts';
 
 export const AGENTS: Array<{ id: AgentId; name: string; role: string }> = [
   { id: 'director', name: 'Director', role: 'Leads the team and sums up its work' },
@@ -64,7 +64,39 @@ export const AccountAnalysis = z.object({
   })).max(8).default([]), // one reading per computed fact: the drawing shows the number, this says what it means
 });
 export interface FormatStat { format: string; posts: number; avgEngagement: number }
-export type AccountReport = z.infer<typeof AccountAnalysis> & { stats: FormatStat[]; postCount: number };
+export type AccountReport = z.infer<typeof AccountAnalysis> & { stats: FormatStat[]; postCount: number; trail?: string[] };
+
+// --- what an agent looked at, counted by the server before the model is asked: the trace shown under its work.
+// Same words in the seed, so the demo says exactly what a real pass would.
+const ymd = (iso: string) => iso.slice(0, 10);
+export function analystTrail(posts: AccountPost[], audit: { at: string; data: Audit } | undefined, orders: string, note: string): string[] {
+  const dates = posts.map(p => ymd(p.postedAt)).sort();
+  const platforms = [...new Set(posts.map(p => p.platform ?? 'instagram'))].join(' and ');
+  const t = [
+    `Read ${posts.length} posts on ${platforms}, from ${dates[0]} to ${dates.at(-1)}, with their likes, comments, shares and saves as given`,
+    'Computed the facts without the model: pace, drift, questions asked, length, weekday, words of the best posts, silences',
+    audit ? `Took the Scout's field research of ${ymd(audit.at)}: ${audit.data.whatWorks.length} formats that work, ${audit.data.hooks.length} hooks, ${audit.data.topics.length} topics` : 'No field research yet: the account is read on its own',
+  ];
+  if (orders) t.push('Read your standing orders');
+  if (note) t.push('Read what you told the Analyst to do differently');
+  t.push(`Asked the model once, in strict JSON, quoting the ${Math.min(15, posts.length)} most recent posts word for word`);
+  return t;
+}
+export function strategistTrail(x: { audit?: { at: string; data: Audit }; account?: { at: string; data: AccountReport }; milestones: number; features: number; commits: number; planned: number; posted: number; refused: number; brief: string; orders: string; note: string; workers: number }): string[] {
+  const t = [
+    x.audit ? `Took the Scout's field research of ${ymd(x.audit.at)}: ${x.audit.data.whatWorks.length} formats, ${(x.audit.data.benchmarks ?? []).length} benchmarks, ${(x.audit.data.misses ?? []).length} things that flop` : 'No field research yet: proposing from the account and the roadmap only',
+    x.account ? `Took the Analyst's reading of ${ymd(x.account.at)}: ${x.account.data.postCount} posts compared, ${(x.account.data.winners ?? []).length} winners, ${(x.account.data.losers ?? []).length} flops, ${x.account.data.gaps.length} gaps` : 'No account reading yet',
+    `Read the dev roadmap: ${x.milestones} open milestone(s), ${x.features} feature(s), ${x.commits} recent commit(s)`,
+    `Checked what is already planned (${x.planned} piece(s)) so nothing comes twice`,
+    x.posted ? `Read what was posted from here and what it got, ${x.posted} piece(s), against what each promised to count` : 'Nothing posted from here has numbers yet',
+    x.refused ? `Read your ${x.refused} refusal(s) and their reasons: a refused title does not come back` : 'No refusal to learn from yet',
+  ];
+  if (x.brief) t.push(`Read your brief: "${x.brief.slice(0, 80)}"`);
+  if (x.orders) t.push('Read your standing orders');
+  if (x.note) t.push('Read what you told the Strategist to do differently');
+  t.push(x.workers > 1 ? `Asked the model ${x.workers} times in parallel, one lens each (roadmap, account, trends), in strict JSON` : 'Asked the model once, in strict JSON');
+  return t;
+}
 
 const Proposals = z.object({
   proposals: z.array(z.object({
@@ -405,7 +437,9 @@ Then turn the diagnosis into up to 3 fixes. Each names the problem with the numb
 What works in the field: ${audit ? JSON.stringify({ whatWorks: audit.whatWorks, hooks: audit.hooks, topics: audit.topics }) : '(the scout has not reported yet)'}
 ${directives(this.#svc, projectId)}${behaviour(this.#svc, projectId, 'analyst')}`,
       AccountAnalysis, 'account_analysis');
-    const report: AccountReport = { ...a, stats, postCount: posts.length };
+    const auditReport = this.#store.latestReport<Audit>(projectId, 'audit');
+    const trail = analystTrail(posts, auditReport, this.#svc.profile(projectId).directives, this.#store.agentConfig(projectId, 'analyst').instructions);
+    const report: AccountReport = { ...a, stats, postCount: posts.length, trail };
     this.#store.addReport(projectId, 'account', report, posts.every(p => p.simulated), this.#svc.now.toISOString());
     return report;
   }
@@ -486,6 +520,7 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       Proposals, 'proposals');
     // One strategist sees everything; more of them each take a lens, in parallel, and the proposals are merged.
     const workers = Math.min(MAX_WORKERS, Math.max(1, this.#store.agentConfig(projectId, 'strategist').workers));
+    const trail = strategistTrail({ audit, account, milestones: milestones.length, features: features.length, commits: commits.length, planned: live.length, posted: posted.length, refused: rejected.length, brief, orders: svc.profile(projectId).directives, note: this.#store.agentConfig(projectId, 'strategist').instructions, workers });
     const batches = workers === 1 ? [await ask('', '3 to 6')] : await Promise.all(LENSES.slice(0, workers).map(l => ask(l, '2 to 3')));
     const proposals = batches.flatMap(b => b.proposals);
 
@@ -514,6 +549,8 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
       svc.step(item.id, 'proposed', 'strategist', p.rationale.trim().replace(/\s+/g, ' ').slice(0, 160));
       made.push(item);
     }
+    trail.push(`Proposed ${made.length} piece(s)${proposals.length > made.length ? `, dropped ${proposals.length - made.length} whose title was already here or refused` : ''}`);
+    this.#store.addReport(projectId, 'proposals', { trail, made: made.length } satisfies ProposalsTrail, account?.simulated ?? false, svc.now.toISOString());
     return made;
   }
 
@@ -821,6 +858,7 @@ ${context ? `What the manager is looking at right now (they know it, do not repe
       synthesis: this.#store.latestReport<Synthesis>(projectId, 'synthesis'),
       plan: this.#store.latestReport<Plan>(projectId, 'plan'),
       watch: this.#store.latestReport<Watch>(projectId, 'watch'),
+      proposals: this.#store.latestReport<ProposalsTrail>(projectId, 'proposals'),
       snapshots: this.#store.snapshots(projectId),
       connected: this.connected(),
       duty: { autopilot: this.#svc.profile(projectId).autopilot, lastPass: this.#store.activity(projectId, 50).filter(a => a.agent === 'scout' || a.agent === 'analyst').map(a => a.at).sort().at(-1) },

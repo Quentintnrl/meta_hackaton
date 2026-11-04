@@ -47,3 +47,13 @@ export function useAction(after: () => Promise<void> | void) {
   };
   return { busy, error, run };
 }
+
+// How an agent worked: what it read and counted before the model was asked, step by step. Facts from the server, never from the model.
+export function Trail({ who, lines, summary }: { who: string; lines?: string[]; summary?: string }) {
+  if (!lines || lines.length === 0) return null;
+  return (
+    <details className="trail"><summary className="hint small">How the {who} worked: {summary ?? `${lines.length} steps, each one a fact the server counted, nothing invented`}</summary>
+      <ol>{lines.map((t, n) => <li key={n} className={/ → /.test(t) ? 'refused' : ''}>{t}</li>)}</ol>
+    </details>
+  );
+}

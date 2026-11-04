@@ -184,7 +184,7 @@ export interface AccountPost { id?: number; platform?: string; text: string; for
 export interface Series { id: string; projectId: string; name: string; createdAt: string } // a recurring editorial line: a pillar or a series
 export interface ItemLink { parentId: string; childId: string; kind: 'reuse'; createdAt: string } // a piece derived from another: recycle, decline, retry
 export interface Activity { id: number; projectId: string; agent: AgentId; summary: string; ok: boolean; at: string }
-export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | 'synthesis' | 'plan' | 'watch'; data: T; simulated: boolean; at: string }
+export interface Report<T = unknown> { id: number; kind: 'audit' | 'account' | 'synthesis' | 'plan' | 'watch' | 'proposals'; data: T; simulated: boolean; at: string }
 
 // What the Scout saw at comparable players: concrete posts and pages, each with its link, and the market they draw.
 export interface Find { title: string; url: string; account: string; platform: string; whatItIs: string; number: string; whyForYou: string; format: string }
@@ -198,3 +198,6 @@ export interface Watch { market: string; players: Player[]; finds: Find[]; event
 // The size of the audience on one platform at one moment: a trend once there are two.
 export interface Snapshot { at: string; platform: string; followers: number; posts: number }
 export const engagement = (p: Pick<AccountPost, 'likes' | 'comments' | 'shares' | 'saves'>) => p.likes + p.comments * 2 + p.shares * 3 + p.saves * 3;
+
+// What the Strategist looked at before proposing (facts counted by the server, never by the model), and how many pieces came out.
+export interface ProposalsTrail { trail: string[]; made: number }

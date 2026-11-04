@@ -29,7 +29,7 @@ flowchart LR
 | Le rapprochement d'une pièce postée avec le vrai post, et sa lecture une semaine après | Les consignes que tous les agents lisent (« jamais de prix ») |
 | Le plan de formats, réécrit après chaque passage | Stop, à tout moment, pendant un passage |
 
-Rien n'est écrit ni posté sans ton clic. Un passage se coupe d'un bouton, un refus se reprend, chaque pièce garde sa chaîne (qui a fait quoi, quand).
+Rien n'est écrit ni posté sans ton clic. Un passage se coupe d'un bouton, un refus se reprend, chaque pièce garde sa chaîne (qui a fait quoi, quand), et chaque agent laisse sa trace : « How the Scout worked » (recherches, pages ouvertes), « How the Analyst worked » et « How the Strategist worked » (ce qu'ils ont lu avant d'appeler le modèle, compté par le serveur).
 
 ## Comment on se sert de la Meta Model API
 

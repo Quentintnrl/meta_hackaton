@@ -567,3 +567,21 @@ test('a pass the team starts on duty says so first, a pass you ask for does not'
   const mine = svc.store.activity('app', 3).map(a => a.summary);
   assert.ok(mine.every(s => !s.startsWith('On duty')), 'a pass you asked for is not marked on duty');
 });
+
+test('the Analyst and the Strategist leave a trace of what they read, counted by the server', async () => {
+  const { svc, team } = setup();
+  svc.store.setAccount('app', [{ platform: 'instagram', text: 'hello', format: 'tip', likes: 3, comments: 0, shares: 0, saves: 0, postedAt: '2026-10-20', simulated: false }]);
+  svc.setProfile('app', { ...svc.profile('app'), directives: 'Never publish a price.' });
+  assert.ok(team.start('app', 'App', ['scout', 'analyst', 'strategist'], 'more testers'));
+  await wait(team, 'app');
+  const a = svc.store.latestReport<{ trail: string[] }>('app', 'account')!.data.trail;
+  assert.equal(a[0], 'Read 1 posts on instagram, from 2026-10-20 to 2026-10-20, with their likes, comments, shares and saves as given');
+  assert.ok(a.some(l => l.startsWith("Took the Scout's field research of 2026-11-01: 2 formats")), a.join(' | '));
+  assert.ok(a.includes('Read your standing orders'));
+  const p = svc.store.latestReport<{ trail: string[]; made: number }>('app', 'proposals')!.data;
+  assert.equal(p.made, 2);
+  assert.ok(p.trail.some(l => l.startsWith("Took the Analyst's reading of 2026-11-01: 1 posts compared")), p.trail.join(' | '));
+  assert.ok(p.trail.includes('Read your brief: "more testers"'));
+  assert.equal(p.trail.at(-1), 'Proposed 2 piece(s)');
+  assert.ok(new Team(svc).overview('app').proposals, 'the console gets it');
+});
