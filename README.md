@@ -7,6 +7,9 @@ They watch the field, read your numbers, propose, write, then read what it got. 
 
 Docs: [English](docs/DOC.md) · [Français](docs/DOC.fr.md)
 
+> **Built for the Meta Global AI Developer Hackathon (Indie track), November 2026.**
+> My university's final project asks us to produce content, run a market analysis and write a brand strategy for a real product, something none of us had been trained for. Ripple_handoff is my answer: instead of asking a model questions about it, I gave five agents on the Meta Model API the job itself, the way a small agency would do it, and kept for myself the only part that should stay human: deciding. The demo runs on Mairie360, a workspace for small French town halls that I build on the side.
+
 ## Try it in two minutes
 
 ```bash
