@@ -552,3 +552,18 @@ test('Stop aborts the call in flight, skips the agents still to come, and says s
   assert.ok(log.some(l => l.startsWith('director:Pass stopped by you')), log.join(' | '));
   assert.ok(log.every(l => !l.includes('Could not')), 'no failure logged for a stop');
 });
+
+test('a pass the team starts on duty says so first, a pass you ask for does not', async () => {
+  const { svc, team } = setup();
+  svc.store.setAccount('app', [{ platform: 'instagram', text: 'hello', format: 'tip', likes: 3, comments: 0, shares: 0, saves: 0, postedAt: '2026-10-20', simulated: false }]);
+  svc.setProfile('app', { ...svc.profile('app'), autopilot: true });
+  assert.deepEqual(team.duty([{ id: 'app', name: 'App' }]), ['app'], 'on duty, never passed: it starts');
+  await wait(team, 'app');
+  const log = svc.store.activity('app', 20).reverse().map(a => `${a.agent}:${a.summary}`);
+  assert.ok(log[0].startsWith('director:On duty: started this pass on its own'), log.join(' | '));
+  assert.deepEqual(team.duty([{ id: 'app', name: 'App' }]), [], 'passed less than a day ago: it waits');
+  assert.ok(team.start('app', 'App', ['analyst'], ''));
+  await wait(team, 'app');
+  const mine = svc.store.activity('app', 3).map(a => a.summary);
+  assert.ok(mine.every(s => !s.startsWith('On duty')), 'a pass you asked for is not marked on duty');
+});

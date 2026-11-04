@@ -1076,3 +1076,15 @@ a.button { display: inline-block; padding: 8px 14px; border: 1px solid var(--lin
 .pc-chip[draggable="true"] { cursor: grab; } .pc-chip.moving { opacity: .5; }
 .stack-av .avatar svg { width: 16px; height: 16px; }
 .avatar { background: hsl(var(--h) 80% 50% / .2); }
+
+/* What the team did while the manager was away: the first thing on Create. */
+.away { border: 1px solid var(--line); border-radius: 12px; background: var(--panel); padding: 12px 16px 6px; }
+.away header { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 6px; }
+.away header b { font-size: 15px; }
+.away .duty-pill { background: hsl(150 50% 92%); color: hsl(150 45% 25%); font-size: 12px; text-transform: none; letter-spacing: 0; }
+.away .since { color: var(--ink); background: var(--accent-soft); border-radius: 999px; padding: 1px 9px; font-size: 12.5px; white-space: nowrap; margin-left: auto; }
+.away ul { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 18px; }
+.away li { display: flex; gap: 10px; align-items: flex-start; padding: 6px 0; }
+.away li > div { min-width: 0; } .away li b { font-size: 13px; } .away li p { margin: 1px 0 0; font-size: 13.5px; color: var(--muted, #555); line-height: 1.35; }
+.away .avatar { flex: none; margin-top: 2px; }
+@media (prefers-color-scheme: dark) { .away .duty-pill { background: hsl(150 30% 20%); color: hsl(150 50% 75%); } }

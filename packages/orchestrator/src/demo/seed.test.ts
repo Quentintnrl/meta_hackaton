@@ -76,7 +76,8 @@ test('the team overview works with no model at all', () => {
   const { svc } = demo();
   const o = new Team(svc).overview(DEMO_PROJECT);
   assert.ok(o.audit && o.account && o.accountPosts === 32, '27 Instagram posts and 5 LinkedIn posts');
-  assert.equal(o.activity.length, 5, 'the five log lines of the real pass: scout, analyst, strategist, director twice');
+  assert.equal(o.activity.length, 6, 'the real pass, started on duty: the duty line, then scout, analyst, strategist, director twice');
+  assert.ok(o.activity.at(-1)?.summary.startsWith('On duty'), 'the oldest line says the team started on its own');
   assert.ok(o.watch && o.watch.data.finds.length >= 5 && o.watch.data.finds.every(f => f.url.startsWith('http')), 'the watch shows real finds with their links');
   assert.equal(o.snapshots.length, 2, 'one follower count per platform, read the same day');
   assert.equal(o.duty.autopilot, true);

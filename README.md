@@ -1,106 +1,128 @@
 # Ripple_handoff
 
-Équipe d'agents pilotée par le design, pour le Meta Global AI Developer Hackathon (piste Indie).
-Tu relies un cadre Figma à un projet : les agents planifient, construisent, vérifient le résultat contre le cadre,
-puis fusionnent. Conception : [docs/DESIGN.md](docs/DESIGN.md).
+**Cinq agents qui font la communication d'un petit produit, sur la Meta Model API.**
+Ils veillent, lisent tes chiffres, proposent, écrivent, puis relisent ce que ça a donné. Toi, tu dis oui ou non.
 
-L'app de démo, Mealkinator, est un projet séparé dans `../mealkinator`.
+![Meta Model API](https://img.shields.io/badge/Meta_Model_API-Responses-0668E1) ![Node 24](https://img.shields.io/badge/Node-24-339933) ![152 tests](https://img.shields.io/badge/tests-152_verts-2ea44f) ![Meta Global AI Developer Hackathon](https://img.shields.io/badge/hackathon-Indie-8b5cf6)
+
+<p align="center"><img src="docs/create.png" alt="Create : ce que l'équipe a fait pendant ton absence, puis le fil d'un post" width="960"></p>
+
+> Ce que montre l'écran : l'équipe est passée seule pendant la nuit (*on its own, nobody asked*), quatre propositions attendent, et chaque pièce avance sur le fil d'un post avec le seul bouton qu'elle attend.
+
+## La boucle
+
+```mermaid
+flowchart LR
+  S([🔍 Scout<br/>veille le terrain]) --> A([📈 Analyst<br/>lit ton compte])
+  A --> T([🧭 Strategist<br/>propose])
+  T -- tu dis oui --> W([🖋 Writer<br/>écrit, dessine])
+  W -- tu approuves --> P[(posté)]
+  P -- une semaine après --> A
+  D([★ Director<br/>planifie, résume]) -.-> S
+  D -.-> T
+```
+
+| L'équipe fait seule | Tu décides |
+|---|---|
+| Un passage par jour quand elle est *on duty* : recherche web, lecture des posts, propositions | Oui, non, ou « réécris » sur chaque proposition |
+| Les brouillons des pièces acceptées, trois jours avant leur date | Ce qui est approuvé et quand c'est posté |
+| Le rapprochement d'une pièce postée avec le vrai post, et sa lecture une semaine après | Les consignes que tous les agents lisent (« jamais de prix ») |
+| Le plan de formats, réécrit après chaque passage | Stop, à tout moment, pendant un passage |
+
+Rien n'est écrit ni posté sans ton clic. Un passage se coupe d'un bouton, un refus se reprend, chaque pièce garde sa chaîne (qui a fait quoi, quand).
+
+## Comment on se sert de la Meta Model API
+
+| Agent | Appel | Ce qu'on en tire |
+|---|---|---|
+| Scout | **Boucle d'outils** de la Responses API : `search` (recherche ancrée) et `open` (page publique lue en texte), jusqu'à 14 appels, `previous_response_id` | Un passage réel : 45 recherches, 14 pages ouvertes, chiffres et dates lus sur les pages, refus dits tels quels |
+| Analyst, Strategist, Director | **JSON strict** (`muse-spark`), schéma zod côté serveur, chiffres calculés par le serveur jamais par le modèle | Lectures qui ne redisent pas les chiffres, propositions avec leur preuve |
+| Writer | JSON strict + **Muse Image** (`muse-image-1.0`) à ta demande, une image par slide | Post complet : format, texte, hashtags, images |
+| Tous | `AbortSignal` passé à chaque appel | Le bouton Stop coupe l'appel en cours |
+
+La vidéo n'est pas encore ouverte côté Meta : le studio monte un diaporama local des images clés (ffmpeg, aucun token). Dès que l'API l'ouvre, la case est prête.
+
+## Voir tourner en deux minutes
+
+```bash
+export PATH=$HOME/.local/bin:$PATH
+pnpm install
+cp .env.example .env     # mets ta clé MODEL_API_KEY
+pnpm dev:demo            # http://localhost:5190
+```
+
+`dev:demo` remplit `out/demo/` avec le projet **Mairie360 (demo)** : 27 vrais posts Instagram et 5 vrais posts LinkedIn de @mairie360 (relevés le 2 novembre 2026, `packages/orchestrator/src/demo/account.json`), et un vrai passage de l'équipe sauvegardé ce jour-là (`real.json` : audit, veille avec ses liens, lecture, quatre propositions, plan, note). Tout se parcourt **sans appel au modèle** ; *Propose*, *Yes, write it* ou *Generate picture* en feront de vrais, chaque bouton dit sa durée. Il tourne sur d'autres ports (8790, 5190), à côté de ton `pnpm dev` habituel.
+
+## Les pages
+
+| Page | Ce qu'on y fait |
+|---|---|
+| **Create** | Ce que l'équipe a fait pendant ton absence, le brief, puis le fil d'un post en cinq étapes : proposé, en écriture, à relire, prêt, posté. Tri, filtre, refusés à reprendre. La carte « une semaine après » compare promis et obtenu. |
+| **Platforms** | Une carte par réseau : abonnés, rythme réel, semaine en cours contre ton objectif, bouton qui demande au Strategist ce qui manque. Export ZIP des pièces approuvées pour Buffer, Later ou Business Suite. |
+| **Community** | L'histoire du compte dessinée, les silences nommés, et sous chaque dessin la lecture de l'Analyst : la chose à changer, puis ce que le chiffre veut dire. |
+| **Competitors** | Le marché vu par le Scout : une ligne par acteur (qui, comment il communique, ce qu'il te laisse), les dates du public, les posts d'où s'inspirer, et « How the Scout worked ». |
+| **Calendar** | Dates du public et pièces sur les mêmes jours, trois mois. Glisser une pièce sur un jour y verrouille sa date. |
+| **Settings** | Voix, audience, consignes, mode de publication, *Team on duty*, *Writer drafts ahead*. Chaque champ dit quel agent le lit. |
+| **Agents** | Une page par agent : marche/arrêt, ressources en parallèle, comportement avec tes mots, dernier résultat, chat. Le Director est le point d'entrée. |
+
+Dans l'éditeur d'un post : format (image, carrousel, vidéo), texte, hashtags, images générées ou **tes propres photos** (« Use my photo », sans appel modèle), aperçu dans un fil, *Copy caption*, *Mark posted*. Une pièce approuvée est écrite dans `out/content/<projet>/`.
 
 ## Ce que tu dois fournir
 
 Chaque fonctionnalité qui a besoin d'une information de ta part est listée ici. **Quand on en ajoute une, on l'ajoute à cette section.**
 
-### Prérequis sur la machine
-
 | Outil | Pour quoi | Obligatoire |
 |---|---|---|
 | Node 24 | l'orchestrateur (SQLite intégré, TypeScript natif) | oui |
 | pnpm 12 | `corepack enable --install-directory ~/.local/bin`, puis `export PATH=$HOME/.local/bin:$PATH` | oui |
-| git | branches, copies de travail, fusion | oui |
-| [Muse Code](https://dev.meta.ai/docs/muse-code) (`muse` dans le `PATH`) | le Constructeur : écrit la feature sur une branche | oui |
-| Google Chrome | le contrôle visuel capture l'app avec ton Chrome (aucun téléchargement) | pour le contrôle visuel |
-| [GitHub CLI](https://cli.github.com) (`gh auth login`) | créer un dépôt GitHub depuis « From scratch » | seulement si tu coches cette option |
+| git | branches et copies de travail du pipeline dev | oui |
+| ffmpeg (encodeur H.264) | le diaporama local d'un post vidéo : `sudo dnf install ffmpeg` ou `brew install ffmpeg` | pour la vidéo seulement |
+| Google Chrome | le contrôle visuel du pipeline dev | pour le pipeline dev |
+| [Muse Code](https://dev.meta.ai/docs/muse-code) (`muse`), [GitHub CLI](https://cli.github.com) | le pipeline dev (Constructeur, dépôt créé depuis « From scratch ») | pour le pipeline dev |
 
-### Secrets : fichier `.env` à la racine
-
-Copie `.env.example` en `.env` et remplis-le. Le fichier est ignoré par git, ne le commite jamais.
+Secrets dans `.env` à la racine (copie `.env.example`, jamais commité) :
 
 | Variable | Ce que c'est | Où l'obtenir | Obligatoire |
 |---|---|---|---|
-| `MODEL_API_KEY` | clé de la Meta Model API (Muse Spark, SAM 3.1, Muse Image) | [dev.meta.ai](https://dev.meta.ai) | oui |
-| `FIGMA_TOKEN` | jeton d'accès personnel Figma, en lecture | Figma, Settings, Security, Personal access tokens (portée : lecture du contenu des fichiers) | pour lier un cadre Figma à une feature |
-| `INSTAGRAM_USER_ID` | identifiant du compte Instagram professionnel | voir « Compte Instagram lu par l'app » ci-dessous | pour que l'app lise Instagram seule |
-| `INSTAGRAM_ACCESS_TOKEN` | jeton d'accès à l'API Instagram Graph (Meta) | idem | idem |
+| `MODEL_API_KEY` | clé de la Meta Model API (Muse Spark, Muse Image, SAM 3.1) | [dev.meta.ai](https://dev.meta.ai) | oui |
+| `INSTAGRAM_USER_ID`, `INSTAGRAM_ACCESS_TOKEN` | lecture du compte Instagram par l'app (posts, likes, portée, abonnés) | voir ci-dessous | non : sans eux, tu colles tes posts sur *Platforms* |
+| `FIGMA_TOKEN` | jeton Figma en lecture, depuis le compte dédié au hackathon, fichier partagé en lecture seule | Figma, Settings, Security | pour le pipeline dev seulement |
 
-**Vidéo (optionnel).** Meta n'expose pas encore de modèle de génération vidéo sur son API (Muse Video est annoncé, pas appelable). Le Studio monte donc la vidéo d'un post lui-même : bouton *Assemble the video* dans l'éditeur, à partir des images clés (chacune tenue ses secondes, zoom lent, texte incrusté), en MP4 vertical 720×1280. Il tourne en local avec `ffmpeg` : **aucun appel au modèle, donc aucun token** (seules les images clés coûtent, une génération chacune, et seulement à ta demande). Il faut `ffmpeg` avec un encodeur H.264 (`libx264` ou `libopenh264`) : `sudo dnf install ffmpeg` (Fedora, vérifie l'encodeur avec `ffmpeg -encoders | grep 264`) ou `brew install ffmpeg`. Sans lui, le reste fonctionne et le bouton affiche l'erreur.
+`MODEL_API_KEY` est lue au démarrage (relance `pnpm dev` après l'avoir changée). Les jetons Instagram et Figma sont relus à chaque appel. Variables facultatives : `PORT` (8787), `JOURNAL_PATH`, `PROJECTS_PATH`, `CONTENT_PATH` (dans `out/`), `CONTENT_DIR`.
 
-Pour `FIGMA_TOKEN`, utilise le compte Figma **dédié au hackathon** et partage-lui le fichier du projet en **lecture seule** :
-le jeton ne verra que ce fichier. `FIGMA_TOKEN` est relu à chaque appel : pas besoin de redémarrer. Les autres variables (`MODEL_API_KEY`, chemins, port) ne sont lues qu'au démarrage : redémarre `pnpm dev` (Ctrl+C, puis relance) après les avoir changées.
+<details>
+<summary><b>Instagram lu par l'app</b> : obtenir les deux variables</summary>
 
-**Compte Instagram lu par l'app (optionnel).** Avec `INSTAGRAM_USER_ID` et `INSTAGRAM_ACCESS_TOKEN`, l'app lit le compte elle-même : posts, likes, commentaires, enregistrements, partages, portée et abonnés, à chaque passage de l'équipe (et au bouton *Read it now* de la carte Instagram). Sans eux, la carte garde sa zone de collage. Pour les obtenir : 1) le compte Instagram doit être **professionnel** (Créateur ou Entreprise) et **lié à une Page Facebook** (Instagram, Paramètres, Centre de comptes) ; 2) crée une app sur [developers.facebook.com](https://developers.facebook.com), type *Entreprise*, et ajoute-lui le produit *Instagram Graph API* ; 3) dans l'[Explorateur de l'API Graph](https://developers.facebook.com/tools/explorer), choisis ton app, demande les autorisations `instagram_basic`, `instagram_manage_insights`, `pages_show_list`, `pages_read_engagement`, génère un jeton utilisateur ; 4) toujours dans l'explorateur, appelle `me/accounts?fields=instagram_business_account` : le champ `instagram_business_account.id` est ton `INSTAGRAM_USER_ID` ; 5) prolonge le jeton (outil *Débogueur de jeton d'accès*, « Étendre le jeton », 60 jours) et colle-le dans `INSTAGRAM_ACCESS_TOKEN`. Les deux variables sont relues à chaque lecture : pas besoin de redémarrer. Rien n'est scrapé : sans jeton, rien n'est lu.
+1. Le compte Instagram doit être **professionnel** (Créateur ou Entreprise) et **lié à une Page Facebook** (Instagram, Paramètres, Centre de comptes).
+2. Crée une app sur [developers.facebook.com](https://developers.facebook.com), type *Entreprise*, ajoute le produit *Instagram Graph API*.
+3. Dans l'[Explorateur de l'API Graph](https://developers.facebook.com/tools/explorer), choisis ton app, demande `instagram_basic`, `instagram_manage_insights`, `pages_show_list`, `pages_read_engagement`, génère un jeton utilisateur.
+4. Appelle `me/accounts?fields=instagram_business_account` : le champ `instagram_business_account.id` est ton `INSTAGRAM_USER_ID`.
+5. Prolonge le jeton (*Débogueur de jeton d'accès*, « Étendre le jeton », 60 jours) et colle-le dans `INSTAGRAM_ACCESS_TOKEN`.
 
-**Page LinkedIn (export).** LinkedIn n'ouvre pas l'API des pages sans validation de l'app, et le scraping est interdit par ses conditions. Le chemin : administration de la page, *Analyses*, *Contenu*, *Exporter* ; ouvre le fichier, copie la feuille « Mises à jour » (ou « Updates ») et colle-la dans la carte LinkedIn de *Platforms*. Les colonnes sont reconnues en français ou en anglais (titre, date, impressions, réactions, commentaires, republications), lues à l'exact sans appel au modèle.
+Rien n'est scrapé : sans jeton, rien n'est lu. Avec, le compte est relu à chaque passage et au bouton *Read it now*.
+</details>
 
-Variables facultatives : `PORT` (défaut `8787`), `JOURNAL_PATH` (défaut `out/journal.db`), `PROJECTS_PATH` (défaut `out/projects.db`), `CONTENT_PATH` (défaut `out/content.db`, feuille de route et contenu). Les corrections automatiques que tu acceptes (« toujours faire ça ») sont dans `out/autofix.json` ; tu peux les retirer depuis la page du projet.
+<details>
+<summary><b>LinkedIn</b> : l'export de la page</summary>
 
-### Dans l'interface
+LinkedIn n'ouvre pas l'API des pages sans validation de l'app et interdit le scraping. Le chemin : administration de la page, *Analyses*, *Contenu*, *Exporter* ; copie la feuille « Mises à jour » (ou « Updates ») et colle-la dans la carte LinkedIn de *Platforms*. Colonnes reconnues en français ou en anglais, lues à l'exact sans appel au modèle.
+</details>
 
-- **Ajouter un projet** : trois sources.
-  - *From GitHub* : l'URL d'un dépôt (`https://…` ou `git@…`). Il est cloné dans `out/projects/`. Un dépôt privé demande que ta machine puisse déjà le cloner (clé SSH ou `gh auth login`).
-  - *From scratch* : un nom et une description. La création d'un dépôt GitHub est une case à cocher, décochée par défaut.
-  - *Local folder* : le chemin d'un dépôt déjà présent sur ta machine.
-- **Nouvelle feature** : un titre, le **lien du cadre Figma** (clic droit sur le cadre, Copy/Paste as, Copy link to selection) ou des notes, et le niveau d'autonomie. Le cadre doit avoir la taille d'un écran (200 à 3000 px).
-- **Fusion** : le dépôt doit être sur `main` et sans modification en cours. Le push vers GitHub est une case à cocher à chaque fusion, jamais automatique.
-- **Contrôle visuel et « avant / après »** : le projet doit avoir un script `dev` qui démarre un serveur acceptant `--host`, `--port` et `--strictPort` (Vite le fait). L'app est capturée deux fois : sur `main` avant la feature (« avant »), puis sur la branche construite (« après »). Un projet sans ce script n'aura pas de captures, mais la construction continue.
+<details>
+<summary><b>Pipeline dev</b> (masqué de l'interface, intact côté serveur)</summary>
 
-### Jeu de données de démo
+Le projet a d'abord été une équipe de dev pilotée par Figma : un cadre Figma lié à une feature, planification, construction par Muse Code sur une branche, contrôle visuel contre le cadre, fusion. Conception dans [docs/DESIGN.md](docs/DESIGN.md). Les projets se créent *From GitHub*, *From scratch* ou *Local folder* ; le contrôle visuel demande un script `dev` qui accepte `--host`, `--port`, `--strictPort`. Le push vers GitHub reste une case à cocher. Une feature fusionnée crée un brouillon de changelog ; `scripts/content-hook.sh` dans `.git/hooks/post-merge` le fait à chaque merge (`RIPPLE_PROJECT=<id>`).
+</details>
 
-`pnpm dev:demo` remplit `out/demo/` puis lance l'app dessus **sur d'autres ports** (orchestrateur 8790, interface **http://localhost:5190**), donc à côté de ton `pnpm dev` habituel sans l'arrêter (tes vraies données ne sont pas touchées ; relance la commande pour repartir d'un jeu identique, `pnpm seed:demo` seul remplit sans lancer). Il contient le projet « Mairie360 (demo) » : les 27 vrais posts Instagram de @mairie360 (texte, date, likes, relevés le 2 novembre 2026 ; partages et enregistrements absents de la page publique, donc à 0) et les 5 vrais posts de la page LinkedIn (texte, date, réactions, republications et impressions lus dans l'admin de la page le même jour, 8 abonnés), tous deux dans `packages/orchestrator/src/demo/account.json` (rien n'est scrapé au lancement : ce fichier est lu par le seed), et le travail réel de l'équipe produit ce jour-là et sauvegardé dans `packages/orchestrator/src/demo/real.json` : l'audit du terrain et la veille des acteurs comparables (recherche web, 11 trouvailles avec leurs liens, 5 dates), la lecture de l'Analyst, 4 propositions du Strategist, le plan et la note du Director. Seuls les dates de l'objectif et les 4 contenus en cours (carrousel avec 2 images, post approuvé, devlog, lettre) sont écrits à la main. Aucun appel au modèle n'est nécessaire pour le parcourir ; « Brief the team » ou « Generate picture » en feront, eux, de vrais.
-
-### Studio de communication
-
-Chaque projet ouvre directement sur son **studio** : une petite équipe de communication qui travaille en continu, et quatre tableaux pour la suivre. **Create** : ce que l'équipe propose (la situation que la pièce répond, pour qui exactement, la première ligne du post, le canal, pourquoi, et ce qu'on comptera une semaine après), puis chaque pièce acceptée avec ses quatre étapes (acceptée, écrite, approuvée, postée), l'étape en cours allumée et le seul bouton qu'elle attend. **Platforms** : une carte par plateforme (Instagram, LinkedIn…) avec ses abonnés, son rythme réel sur 16 semaines, ce qu'un post y obtient (likes, ou réactions et vues sur LinkedIn), la semaine en cours contre l'objectif que tu fixes (« 2 posts par semaine » : posté, prévu, créneaux à remplir, et un bouton qui demande au Strategist exactement ce qui manque pour cette plateforme avant dimanche), ce qui y est prévu, ce qui y a marché, et le champ pour y coller ses posts ou juste son nombre d'abonnés. **Community** : l'histoire du compte dessinée (chaque post en barre sur l'axe du temps, les silences grisés et nommés, le meilleur post annoté), puis ce que les posts disent, compté sans modèle et dessiné (dérive des likes, poser une question ou non, longueur, jour de la semaine, mots du meilleur tiers, portée contre réactions sur LinkedIn), chaque dessin disant combien de posts sont derrière lui, et sous chacun la lecture de l'Analyst (ce que ce chiffre veut dire pour ce compte, et la chose à changer), écrite à partir des mêmes chiffres ; puis ce que l'Analyst en fait : le silence dit tel quel, le diagnostic de l'Analyst et jusqu'à trois correctifs (problème, solution, premier pas), chacun avec un bouton qui confie le premier pas au Writer ; enfin les trois posts les plus aimés avec la lecture de l'Analyst sur chacun. **Competitors** : le marché tel que le Scout le voit après une recherche web, avec où tu te situes (abonnés LinkedIn des acteurs sur une échelle log, toi marqué) ; une ligne par acteur comparable : qui il est (place dans le marché, taille en chiffres, à qui il parle), comment il communique (rythme, formats, sujets, ton, qui parle, ce qu'il demande au lecteur), et ce qu'il te laisse, avec la leçon pour toi et les posts vus chez lui ; le calendrier de ton public dessiné (les dates du Scout au-dessus de la ligne, tes pièces prévues en dessous, un trou sous une date = un post à prévoir ; chaque date avec ce que les gens y font et quoi poster avant, et un bouton pour planifier le post) ; et les posts d'où s'inspirer, avec l'image de la page, le chiffre, ce qu'on en prendrait et le lien ; « Do our version » confie un brief au Writer. **Calendar** : les dates du public et tes pièces sur les mêmes jours, trois mois à la fois ; en tête, les dates sans rien de prévu autour, avec un bouton qui planifie un post cinq jours avant ; cliquer une pièce l'ouvre, cliquer une date planifie. *Settings* garde la voix, les consignes, le mode de publication et l'interrupteur **Team on duty**, chaque champ disant quel agent le lit et ce qui change : quand il est allumé, l'équipe fait un passage seule environ une fois par jour (veille, compte, propositions seulement si rien n'attend ta décision) ; elle n'écrit ni ne poste jamais sans toi. Les anciennes pages (Today, Calendar, Insights, Team) restent accessibles par URL. Rien de plus à configurer que `MODEL_API_KEY` ; avec le jeton Instagram en plus, la carte Instagram se remplit seule. (Le pipeline dev — features, branches, checks visuels — est masqué de l'interface mais intact côté serveur et dans git.)
-
-**Gérer l'équipe.** Le **Director** est l'agent parent : on lui parle en premier (« que fait-on cette semaine ? »). Il propose quoi lancer ou régler sous forme de boutons (rien ne part sans ton clic), t'envoie vers l'agent concerné quand il faut lui parler directement, et résume le travail de l'équipe après chaque passage (carte *Director's note* dans l'Inbox). Chaque agent a sa page : interrupteur marche/arrêt, **nombre de ressources en parallèle (1 à 3)** (Scout : plusieurs angles de recherche ; Strategist : plusieurs regards roadmap / compte / tendances ; Writer : brouillons en parallèle), **comportement** écrit avec tes mots (injecté dans ses consignes), dernier résultat en chiffres, et chat pour changer son comportement (il propose la nouvelle consigne, tu l'appliques). Plus il y a de ressources, plus il y a d'appels au modèle.
-
-**Des chiffres, pas que du texte.** La page *Insights* met les nombres en premier. Le **plan** du Director : un mix de formats pour les semaines à venir, chaque ligne avec son nombre de pièces, son levier (*Double down*, *Fill the gap*, *Test*, *Keep*), ta moyenne sur ce format (rang parmi tes formats) et le chiffre mesuré dans le terrain, source à l'appui ; il est réécrit à chaque passage de l'équipe, ou à la demande (*Redo the plan*). Le tableau **You vs the field** : ta cadence de publication face au repère du terrain, puis format par format ta moyenne, la mesure du terrain et le levier du plan (unités différentes, dites comme telles). Le Scout cherche des **chiffres mesurés** (taux d'engagement, saves, vues, fréquence de publication, durée idéale) avec leur source et leur période ; quand la recherche n'en donne pas, la fiche dit « no figure found » plutôt qu'inventer. Les exemples ont leur lien, leur propre chiffre (« 12k saves ») et une **vignette** récupérée depuis la page (une fois, en local, sans appel modèle ; adresses publiques seulement). Chaque idée dans *Today* montre **ses chiffres** : où son format se place parmi tes formats (barres) et le chiffre du terrain qu'elle s'appuie dessus — calculés par le serveur à partir des stats, jamais écrits par le modèle.
-
-- **Scout** : veille sur le web ce qui marche dans ton domaine (formats, accroches, sujets), avec les chiffres mesurés et leurs sources, sources à l'appui — et ce qui rate, avec un exemple vu sur le terrain pour chaque flop. Chaque passage est gardé : le journal de veille montre la recherche précédente. Pour la veille des concurrents (page *Competitors*), le Scout travaille **en agent** : la Meta Model API lui donne des outils (`search` : recherche web ancrée ; `open` : ouvrir une page publique et la lire en texte), et il enchaîne lui-même les étapes — trouver les acteurs, ouvrir leur site ou leur page LinkedIn pour lire leur vrai rythme, leurs formats et leur ton, ouvrir la page d'un salon pour confirmer ses dates — jusqu'à 14 appels d'outils par passage, puis répond dans le même JSON strict qu'avant. Ses pas sont gardés (« How the Scout worked » sous le marché : chaque recherche, chaque page ouverte, et celles qui l'ont refusé, LinkedIn souvent). Sans backend à outils, il retombe sur deux recherches et une condensation. Plus d'appels que les autres agents : un passage du Scout coûte quelques minutes et autant d'appels que d'étapes.
-- **Analyst** : compare ton compte à ce que le Scout a trouvé, avec ton podium (3 meilleurs posts) et tes flops (3 plus faibles), chiffres exacts et une ligne d'explication chacun. Il lui faut tes posts : colle-les avec leurs chiffres (espace *Insights*, onglet *Your account*, texte libre ou tableau CSV `text,likes,…` repris à l'exact sans appel au modèle) ou charge le **compte de démo** (posts fictifs, toujours étiquetés « Demo data »). Avec `INSTAGRAM_USER_ID` et `INSTAGRAM_ACCESS_TOKEN` dans `.env`, il lit Instagram tout seul (voir la section Secrets).
-- **Strategist** : lit l'audit, l'analyse de ton compte **et la feuille de route de dev** (jalons, features en cours, derniers commits), puis propose du contenu, chaque proposition avec sa raison (tendance, compte ou roadmap) et sa preuve chiffrée (badge « Proven by »).
-- **Writer** : rédige ce que tu acceptes. Un **post** (post, teaser) est un paquet complet : le **format** (image, carrousel de 3 à 8 images, ou vidéo), la **description**, les **#hashtags**, et un descriptif par image ou par plan. Les images sont générées par Muse Image **à ta demande** (bouton par image, ou « Generate missing pictures » : chaque image est un appel payant, rien n'est dessiné dans ton dos ; une image est gardée tant que son descriptif ne change pas). Pour une **vidéo**, l'équipe écrit le storyboard (plans, durées, voix off) et des images clés ; la vidéo elle-même n'est pas générée, c'est à toi de la tourner ou la monter. L'aperçu montre le rendu dans un fil.
-- **Toi, le manager** : tu briefes l'équipe en une phrase, tu acceptes, acceptes et fais écrire, ou refuses en donnant la raison. Les refus sont relus par le Strategist au tour suivant et un titre refusé ne revient pas. Les *standing orders* (« jamais de prix », « 2 posts par semaine ») sont lus par tous les agents.
-- **Calendrier** (vue mois) et **Roadmap** (frise : ta date, la date projetée, le contenu). La date projetée d'un jalon est calculée à partir du rythme réel, révisée à chaque fusion et chaque jour, et corrigée par l'écart mesuré sur les jalons terminés ; chaque projection est gardée avec une note. Les dates du contenu suivent la projection (badge `+3d`) ; verrouille une date pour la figer.
-- **Dans le flux de dev** : une feature fusionnée met à jour son jalon et crée un brouillon de changelog. « Changelog from git » écrit depuis l'historique ; `scripts/content-hook.sh` copié dans `.git/hooks/post-merge` le fait à chaque merge (exporte `RIPPLE_PROJECT=<id du projet>`).
-- **Après la publication.** Quand le compte est relu (jeton Instagram, export LinkedIn collé), une pièce postée dont les premiers mots se retrouvent dans un vrai post lui est rattachée seule ; sinon la carte « Posted » propose le post le plus proche (même plateforme, trois jours autour) et tu confirmes d'un clic, rien n'est rattaché sur une supposition. La carte montre alors « une semaine après » : likes, commentaires, partages, vues, face à ce que la proposition disait compter ; le Strategist lit ces résultats avant de proposer. Un refus se reprend (« Take it back » dans la liste des refusés), le refus reste dans la chaîne. L'onglet du navigateur affiche le nombre de pièces qui t'attendent et les propositions arrivées depuis ta dernière visite portent un badge « new ».
-- **Stop.** Pendant un passage, la ligne « X is working » porte un bouton **Stop** : l'appel au modèle en cours est interrompu, les agents restants sont sautés, ce qui était déjà enregistré reste. Sur *Create*, le tableau se trie (date, plus récent, canal) et se filtre (type de pièce, canal). Sur *Calendar*, glisser une pièce sur un autre jour y verrouille sa date.
-- **Tes propres photos.** Dans l'éditeur d'un post, « Use my photo » met ta propre image (JPEG, PNG ou WebP, 8 Mo max) sur une slide à la place d'une génération, sans appel au modèle ; le texte incrusté s'affiche dessus dans l'aperçu.
-- **Export pour un planificateur.** Sur *Platforms*, « Export the approved pieces (ZIP) » télécharge un `posts.csv` (date, canal, titre, texte, hashtags, fichiers) et un dossier par pièce avec sa légende et ses images, à charger dans Buffer, Later ou Business Suite. Aucune app Meta requise.
-- Une pièce approuvée est écrite dans `out/content/<projet>/` (texte, hashtags, plans et images copiées à côté). `CONTENT_DIR` change ce dossier. Pour la sortir, « Copy caption » copie le texte exact à coller (description + hashtags), puis « Mark posted » enregistre que tu l'as postée à la main : aucune app Meta requise. Le mode de sortie se règle par projet (réglages du studio) : *local* (à la main, défaut), *assisté* (à la main via un planificateur type Buffer, Later ou Business Suite), *connecté* (publication via l'app Meta configurée, échoue explicitement sinon). Tes chiffres se collent en texte libre ou en tableau CSV (`text,likes,…`, repris à l'exact sans appel au modèle).
-- Pour regarder l'interface sans toucher au serveur déjà lancé : `ORCHESTRATOR_URL=http://localhost:<port> pnpm --filter @ripple/console exec vite --port <autre port>`.
-
-## Lancer
+## Développer
 
 ```bash
-export PATH=$HOME/.local/bin:$PATH
-pnpm install
-pnpm dev          # orchestrateur sur :8787, interface sur http://localhost:5173
-pnpm test
-pnpm typecheck
+pnpm dev          # orchestrateur :8787, interface http://localhost:5173
+pnpm test         # node:test, les deux paquets, ~12 s
+pnpm typecheck    # doit passer avant tout commit
+node scripts/api-smoke.mjs   # vérifie que ta clé Meta répond
 ```
 
-Si tu vois `ENETUNREACH` (IPv6 indisponible), l'orchestrateur est déjà lancé avec `--dns-result-order=ipv4first`.
+Monorepo pnpm : `packages/orchestrator` (Hono, SQLite de Node, zod ; l'équipe dans `src/content/team.ts`, l'adaptateur Meta dans `src/adapters/llm.ts`), `packages/console` (React, Vite ; le studio dans `src/studio/`), `packages/shared`. Les tests sont à côté du source (`*.test.ts`), avec un faux modèle par fichier ; la console n'a pas de harnais de composants, on vérifie sur la démo. Tout ce qui est généré va dans `out/` (ignoré par git). Si tu vois `ENETUNREACH`, l'orchestrateur tourne déjà avec `--dns-result-order=ipv4first`.
 
-`scripts/api-smoke.mjs` vérifie que ta clé Meta marche (`node scripts/api-smoke.mjs`).
-
-## Contribuer : où mettre un test
-
-- Stack de test : `node:test` + `assert/strict`, co-localisé (`*.test.ts` à côté du source), phrases lisibles qui décrivent le comportement. Imports avec extension `.ts`. Faux LLM par fichier (`setup()` en tête de chaque test content/team).
-- Orchestrateur : `pnpm --filter orchestrator test` (~12 s). Les tests lents sont ceux qui creusent git, worktrees et tmp (`builder`, `integrator`, `recovery`, `clone`) : ~200 ms à 8 s chacun, ils font l'essentiel du temps total. Le reste est instantané.
-- Console : `pnpm --filter console test` — uniquement les helpers purs sans React (`route-path.test.ts`, URLs par sous-page). Pas de harnais pour les composants : on vérifie par `pnpm typecheck` + test manuel sur la démo (`http://localhost:5190`, données `simulated`). `src/node-test.d.ts` remplace `@types/node` (store pnpm en lecture seule : aucun paquet ne peut être ajouté).
-- `pnpm test` à la racine lance les deux. `pnpm typecheck` doit passer avant tout commit.
-
-## Où vont les fichiers
-
-Tout ce qui est généré est dans `out/` (ignoré par git) : journal, base des projets, copies de travail des branches
-(`out/worktrees/<projet>/<feature>`), dépôts clonés ou créés (`out/projects/`), captures et rapports du contrôle visuel (`out/visual/`).
+L'app Mealkinator est un projet séparé, dans `../mealkinator`.

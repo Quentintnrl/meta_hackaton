@@ -4,7 +4,7 @@ import { defaultAutonomy } from '@ripple/shared';
 import type { Journal } from '../journal.ts';
 import type { ProjectStore } from '../projects.ts';
 import type { ContentStore } from '../content/store.ts';
-import { formatStats } from '../content/team.ts';
+import { DUTY_LINE, formatStats } from '../content/team.ts';
 import { readFileSync } from 'node:fs';
 import { addDays, day, type AccountPost, type Item, type ItemKind, type Media } from '../content/types.ts';
 
@@ -150,6 +150,8 @@ export function seedDemo(o: { journal: Journal; projects: ProjectStore; content:
   step(letter.id, -0.2, 'accepted', 'you', 'Said yes: the Writer may write it');
 
   // --- what the team did, as it said it: the log lines of the real pass, then its plan and its note
+  // The last pass was the team's own, on duty: the studio opens on work nobody asked for.
+  s.log(P, 'director', DUTY_LINE, true, at(-0.034));
   REAL.activity.forEach((l, n) => s.log(P, l.agent, l.summary, l.ok, at(-0.03 + n * 0.004)));
   s.addReport(P, 'watch', REAL.watch, false, at(-0.028));
   s.addReport(P, 'plan', REAL.plan, false, at(-0.008));

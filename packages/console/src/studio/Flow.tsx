@@ -3,6 +3,7 @@ import { contentApi, teamApi, type AgentId, type ContentItem, type ContentView, 
 import { KIND_HUE, KindChip, ago, fmt, useAction } from './shared';
 import { Brief } from './NextView';
 import { Checkpoints } from './Chain';
+import { Avatar } from './Agents';
 import type { View } from './Studio';
 
 type Props = { pid: string; team: TeamView; view: ContentView; reload: () => Promise<void>; go: (v: View) => void; open: (id: string) => void; askAgent: (agent: AgentId, kind?: 'item' | 'milestone', id?: string) => void; since?: string };
@@ -40,10 +41,12 @@ export function FlowBoard({ pid, team, view, reload, open, askAgent, since = '' 
   const hidden = view.items.filter(i => i.status !== 'rejected' && !keep(i)).length;
   const refused = view.items.filter(i => i.status === 'rejected');
   const writing = team.working?.agent === 'writer';
+  const away = awayRows(team, since);
   return (
     <div className="stack">
+      {away ? <Away team={team} since={since} fresh={fresh} rows={away} askAgent={askAgent} />
+        : note && <p className="note-line"><b>Director, {ago(note.at)}:</b> {note.data.headline} <button className="linkish tight" onClick={() => askAgent('director')}>Ask →</button></p>}
       <Brief pid={pid} team={team} reload={reload} />
-      {note && <p className="note-line"><b>Director, {ago(note.at)}:</b> {note.data.headline}{fresh > 0 && <span className="since">{fresh} new proposal{fresh > 1 ? 's' : ''} since your last visit</span>} <button className="linkish tight" onClick={() => askAgent('director')}>Ask →</button></p>}
 
       <div className="board-tools" role="toolbar" aria-label="Sort and filter">
         <label>Sort <select value={sort} onChange={e => setSort(e.target.value as Sort)}><option value="date">by date</option><option value="newest">newest first</option><option value="channel">by channel</option></select></label>
@@ -71,6 +74,36 @@ export function FlowBoard({ pid, team, view, reload, open, askAgent, since = '' 
         ))}
       </ol>
     </div>
+  );
+}
+
+// What the team did while the manager was away: one line per agent, read from the activity log.
+// Lines newer than the last visit; failing that, the last pass (24 h), so the proof that the team works
+// on its own never disappears from the first screen.
+const ORDER: AgentId[] = ['scout', 'analyst', 'strategist', 'writer', 'director'];
+type AwayRows = { away: boolean; onDuty: boolean; latest: TeamView['activity'] };
+function awayRows(team: TeamView, since: string): AwayRows | null {
+  const ok = team.activity.filter(a => a.ok);
+  const sinceMs = Date.parse(since) || 0;
+  let rows = ok.filter(a => Date.parse(a.at) > sinceMs);
+  const away = rows.length > 0 && sinceMs > 0;
+  if (!rows.length) rows = ok.filter(a => Date.now() - Date.parse(a.at) < 24 * 3_600_000);
+  const onDuty = rows.some(a => a.summary.startsWith('On duty'));
+  const latest = ORDER.flatMap(id => { const a = rows.find(r => r.agent === id && !r.summary.startsWith('On duty')); return a ? [a] : []; });
+  return latest.length ? { away, onDuty, latest } : null;
+}
+function Away({ team, since, fresh, rows: { away, onDuty, latest }, askAgent }: { team: TeamView; since: string; fresh: number; rows: AwayRows; askAgent: Props['askAgent'] }) {
+  const name = (id: AgentId) => team.agents.find(a => a.id === id)?.name ?? id;
+  return (
+    <section className="away" aria-label="What the team did">
+      <header>
+        <b>{away ? 'While you were away' : 'The team\u2019s last pass'}</b>
+        {onDuty && <span className="pill duty-pill" title="The team started this pass on its own, as set in Settings. Nothing was written or posted without you.">on its own, nobody asked</span>}
+        <span className="hint small">{away ? `since ${ago(since)}` : ago(latest[0].at)}</span>
+        {fresh > 0 && <span className="since">{fresh} new proposal{fresh > 1 ? 's' : ''}</span>}
+      </header>
+      <ul>{latest.map(a => <li key={a.id}><Avatar id={a.agent} state="idle" size={26} /><div><b>{name(a.agent)}</b><p>{cap(a.summary, 170)}{a.agent === 'director' && <> <button className="linkish tight" onClick={() => askAgent('director')}>Ask →</button></>}</p></div></li>)}</ul>
+    </section>
   );
 }
 

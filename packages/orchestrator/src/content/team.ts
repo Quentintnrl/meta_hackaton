@@ -239,6 +239,9 @@ function picturesFor(svc: ContentService, projectId: string, about: string): str
 }
 
 // The small communication team. Each agent reads what it needs, writes a report or proposals, and logs what it did.
+// The first line of a pass the team started on its own.
+export const DUTY_LINE = 'On duty: started this pass on its own, nobody asked. Watching the field and your account; nothing is written or posted without you.';
+
 export class Team {
   #svc: ContentService;
   #working = new Map<string, { agent: AgentId; since: string }>();
@@ -372,7 +375,7 @@ ${rules}${behaviour(this.#svc, projectId, 'scout')}`, tools, WatchSchema, 'watch
       const last = this.#store.activity(p.id, 50).filter(a => a.agent === 'scout' || a.agent === 'analyst').map(a => Date.parse(a.at)).sort((a, b) => b - a)[0];
       if (last && this.#svc.now.getTime() - last < every) continue;
       const waiting = this.#store.items(p.id).some(i => i.status === 'idea');
-      if (this.start(p.id, p.name, waiting ? ['scout', 'analyst'] : ['scout', 'analyst', 'strategist'], '')) started.push(p.id);
+      if (this.start(p.id, p.name, waiting ? ['scout', 'analyst'] : ['scout', 'analyst', 'strategist'], '', 'duty')) started.push(p.id);
     }
     return started;
   }
@@ -526,25 +529,28 @@ ${rejected.map(i => `- ${i.title}: "${i.rejectedReason || 'no reason given'}"`).
   }
 
   // --- one run of the whole team, or of one agent. Runs in the background: the console watches `working` and the activity log.
-  start(projectId: string, projectName: string, agents: AgentId[], brief = ''): boolean {
+  // `origin` says who started it: the manager (a brief, a button) or the team itself, on duty.
+  start(projectId: string, projectName: string, agents: AgentId[], brief = '', origin: 'you' | 'duty' = 'you'): boolean {
     if (this.#working.has(projectId)) return false;
     this.#working.set(projectId, { agent: agents[0], since: this.#svc.now.toISOString() }); // the console sees the team busy from the first instant
     this.#runs.set(projectId, new AbortController());
     this.#stopping.delete(projectId);
-    void this.#run(projectId, projectName, agents, brief);
+    void this.#run(projectId, projectName, agents, brief, origin);
     return true;
   }
 
-  async #run(projectId: string, projectName: string, agents: AgentId[], brief: string) {
+  async #run(projectId: string, projectName: string, agents: AgentId[], brief: string, origin: 'you' | 'duty') {
     const store = this.#store;
     const nowIso = () => this.#svc.now.toISOString();
+    // A pass nobody asked for is said as such, first: the proof the team works while the manager is away.
+    if (origin === 'duty') store.log(projectId, 'director', DUTY_LINE, true, nowIso());
     // Say the plan out loud first: who does what, in which order, and what the manager gets.
     const crew = agents.filter(a => a !== 'director');
     if (crew.length) {
       const job: Record<string, string> = { scout: 'researches what works in the field', analyst: 'compares your account with the field', strategist: 'proposes pieces for you to decide on', writer: 'drafts what you accepted' };
       const names: Record<string, string> = Object.fromEntries(AGENTS.map(a => [a.id, a.name]));
       store.addChat(projectId, 'director', 'agent',
-        `Here's what I'm doing${brief ? ` for "${brief}"` : ''}: ${crew.map((a, n) => `${n + 1}. ${names[a]} ${job[a]}`).join(', ')}. You decide at each step; nothing is posted on its own.`, [], nowIso());
+        `Here's what I'm doing${origin === 'duty' ? ' on my own, on duty' : ''}${brief ? ` for "${brief}"` : ''}: ${crew.map((a, n) => `${n + 1}. ${names[a]} ${job[a]}`).join(', ')}. You decide at each step; nothing is posted on its own.`, [], nowIso());
     }
     let ran = 0, failed = 0;
     const step = async (agent: AgentId, fn: () => Promise<string>) => {
