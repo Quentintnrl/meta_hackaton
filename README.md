@@ -1,63 +1,65 @@
 # Ripple_handoff
 
-**Cinq agents qui font la communication d'un petit produit, sur la Meta Model API.**
-Ils veillent, lisent tes chiffres, proposent, écrivent, puis relisent ce que ça a donné. Toi, tu dis oui ou non.
+**Five agents that do the communication of a small product, on the Meta Model API.**
+They watch the field, read your numbers, propose, write, then read what it got. You say yes or no.
 
-![Meta Model API](https://img.shields.io/badge/Meta_Model_API-Responses-0668E1) ![Node 24](https://img.shields.io/badge/Node-24-339933) ![tests](https://img.shields.io/badge/tests-156_verts-2ea44f) ![Meta Global AI Developer Hackathon](https://img.shields.io/badge/hackathon-Indie-8b5cf6)
+![Meta Model API](https://img.shields.io/badge/Meta_Model_API-Responses-0668E1) ![Node 24](https://img.shields.io/badge/Node-24-339933) ![tests](https://img.shields.io/badge/tests-156_green-2ea44f) ![Meta Global AI Developer Hackathon](https://img.shields.io/badge/hackathon-Indie-8b5cf6)
 
-## Tester en deux minutes
+Docs: [English](docs/DOC.md) · [Français](docs/DOC.fr.md)
+
+## Try it in two minutes
 
 ```bash
 export PATH=$HOME/.local/bin:$PATH
 pnpm install
-cp .env.example .env     # mets ta clé MODEL_API_KEY (dev.meta.ai)
-pnpm dev:demo            # ouvre http://localhost:5190
+cp .env.example .env     # put your MODEL_API_KEY (dev.meta.ai)
+pnpm dev:demo            # open http://localhost:5190
 ```
 
-Il faut Node 24 et pnpm 12 (`corepack enable --install-directory ~/.local/bin`). La démo charge le projet **Mairie360 (demo)** : de vrais posts Instagram et LinkedIn, et un vrai passage de l'équipe enregistré. Tout se parcourt **sans appel au modèle** ; les boutons *Propose*, *Yes, write it* et *Generate picture* en font de vrais et disent leur durée. Interface en anglais ou en français (sélecteur en bas à gauche, ou `?lang=fr` dans l'URL).
+You need Node 24 and pnpm 12 (`corepack enable --install-directory ~/.local/bin`). The demo loads the **Mairie360 (demo)** project: real Instagram and LinkedIn posts, and a real pass of the team, recorded. Everything can be explored **without a single model call**; the *Propose*, *Yes, write it* and *Generate picture* buttons make real ones and say how long they take. The interface is in English or French (switch at the bottom left, or `?lang=fr` in the URL).
 
-<p align="center"><img src="docs/create.png" alt="Create : ce que l'équipe a fait pendant ton absence, puis le fil d'un post" width="960"></p>
+<p align="center"><img src="docs/create.png" alt="Create: what the team did while you were away, then the thread of a post" width="960"></p>
 
-## Ce que ça fait
+## What it does
 
 ```mermaid
 flowchart LR
-  S([🔍 Scout<br/>veille le terrain]) --> A([📈 Analyst<br/>lit ton compte])
-  A --> T([🧭 Strategist<br/>propose])
-  T -- tu dis oui --> W([🖋 Writer<br/>écrit, dessine])
-  W -- tu approuves --> P[(posté)]
-  P -- une semaine après --> A
-  D([★ Director<br/>planifie, résume]) -.-> S
+  S([🔍 Scout<br/>watches the field]) --> A([📈 Analyst<br/>reads your account])
+  A --> T([🧭 Strategist<br/>proposes])
+  T -- you say yes --> W([🖋 Writer<br/>writes, draws])
+  W -- you approve --> P[(posted)]
+  P -- a week later --> A
+  D([★ Director<br/>plans, sums up]) -.-> S
   D -.-> T
 ```
 
-- **L'équipe travaille seule** : un passage par jour quand elle est *on duty* (recherche web, lecture des posts, propositions). Le premier écran dit ce qu'elle a fait pendant ton absence.
-- **Tu décides** : oui, non ou « réécris » sur chaque proposition ; rien n'est écrit ni posté sans ton clic ; Stop à tout moment.
-- **Chaque agent laisse sa trace** : ce qu'il a cherché, ouvert ou lu avant d'appeler le modèle, compté par le serveur.
-- **La boucle se referme** : une pièce postée retrouve son vrai post, et une semaine après la carte compare promis et obtenu. Le Strategist lit ça avant de proposer la suite.
+- **The team works on its own**: one pass a day when it is *on duty* (web research, reading the posts, proposals). The first screen says what it did while you were away.
+- **You decide**: yes, no or "rewrite" on every proposal; nothing is written or posted without your click; Stop at any time.
+- **Every agent leaves a trace**: what it searched, opened or read before calling the model, counted by the server.
+- **The loop closes**: a posted piece is matched with the real post, and a week later the card compares what was promised with what it got. The Strategist reads that before proposing the next one.
 
-Côté Meta Model API : boucle d'outils de la Responses API pour le Scout (`search`, `open`), JSON strict validé par zod pour les autres agents, Muse Image pour les visuels, signal d'abandon sur chaque appel. Les chiffres sont calculés par le serveur, jamais par le modèle.
+On the Meta Model API side: the Responses API tool loop for the Scout (`search`, `open`), strict JSON validated with zod for the other agents, Muse Image for the visuals, an abort signal on every call. Numbers are computed by the server, never by the model.
 
-**Tout le détail est dans [docs/DOC.md](docs/DOC.md)** : les pages une par une, l'usage de l'API, la configuration complète, le développement.
+**Everything in detail is in [docs/DOC.md](docs/DOC.md)**: the pages one by one, how the API is used, the full configuration, development.
 
-## Ce que tu dois fournir
+## What you have to provide
 
-| Quoi | Pour quoi | Obligatoire |
+| What | For | Required |
 |---|---|---|
-| `MODEL_API_KEY` dans `.env` | clé de la Meta Model API, [dev.meta.ai](https://dev.meta.ai) | oui |
-| Node 24, pnpm 12, git | l'orchestrateur et l'interface | oui |
-| `INSTAGRAM_USER_ID`, `INSTAGRAM_ACCESS_TOKEN` | l'app lit ton compte Instagram elle-même ([comment](docs/DOC.md#instagram-lu-par-lapp)) | non : sinon tu colles tes posts |
-| ffmpeg (H.264) | le diaporama local d'un post vidéo | pour la vidéo seulement |
-| `FIGMA_TOKEN`, Muse Code, Chrome, GitHub CLI | le pipeline dev, masqué de l'interface ([détail](docs/DOC.md#pipeline-dev)) | non |
+| `MODEL_API_KEY` in `.env` | Meta Model API key, [dev.meta.ai](https://dev.meta.ai) | yes |
+| Node 24, pnpm 12, git | the orchestrator and the interface | yes |
+| `INSTAGRAM_USER_ID`, `INSTAGRAM_ACCESS_TOKEN` | the app reads your Instagram account itself ([how](docs/DOC.md#instagram-read-by-the-app)) | no: otherwise you paste your posts |
+| ffmpeg (H.264) | the local slideshow of a video post | video only |
+| `FIGMA_TOKEN`, Muse Code, Chrome, GitHub CLI | the dev pipeline, hidden from the interface ([detail](docs/DOC.md#dev-pipeline)) | no |
 
-Chaque fonctionnalité qui demande une information de ta part est listée ici et détaillée dans la doc. Quand on en ajoute une, on l'ajoute aux deux.
+Every feature that needs something from you is listed here and detailed in the docs. When one is added, it goes in both.
 
-## Développer
+## Develop
 
 ```bash
-pnpm dev          # orchestrateur :8787, interface http://localhost:5173
-pnpm test         # les deux paquets, ~12 s
-pnpm typecheck    # doit passer avant tout commit
+pnpm dev          # orchestrator on :8787, interface on http://localhost:5173
+pnpm test         # both packages, ~12 s
+pnpm typecheck    # must pass before any commit
 ```
 
-Monorepo pnpm : `packages/orchestrator` (Hono, SQLite, zod), `packages/console` (React, Vite), `packages/shared`. Détails, conventions de test et emplacement des fichiers dans [docs/DOC.md](docs/DOC.md#développer).
+pnpm monorepo: `packages/orchestrator` (Hono, SQLite, zod), `packages/console` (React, Vite), `packages/shared`. Details, test conventions and where files go in [docs/DOC.md](docs/DOC.md#develop).
